@@ -1,0 +1,103 @@
+server:
+  port: 5003
+  mode: release  # debug, release, test
+
+jwt:
+  secret: "your-jwt-secret-key-change-in-production"
+  
+database:
+  host: localhost
+  port: 5432
+  user: your_db_user
+  password: your_db_password
+  dbname: arl_vp3
+  sslmode: disable
+  max_idle_conns: 10
+  max_open_conns: 100
+  
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+  
+scanner:
+  max_concurrent_tasks: 10
+  domain_brute_concurrent: 100
+  port_scan_concurrent: 50
+  site_detect_concurrent: 30
+
+# 安全配置 - 防止SSRF
+security:
+  black_ips:
+    - "127.0.0.0/8"
+    - "10.0.0.0/8"
+    - "172.16.0.0/12"
+    - "192.168.0.0/16"
+    - "169.254.0.0/16"
+  black_domains:
+    - "localhost"
+
+# 第三方API配置（可选）
+integrations:
+  fofa:
+    email: ""
+    key: ""
+  hunter:
+    api_key: ""
+  github:
+    token: ""
+  
+# 消息通知（可选）
+notification:
+  dingding:
+    enabled: false
+    webhook: ""
+  email:
+    enabled: false
+    smtp_server: ""
+    smtp_port: 587
+    smtp_user: ""
+    smtp_password: ""
+    from: ""
+    to: ""
+  timeout: 3600  # seconds
+  max_retries: 3
+  
+  # Port scanning
+  port_scan_timeout: 300
+  port_scan_threads: 100
+  
+  # Domain brute force
+  domain_brute_threads: 50
+  domain_dict_path: "./configs/dicts/domain"
+  
+  # Screenshot
+  screenshot_timeout: 30
+  screenshot_dir: "./data/screenshots"
+  
+  # Results
+  results_dir: "./exports"
+  
+datasource:
+  # Third-party API keys (optional)
+  fofa_email: ""
+  fofa_key: ""
+  hunter_key: ""
+  shodan_key: ""
+  
+nuclei:
+  enabled: false
+  templates_path: "./tools/nuclei/templates"
+  severity: "critical,high,medium"
+  
+webinfohunter:
+  enabled: false
+  bin_path: "./tools/webinfohunter"
+  
+logging:
+  level: info  # debug, info, warn, error
+  file: "./logs/arl.log"
+  max_size: 100  # MB
+  max_backups: 10
+  max_age: 30  # days
