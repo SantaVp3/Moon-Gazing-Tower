@@ -1,0 +1,57 @@
+# Backend (Go)
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/backend/tmp/
+/backend/bin/
+/backend/build/
+/backend/dist/
+vendor/
+
+# Frontend (Node) - 不上传前端代码
+frontend/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+
+# Logs
+logs/
+*.log
+/backend/logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Screenshots and scan results
+screenshots/
+scan_results/
+reports/
+/backend/data/screenshots/
+/backend/exports/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+
+# 配置文件（包含敏感信息）
+/backend/configs/config.yaml
