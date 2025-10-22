@@ -5,7 +5,7 @@
 本项目参考了 [adysec/ARL](https://github.com/adysec/ARL) 的设计思路。
 
 微信沟通群：
-<img width="373" height="397" alt="image" src="https://github.com/user-attachments/assets/3ce1a289-8e4b-468c-913a-9fe845f49d0b" />
+![image](https://github.com/user-attachments/assets/54a3c6c4-dded-4cb7-8dbc-ed69084fa972)
 
 
 ---
