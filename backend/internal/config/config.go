@@ -3,23 +3,36 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/spf13/viper"
 )
 
 // Config 全局配置
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	Redis    RedisConfig
-	Scanner  ScannerConfig
-	Logging  LoggingConfig
+	Server     ServerConfig
+	JWT        JWTConfig
+	Encryption EncryptionConfig
+	Database   DatabaseConfig
+	Redis      RedisConfig
+	Scanner    ScannerConfig
+	Logging    LoggingConfig
 }
 
 // ServerConfig 服务器配置
 type ServerConfig struct {
 	Port string
 	Mode string
+}
+
+// JWTConfig JWT配置
+type JWTConfig struct {
+	Secret string
+}
+
+// EncryptionConfig 加密配置
+type EncryptionConfig struct {
+	Key string
 }
 
 // DatabaseConfig 数据库配置
@@ -87,6 +100,12 @@ func LoadConfig() error {
 			Port: getEnvOrConfig("SERVER_PORT", viper.GetString("server.port")),
 			Mode: getEnvOrConfig("GIN_MODE", viper.GetString("server.mode")),
 		},
+		JWT: JWTConfig{
+			Secret: getEnvOrConfig("JWT_SECRET", viper.GetString("jwt.secret")),
+		},
+		Encryption: EncryptionConfig{
+			Key: getEnvOrConfig("ENCRYPTION_KEY", viper.GetString("encryption.key")),
+		},
 		Database: DatabaseConfig{
 			Host:         getEnvOrConfig("DB_HOST", viper.GetString("database.host")),
 			Port:         getEnvOrConfigInt("DB_PORT", viper.GetInt("database.port")),
@@ -131,6 +150,8 @@ func LoadConfig() error {
 func setDefaults() {
 	viper.SetDefault("server.port", "8080")
 	viper.SetDefault("server.mode", "release")
+	viper.SetDefault("jwt.secret", "arl_vp3_secret_key_change_in_production")
+	viper.SetDefault("encryption.key", "reconmaster-encryption-key-20251")
 	viper.SetDefault("database.host", "localhost")
 	viper.SetDefault("database.port", 5432)
 	viper.SetDefault("database.sslmode", "disable")
@@ -162,7 +183,12 @@ func getEnvOrConfig(envKey, configValue string) string {
 // getEnvOrConfigInt 从环境变量或配置文件获取整数值
 func getEnvOrConfigInt(envKey string, configValue int) int {
 	if value := os.Getenv(envKey); value != "" {
-		return configValue
+		// 尝试将环境变量转换为整数
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
+		// 如果转换失败，使用配置文件的值
+		log.Printf("Warning: Failed to parse env var %s as int, using config value", envKey)
 	}
 	return configValue
 }

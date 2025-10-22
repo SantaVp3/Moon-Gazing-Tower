@@ -2,7 +2,6 @@ package scanner
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/reconmaster/backend/internal/models"
@@ -74,57 +73,18 @@ func (ps *PortScanner) scanWithScanner(ctx *ScanContext, ips []models.IP, ports 
 	if err != nil {
 		return fmt.Errorf("port scan failed: %v", err)
 	}
-	return ps.saveResults(ctx, results, ips, ports, startTime)
+	// 🆕 端口结果已在扫描过程中实时保存，这里只输出统计信息
+	return ps.logScanSummary(ctx, results, ips, ports, startTime)
 }
 
-// saveResults 保存扫描结果到数据库 (提取共用逻辑)
-func (ps *PortScanner) saveResults(ctx *ScanContext, results []*PortScanResult, ips []models.IP, ports []int, startTime time.Time) error {
-	ctx.Logger.Printf("Saving %d open ports to database...", len(results))
-	
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	savedCount := 0
-	semaphore := make(chan struct{}, 20)
-
-	for _, result := range results {
-		wg.Add(1)
-		go func(r *PortScanResult) {
-			defer wg.Done()
-			semaphore <- struct{}{}
-			defer func() { <-semaphore }()
-
-			portModel := &models.Port{
-				TaskID:    ctx.Task.ID,
-				IPAddress: r.IP,
-				Port:      r.Port,
-				Protocol:  r.Protocol,
-				Service:   r.Service,
-				Banner:    r.Banner,
-			}
-
-			if err := ctx.DB.Where("task_id = ? AND ip_address = ? AND port = ?",
-				ctx.Task.ID, r.IP, r.Port).FirstOrCreate(portModel).Error; err != nil {
-				ctx.Logger.Printf("Failed to save port %s:%d: %v", r.IP, r.Port, err)
-				return
-			}
-
-			mu.Lock()
-			savedCount++
-			if savedCount%100 == 0 {
-				ctx.Logger.Printf("Saved %d/%d ports...", savedCount, len(results))
-			}
-			mu.Unlock()
-		}(result)
-	}
-
-	wg.Wait()
-
+// logScanSummary 输出扫描统计信息（结果已在扫描过程中实时保存）
+func (ps *PortScanner) logScanSummary(ctx *ScanContext, results []*PortScanResult, ips []models.IP, ports []int, startTime time.Time) error {
 	elapsed := time.Since(startTime)
 	ctx.Logger.Printf("=== Port Scan Summary ===")
 	ctx.Logger.Printf("Total IPs scanned: %d", len(ips))
 	ctx.Logger.Printf("Total ports checked: %d", len(ips)*len(ports))
 	ctx.Logger.Printf("Open ports found: %d", len(results))
-	ctx.Logger.Printf("Ports saved to database: %d", savedCount)
+	ctx.Logger.Printf("Ports saved to database: %d (real-time)", len(results))
 	ctx.Logger.Printf("Total time elapsed: %v", elapsed)
 
 	return nil
@@ -165,22 +125,22 @@ func generateTop100Ports() []int {
 // generateTop1000Ports 生成TOP1000端口列表
 func generateTop1000Ports() []int {
 	ports := make([]int, 0, 1000)
-	
+
 	// 先添加Top100
 	ports = append(ports, generateTop100Ports()...)
-	
+
 	// 添加1-1024范围内的其他端口
 	commonExclude := make(map[int]bool)
 	for _, p := range ports {
 		commonExclude[p] = true
 	}
-	
+
 	for i := 1; i <= 1024; i++ {
 		if !commonExclude[i] {
 			ports = append(ports, i)
 		}
 	}
-	
+
 	// 添加一些高端口常用服务
 	highPorts := []int{
 		1025, 1026, 1027, 1028, 1029, 1030,
@@ -213,7 +173,7 @@ func generateTop1000Ports() []int {
 		55553, 55554, 60000, 60001, 60010, 60020, 60030,
 		61616, 65535,
 	}
-	
+
 	for _, p := range highPorts {
 		if !commonExclude[p] && p <= 65535 {
 			ports = append(ports, p)
@@ -222,7 +182,7 @@ func generateTop1000Ports() []int {
 			}
 		}
 	}
-	
+
 	return ports
 }
 

@@ -4,6 +4,9 @@ server:
 
 jwt:
   secret: "your-jwt-secret-key-change-in-production"
+
+encryption:
+  key: "your-encryption-key-32-bytes-long"
   
 database:
   host: localhost

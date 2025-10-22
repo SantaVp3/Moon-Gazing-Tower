@@ -51,26 +51,26 @@ func (s *TaskService) CancelTask(taskID string) error {
 // ExecuteTask 执行任务
 func (s *TaskService) ExecuteTask(taskID string) {
 	log.Printf("========== ExecuteTask called for task: %s ==========", taskID)
-	
+
 	// 获取任务
 	var task models.Task
 	if err := database.DB.First(&task, "id = ?", taskID).Error; err != nil {
 		log.Printf("Failed to find task %s: %v", taskID, err)
 		return
 	}
-	
+
 	log.Printf("Task found: ID=%s, Name=%s, Target=%s", task.ID, task.Name, task.Target)
-	log.Printf("Task options: EnablePortScan=%v, PortScanType=%s", 
+	log.Printf("Task options: EnablePortScan=%v, PortScanType=%s",
 		task.Options.EnablePortScan, task.Options.PortScanType)
 
 	// 创建可取消的context
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	// 注册到运行任务列表
 	s.runningTasksMux.Lock()
 	s.runningTasks[taskID] = cancel
 	s.runningTasksMux.Unlock()
-	
+
 	// 任务结束后清理
 	defer func() {
 		s.runningTasksMux.Lock()
@@ -93,7 +93,7 @@ func (s *TaskService) ExecuteTask(taskID string) {
 	// 更新任务状态
 	endTime := time.Now()
 	task.EndedAt = &endTime
-	
+
 	// 检查是否被取消
 	if ctx.Err() == context.Canceled {
 		task.Status = models.TaskStatusCancelled
@@ -116,7 +116,7 @@ func (s *TaskService) ExecuteTask(taskID string) {
 func (s *TaskService) executeScanner(ctx context.Context, task *models.Task) error {
 	// 创建进度通道
 	progressChan := make(chan *scanner.ScanProgress, 100)
-	
+
 	// 如果有WebSocket handler，注册进度通道
 	if s.wsHandler != nil {
 		if wsHandler, ok := s.wsHandler.(interface {
@@ -127,12 +127,12 @@ func (s *TaskService) executeScanner(ctx context.Context, task *models.Task) err
 			defer wsHandler.UnregisterProgressChannel(task.ID)
 		}
 	}
-	
+
 	scanCtx := &scanner.ScanContext{
 		Task:         task,
 		DB:           database.DB,
 		Logger:       log.Default(),
-		Ctx:          ctx, // 传递取消context
+		Ctx:          ctx,          // 传递取消context
 		ProgressChan: progressChan, // 传递进度通道
 	}
 
@@ -340,7 +340,7 @@ func (s *TaskService) executeScanner(ctx context.Context, task *models.Task) err
 // runCustomScript 运行自定义脚本
 func (s *TaskService) runCustomScript(ctx *scanner.ScanContext) error {
 	scriptPath := ctx.Task.Options.CustomScriptPath
-	
+
 	// 直接当作脚本路径处理
 	return s.scanEngine.RunCustomScript(ctx, scriptPath)
 }
@@ -362,7 +362,7 @@ func (s *TaskService) runWebInfoHunter(ctx *scanner.ScanContext) error {
 
 	// 创建WIH扫描器
 	wih := scanner.NewWebInfoHunter("")
-	
+
 	// 执行扫描
 	results, err := wih.Scan(ctx, urls)
 	if err != nil {
@@ -411,4 +411,13 @@ func (s *TaskService) takeScreenshots(ctx *scanner.ScanContext) error {
 // updateProgress 更新任务进度
 func (s *TaskService) updateProgress(task *models.Task, progress int) {
 	database.DB.Model(task).Update("progress", progress)
+
+	// 通过WebSocket推送进度更新
+	if s.wsHandler != nil {
+		if wsHandler, ok := s.wsHandler.(interface {
+			BroadcastProgress(string, int, string)
+		}); ok {
+			wsHandler.BroadcastProgress(task.ID, progress, fmt.Sprintf("Progress: %d%%", progress))
+		}
+	}
 }
