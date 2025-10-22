@@ -92,7 +92,13 @@ database:
 
 server:
   port: 8080
-  
+
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+
 scanner:
   max_concurrent_tasks: 5
   domain_brute_threads: 30
