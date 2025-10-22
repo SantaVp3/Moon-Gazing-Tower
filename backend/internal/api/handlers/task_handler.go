@@ -49,11 +49,11 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 		return
 	}
 
-	// 异步启动任务
-	go h.taskService.ExecuteTask(task.ID)
+	// 🆕 创建任务后不自动启动，等待用户手动启动
+	// 任务状态保持为 pending
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "Task created successfully",
+		"message": "Task created successfully. Please start it manually.",
 		"task":    task,
 	})
 }
@@ -188,6 +188,34 @@ func (h *TaskHandler) CancelTask(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Task cancelled successfully"})
+}
+
+// StartTask 手动启动任务
+func (h *TaskHandler) StartTask(c *gin.Context) {
+	taskID := c.Param("id")
+
+	// 检查任务是否存在
+	var task models.Task
+	if err := database.DB.First(&task, "id = ?", taskID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+		return
+	}
+
+	// 只允许启动 pending 状态的任务
+	if task.Status != models.TaskStatusPending {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("Cannot start task with status: %s. Only pending tasks can be started.", task.Status),
+		})
+		return
+	}
+
+	// 异步启动任务
+	go h.taskService.ExecuteTask(task.ID)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Task started successfully",
+		"task_id": taskID,
+	})
 }
 
 // GetTaskStats 获取任务统计信息

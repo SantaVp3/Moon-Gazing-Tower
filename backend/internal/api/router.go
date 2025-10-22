@@ -66,6 +66,7 @@ func SetupRouter(taskService *services.TaskService) *gin.Engine {
 			tasks.GET("", taskHandler.ListTasks)
 			tasks.GET("/:id", taskHandler.GetTask)
 			tasks.DELETE("/:id", taskHandler.DeleteTask)
+			tasks.POST("/:id/start", taskHandler.StartTask)   // 🆕 手动启动任务
 			tasks.POST("/:id/cancel", taskHandler.CancelTask)
 			tasks.GET("/stats", taskHandler.GetTaskStats)
 		}
