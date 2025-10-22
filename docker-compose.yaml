@@ -1,0 +1,62 @@
+services:
+  backend:
+    image: moon-gazing-tower-backend:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5003:5003"
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - .storage/mysql/data:/app/data
+      - .storage/mysql/logs:/app/logs
+    depends_on:
+      init-admin:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  init-admin:
+    image: moon-gazing-tower-backend:latest
+    command: ["/app/init-admin"]
+    environment:
+      - TZ=Asia/Shanghai
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=arl_vp3
+      - POSTGRES_USER=arl
+      - POSTGRES_PASSWORD=arlpass
+    ports:
+      - "15432:5432"
+    volumes:
+      - .storage/pg/data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U arl -d arl_vp3"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "16379:6379"
+    volumes:
+      - .storage/redis/data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
