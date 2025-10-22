@@ -63,6 +63,7 @@ func SetupRouter(taskService *services.TaskService) *gin.Engine {
 
 		// 资产管理
 		assetHandler := handlers.NewAssetHandler()
+		assetProfileHandler := handlers.NewAssetProfileHandler()
 		assets := v1.Group("/assets")
 		{
 			assets.GET("/domains", assetHandler.ListDomains)
@@ -72,6 +73,26 @@ func SetupRouter(taskService *services.TaskService) *gin.Engine {
 			assets.GET("/urls", assetHandler.ListURLs)
 			assets.GET("/vulnerabilities", assetHandler.ListVulnerabilities)
 			assets.GET("/stats", assetHandler.GetAssetStats)
+			
+			// 资产画像
+			assets.GET("/profile", assetProfileHandler.GetAssetProfile)
+			assets.GET("/relations", assetProfileHandler.GetAssetRelations)
+			assets.GET("/graph", assetProfileHandler.GetAssetGraph)
+			assets.GET("/c-segment", assetProfileHandler.AnalyzeCSegment)
+		}
+		
+		// 资产标签
+		assetTagHandler := handlers.NewAssetTagHandler()
+		tags := v1.Group("/tags")
+		{
+			tags.GET("", assetTagHandler.ListTags)
+			tags.POST("", assetTagHandler.CreateTag)
+			tags.PUT("/:id", assetTagHandler.UpdateTag)
+			tags.DELETE("/:id", assetTagHandler.DeleteTag)
+			tags.GET("/:id/stats", assetTagHandler.GetTagStats)
+			tags.POST("/attach", assetTagHandler.AddAssetTags)
+			tags.GET("/asset", assetTagHandler.GetAssetTags)
+			tags.GET("/search", assetTagHandler.SearchAssetsByTag)
 		}
 
 		// 监控管理

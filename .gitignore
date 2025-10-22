@@ -15,6 +15,10 @@ vendor/
 # Frontend (Node) - 不上传前端代码
 frontend/
 
+# Documentation - 不上传文档
+docs/
+*.md.bak
+
 # IDEs
 .vscode/
 .idea/

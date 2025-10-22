@@ -94,6 +94,8 @@ func autoMigrate() error {
 		&models.GitHubMonitorResult{},
 		&models.ScheduledTask{},
 		&models.ScheduledTaskLog{},
+		&models.AssetTag{},
+		&models.AssetTagRelation{},
 	)
 }
 

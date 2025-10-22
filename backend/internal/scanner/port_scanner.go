@@ -8,10 +8,10 @@ import (
 	"github.com/reconmaster/backend/internal/models"
 )
 
-// PortScanner 端口扫描器 - 使用Go原生实现
+// PortScanner 端口扫描器 - 使用优化的混合扫描策略
 type PortScanner struct {
-	portSets       map[string][]int
-	nativeScanner  *NativePortScanner
+	portSets map[string][]int
+	scanner  *AdvancedPortScanner
 }
 
 // NewPortScanner 创建端口扫描器
@@ -23,10 +23,11 @@ func NewPortScanner() *PortScanner {
 			"top1000": generateTop1000Ports(),
 			"all":     generateAllPorts(),
 		},
-		nativeScanner: NewNativePortScanner(),
+		scanner: NewAdvancedPortScanner(),
 	}
 
-	fmt.Println("✓ Native Go port scanner initialized successfully")
+	fmt.Println("✓ Advanced port scanner initialized successfully")
+	fmt.Println("✓ Features: Real-time progress, optimized scanning, nmap integration")
 
 	return ps
 }
@@ -53,33 +54,42 @@ func (ps *PortScanner) Scan(ctx *ScanContext) error {
 		return fmt.Errorf("unknown port scan type: %s", portScanType)
 	}
 
-	ctx.Logger.Printf("Using native Go scanner for port scanning...")
-	return ps.scanWithNativeScanner(ctx, ips, ports)
-}
-
-// scanWithNativeScanner 使用Go原生扫描器执行端口扫描
-func (ps *PortScanner) scanWithNativeScanner(ctx *ScanContext, ips []models.IP, ports []int) error {
-	startTime := time.Now()
-
-	// 执行扫描
-	results, err := ps.nativeScanner.ScanPorts(ctx, ips, ports)
-	if err != nil {
-		return fmt.Errorf("native scanner failed: %v", err)
+	// 根据端口数量选择扫描模式
+	scanMode := "normal"
+	if len(ports) <= 100 {
+		scanMode = "fast"
+	} else if len(ports) > 1000 {
+		scanMode = "comprehensive"
 	}
 
-	// 保存结果到数据库
+	ctx.Logger.Printf("Starting port scan with mode: %s", scanMode)
+	ps.scanner.SetScanMode(scanMode)
+	return ps.scanWithScanner(ctx, ips, ports)
+}
+
+// scanWithScanner 执行端口扫描
+func (ps *PortScanner) scanWithScanner(ctx *ScanContext, ips []models.IP, ports []int) error {
+	startTime := time.Now()
+	results, err := ps.scanner.ScanWithProgress(ctx, ips, ports)
+	if err != nil {
+		return fmt.Errorf("port scan failed: %v", err)
+	}
+	return ps.saveResults(ctx, results, ips, ports, startTime)
+}
+
+// saveResults 保存扫描结果到数据库 (提取共用逻辑)
+func (ps *PortScanner) saveResults(ctx *ScanContext, results []*PortScanResult, ips []models.IP, ports []int, startTime time.Time) error {
 	ctx.Logger.Printf("Saving %d open ports to database...", len(results))
 	
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	savedCount := 0
-	semaphore := make(chan struct{}, 20) // 限制数据库并发写入
+	semaphore := make(chan struct{}, 20)
 
 	for _, result := range results {
 		wg.Add(1)
 		go func(r *PortScanResult) {
 			defer wg.Done()
-			
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
@@ -92,7 +102,6 @@ func (ps *PortScanner) scanWithNativeScanner(ctx *ScanContext, ips []models.IP, 
 				Banner:    r.Banner,
 			}
 
-			// 使用FirstOrCreate避免重复
 			if err := ctx.DB.Where("task_id = ? AND ip_address = ? AND port = ?",
 				ctx.Task.ID, r.IP, r.Port).FirstOrCreate(portModel).Error; err != nil {
 				ctx.Logger.Printf("Failed to save port %s:%d: %v", r.IP, r.Port, err)
