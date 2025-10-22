@@ -69,6 +69,11 @@ func Initialize(config Config) error {
 
 // autoMigrate 自动迁移数据库表
 func autoMigrate() error {
+	// 执行迁移前的数据清理
+	if err := migrateOldFingerprints(); err != nil {
+		log.Printf("Warning: Failed to migrate old fingerprints: %v", err)
+	}
+
 	return DB.AutoMigrate(
 		&models.User{},
 		&models.UserSession{},
@@ -190,6 +195,49 @@ func countFileLines(filePath string) int {
 	}
 	
 	return lineCount
+}
+
+// migrateOldFingerprints 迁移旧的指纹数据
+func migrateOldFingerprints() error {
+	// 检查表是否存在
+	if !DB.Migrator().HasTable(&models.Fingerprint{}) {
+		log.Println("Fingerprints table does not exist yet, skipping migration")
+		return nil
+	}
+
+	// 检查是否有旧字段 rule_type 和 rule_content
+	hasOldFields := DB.Migrator().HasColumn(&models.Fingerprint{}, "rule_type") ||
+		DB.Migrator().HasColumn(&models.Fingerprint{}, "rule_content")
+
+	if !hasOldFields {
+		log.Println("Old fingerprint fields not found, skipping migration")
+		return nil
+	}
+
+	log.Println("Detected old fingerprint schema, performing migration...")
+
+	// 删除所有旧指纹数据（因为格式不兼容）
+	result := DB.Exec("DELETE FROM fingerprints")
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete old fingerprints: %v", result.Error)
+	}
+
+	log.Printf("Deleted %d old fingerprint records", result.RowsAffected)
+
+	// 删除旧字段
+	oldColumns := []string{"rule_type", "rule_content", "confidence"}
+	for _, col := range oldColumns {
+		if DB.Migrator().HasColumn(&models.Fingerprint{}, col) {
+			if err := DB.Migrator().DropColumn(&models.Fingerprint{}, col); err != nil {
+				log.Printf("Warning: failed to drop %s column: %v", col, err)
+			} else {
+				log.Printf("Dropped old column: %s", col)
+			}
+		}
+	}
+
+	log.Println("Old fingerprint schema migration completed")
+	return nil
 }
 
 // Close 关闭数据库连接

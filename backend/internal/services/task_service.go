@@ -17,6 +17,7 @@ type TaskService struct {
 	scanEngine      *scanner.Engine
 	runningTasks    map[string]context.CancelFunc
 	runningTasksMux sync.RWMutex
+	wsHandler       interface{} // WebSocket handler (使用interface避免循环依赖)
 }
 
 // NewTaskService 创建任务服务
@@ -25,6 +26,11 @@ func NewTaskService() *TaskService {
 		scanEngine:   scanner.NewEngine(),
 		runningTasks: make(map[string]context.CancelFunc),
 	}
+}
+
+// SetWebSocketHandler 设置WebSocket处理器
+func (s *TaskService) SetWebSocketHandler(handler interface{}) {
+	s.wsHandler = handler
 }
 
 // CancelTask 取消正在运行的任务
@@ -108,11 +114,26 @@ func (s *TaskService) ExecuteTask(taskID string) {
 
 // executeScanner 执行扫描引擎
 func (s *TaskService) executeScanner(ctx context.Context, task *models.Task) error {
+	// 创建进度通道
+	progressChan := make(chan *scanner.ScanProgress, 100)
+	
+	// 如果有WebSocket handler，注册进度通道
+	if s.wsHandler != nil {
+		if wsHandler, ok := s.wsHandler.(interface {
+			RegisterProgressChannel(string, chan *scanner.ScanProgress)
+			UnregisterProgressChannel(string)
+		}); ok {
+			wsHandler.RegisterProgressChannel(task.ID, progressChan)
+			defer wsHandler.UnregisterProgressChannel(task.ID)
+		}
+	}
+	
 	scanCtx := &scanner.ScanContext{
-		Task:   task,
-		DB:     database.DB,
-		Logger: log.Default(),
-		Ctx:    ctx, // 传递取消context
+		Task:         task,
+		DB:           database.DB,
+		Logger:       log.Default(),
+		Ctx:          ctx, // 传递取消context
+		ProgressChan: progressChan, // 传递进度通道
 	}
 
 	// 检查任务是否已被取消的辅助函数

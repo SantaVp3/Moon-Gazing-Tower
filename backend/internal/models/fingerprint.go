@@ -12,9 +12,7 @@ type Fingerprint struct {
 	ID          string         `gorm:"type:varchar(36);primaryKey" json:"id"`
 	Name        string         `gorm:"type:varchar(255);not null;uniqueIndex:idx_fingerprint_unique" json:"name"`
 	Category    string         `gorm:"type:varchar(100);not null;index" json:"category"`
-	RuleType    string         `gorm:"type:varchar(50);not null;uniqueIndex:idx_fingerprint_unique" json:"rule_type"` // body, header, title, favicon, url
-	RuleContent string         `gorm:"type:text;not null;uniqueIndex:idx_fingerprint_unique" json:"rule_content"`
-	Confidence  int            `gorm:"default:80" json:"confidence"` // 0-100
+	DSL         []string       `gorm:"type:text;serializer:json" json:"dsl"` // DSL规则数组（允许空以便迁移）
 	Description string         `gorm:"type:text" json:"description"`
 	IsEnabled   bool           `gorm:"default:true" json:"is_enabled"`
 	CreatedAt   time.Time      `json:"created_at"`

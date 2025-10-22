@@ -24,18 +24,15 @@ func NewFingerprintHandler() *FingerprintHandler {
 
 // CreateFingerprintRequest 创建指纹请求
 type CreateFingerprintRequest struct {
-	Name        string `json:"name" binding:"required"`
-	Category    string `json:"category" binding:"required"`
-	RuleType    string `json:"rule_type" binding:"required"`
-	RuleContent string `json:"rule_content" binding:"required"`
-	Confidence  int    `json:"confidence"`
-	Description string `json:"description"`
+	Name        string   `json:"name" binding:"required"`
+	Category    string   `json:"category" binding:"required"`
+	DSL         []string `json:"dsl" binding:"required"`
+	Description string   `json:"description"`
 }
 
 // ListFingerprints 列出所有指纹
 func (h *FingerprintHandler) ListFingerprints(c *gin.Context) {
 	category := c.Query("category")
-	ruleType := c.Query("rule_type")
 	name := c.Query("name")
 
 	// 分页参数
@@ -56,9 +53,6 @@ func (h *FingerprintHandler) ListFingerprints(c *gin.Context) {
 
 	if category != "" {
 		query = query.Where("category = ?", category)
-	}
-	if ruleType != "" {
-		query = query.Where("rule_type = ?", ruleType)
 	}
 	if name != "" {
 		query = query.Where("name LIKE ?", "%"+name+"%")
@@ -113,30 +107,16 @@ func (h *FingerprintHandler) CreateFingerprint(c *gin.Context) {
 		return
 	}
 
-	// 验证规则类型
-	validRuleTypes := map[string]bool{
-		"body": true, "header": true, "title": true, "favicon": true, "url": true,
-	}
-	if !validRuleTypes[req.RuleType] {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid rule_type"})
-		return
-	}
-
-	// 设置默认可信度
-	if req.Confidence == 0 {
-		req.Confidence = 80
-	}
-	if req.Confidence < 0 || req.Confidence > 100 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Confidence must be between 0 and 100"})
+	// 验证 DSL 规则
+	if len(req.DSL) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "DSL rules cannot be empty"})
 		return
 	}
 
 	fingerprint := &models.Fingerprint{
 		Name:        req.Name,
 		Category:    req.Category,
-		RuleType:    req.RuleType,
-		RuleContent: req.RuleContent,
-		Confidence:  req.Confidence,
+		DSL:         req.DSL,
 		Description: req.Description,
 		IsEnabled:   true,
 	}
@@ -172,26 +152,16 @@ func (h *FingerprintHandler) UpdateFingerprint(c *gin.Context) {
 		return
 	}
 
-	// 验证规则类型
-	validRuleTypes := map[string]bool{
-		"body": true, "header": true, "title": true, "favicon": true, "url": true,
-	}
-	if !validRuleTypes[req.RuleType] {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid rule_type"})
-		return
-	}
-
-	if req.Confidence < 0 || req.Confidence > 100 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Confidence must be between 0 and 100"})
+	// 验证 DSL 规则
+	if len(req.DSL) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "DSL rules cannot be empty"})
 		return
 	}
 
 	// 更新字段
 	fingerprint.Name = req.Name
 	fingerprint.Category = req.Category
-	fingerprint.RuleType = req.RuleType
-	fingerprint.RuleContent = req.RuleContent
-	fingerprint.Confidence = req.Confidence
+	fingerprint.DSL = req.DSL
 	fingerprint.Description = req.Description
 
 	if err := database.DB.Save(&fingerprint).Error; err != nil {
@@ -230,14 +200,9 @@ func (h *FingerprintHandler) BatchCreateFingerprints(c *gin.Context) {
 		fp := models.Fingerprint{
 			Name:        req.Name,
 			Category:    req.Category,
-			RuleType:    req.RuleType,
-			RuleContent: req.RuleContent,
-			Confidence:  req.Confidence,
+			DSL:         req.DSL,
 			Description: req.Description,
 			IsEnabled:   true,
-		}
-		if fp.Confidence == 0 {
-			fp.Confidence = 80
 		}
 		created = append(created, fp)
 	}
@@ -342,18 +307,33 @@ func (h *FingerprintHandler) ImportFingerprints(c *gin.Context) {
 			continue
 		}
 
-		// 将关键词数组转换为 JSON 字符串
-		keywordJSON, err := json.Marshal(item.Keyword)
-		if err != nil {
-			reason := fmt.Sprintf("第%d条：关键词序列化失败 - %v", i+1, err)
+		// 将关键词转换为 DSL 规则
+		dslRules := []string{}
+		for _, keyword := range item.Keyword {
+			// 根据不同的 location 创建相应的 DSL 规则
+			var target string
+			switch item.Location {
+			case "body":
+				target = "body"
+			case "title":
+				target = "title"
+			case "header", "server", "banner":
+				target = "header"
+			default:
+				target = "body"
+			}
+			// 创建 contains 规则
+			dslRule := fmt.Sprintf("contains(%s, '%s')", target, strings.ReplaceAll(keyword, "'", "\\'"))
+			dslRules = append(dslRules, dslRule)
+		}
+
+		if len(dslRules) == 0 {
+			reason := fmt.Sprintf("第%d条：DSL规则为空", i+1)
 			failedReasons = append(failedReasons, reason)
 			fmt.Printf("  -> 跳过: %s\n", reason)
 			failed++
 			continue
 		}
-
-		// 构建规则内容：method:keywords_json
-		ruleContent := fmt.Sprintf("%s:%s", item.Method, string(keywordJSON))
 
 		// 检查是否已存在相同的指纹（根据名称去重）
 		var existingFingerprint models.Fingerprint
@@ -367,14 +347,12 @@ func (h *FingerprintHandler) ImportFingerprints(c *gin.Context) {
 		fingerprint := models.Fingerprint{
 			Name:        item.CMS,
 			Category:    "Web", // 默认分类
-			RuleType:    ruleType,
-			RuleContent: ruleContent,
-			Confidence:  80, // 默认可信度
+			DSL:         dslRules,
 			Description: fmt.Sprintf("Imported from JSON - Method: %s, Location: %s", item.Method, item.Location),
 			IsEnabled:   true,
 		}
 
-		fmt.Printf("  -> 成功创建指纹: %s (RuleContent: %s)\n", fingerprint.Name, fingerprint.RuleContent)
+		fmt.Printf("  -> 成功创建指纹: %s (DSL规则数: %d)\n", fingerprint.Name, len(fingerprint.DSL))
 		created = append(created, fingerprint)
 	}
 

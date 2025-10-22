@@ -1,7 +1,6 @@
 package scanner
 
 import (
-	"encoding/json"
 	"log"
 	"regexp"
 	"strings"
@@ -277,76 +276,90 @@ func MatchFingerprints(headers map[string]string, body, title string) []string {
 
 // matchDatabaseFingerprint 匹配数据库指纹
 func matchDatabaseFingerprint(fp models.Fingerprint, headers map[string]string, body, title string) bool {
-	// 获取要匹配的内容
-	var content string
-	switch fp.RuleType {
-	case "body":
-		content = body
-	case "header":
-		for k, v := range headers {
-			content += k + ": " + v + "\n"
+	// 遍历所有 DSL 规则，任意一个匹配即可
+	for _, dslRule := range fp.DSL {
+		if matchDSLRule(dslRule, headers, body, title) {
+			return true
 		}
-	case "title":
-		content = title
-	case "favicon":
-		// TODO: favicon匹配需要单独处理
-		return false
-	case "url":
-		// URL匹配在这里不适用
-		return false
-	default:
-		return false
 	}
+	return false
+}
 
-	// 解析规则内容: method:keywords_json
-	parts := strings.SplitN(fp.RuleContent, ":", 2)
-	if len(parts) != 2 {
-		// 旧格式，使用正则匹配
-		re, err := regexp.Compile("(?i)" + fp.RuleContent)
-		if err != nil {
-			log.Printf("Invalid regex pattern for fingerprint %s: %v", fp.Name, err)
+// matchDSLRule 匹配单个 DSL 规则
+func matchDSLRule(rule string, headers map[string]string, body, title string) bool {
+	// 解析 DSL 规则，例如: contains(body, 'keyword')
+	rule = strings.TrimSpace(rule)
+	
+	// 提取函数名和参数
+	if strings.HasPrefix(rule, "contains(") && strings.HasSuffix(rule, ")") {
+		// 提取参数: contains(target, 'keyword')
+		params := rule[9 : len(rule)-1] // 去掉 "contains(" 和 ")"
+		parts := parseParams(params)
+		
+		if len(parts) != 2 {
+			log.Printf("Invalid DSL rule format: %s", rule)
 			return false
 		}
-		return re.MatchString(content)
-	}
-
-	method := parts[0]
-	keywordsJSON := parts[1]
-
-	// 解析关键词数组
-	var keywords []string
-	if err := json.Unmarshal([]byte(keywordsJSON), &keywords); err != nil {
-		log.Printf("Failed to parse keywords for fingerprint %s: %v", fp.Name, err)
-		return false
-	}
-
-	// 根据method进行匹配
-	switch method {
-	case "keyword":
-		// 关键词匹配：所有关键词都要匹配
-		for _, keyword := range keywords {
-			if !strings.Contains(strings.ToLower(content), strings.ToLower(keyword)) {
-				return false
+		
+		target := strings.TrimSpace(parts[0])
+		keyword := strings.Trim(strings.TrimSpace(parts[1]), "'\"")
+		
+		// 获取目标内容
+		var content string
+		switch target {
+		case "body":
+			content = body
+		case "title":
+			content = title
+		case "header":
+			for k, v := range headers {
+				content += k + ": " + v + "\n"
+			}
+		default:
+			// 尝试作为具体的 header 字段
+			if headerValue, ok := headers[target]; ok {
+				content = headerValue
 			}
 		}
-		return true
-	case "regex":
-		// 正则匹配：任一正则匹配即可
-		for _, pattern := range keywords {
-			re, err := regexp.Compile("(?i)" + pattern)
-			if err != nil {
-				log.Printf("Invalid regex pattern %s for fingerprint %s: %v", pattern, fp.Name, err)
-				continue
-			}
-			if re.MatchString(content) {
-				return true
-			}
-		}
-		return false
-	default:
-		log.Printf("Unknown matching method %s for fingerprint %s", method, fp.Name)
-		return false
+		
+		// 检查是否包含关键词（不区分大小写）
+		return strings.Contains(strings.ToLower(content), strings.ToLower(keyword))
 	}
+	
+	// 其他 DSL 函数可以在这里扩展
+	log.Printf("Unsupported DSL rule: %s", rule)
+	return false
+}
+
+// parseParams 解析 DSL 参数（处理引号内的逗号）
+func parseParams(params string) []string {
+	var result []string
+	var current strings.Builder
+	inQuotes := false
+	quoteChar := rune(0)
+	
+	for _, ch := range params {
+		if (ch == '\'' || ch == '"') {
+			if inQuotes && ch == quoteChar {
+				inQuotes = false
+			} else if !inQuotes {
+				inQuotes = true
+				quoteChar = ch
+			}
+			current.WriteRune(ch)
+		} else if ch == ',' && !inQuotes {
+			result = append(result, current.String())
+			current.Reset()
+		} else {
+			current.WriteRune(ch)
+		}
+	}
+	
+	if current.Len() > 0 {
+		result = append(result, current.String())
+	}
+	
+	return result
 }
 
 // DetectTechnology 检测技术栈

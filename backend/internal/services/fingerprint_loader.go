@@ -1,12 +1,10 @@
 package services
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/reconmaster/backend/internal/database"
@@ -90,215 +88,73 @@ func (l *FingerprintLoader) importFingerprints(rawData map[string]interface{}) (
 			continue
 		}
 
-		// 解析规则列表
-		rules, ok := value.([]interface{})
+		// 解析指纹对象（包含 dsl 字段）
+		fpData, ok := value.(map[string]interface{})
 		if !ok {
-			// 尝试作为单个规则处理
-			if ruleStr, ok := value.(string); ok {
-				rules = []interface{}{ruleStr}
-			} else {
-				failed++
-				continue
-			}
-		}
-
-		// 为每个规则创建指纹
-		for ruleIdx, rule := range rules {
-			ruleStr, ok := rule.(string)
-			if !ok {
-				failed++
-				continue
-			}
-
-			// 处理复杂规则：拆分 || 连接的规则
-			orRules := l.splitOrRules(ruleStr)
-			
-			for _, singleRule := range orRules {
-				// 解析单个规则
-				fingerprint := l.parseRule(name, singleRule)
-				if fingerprint == nil {
-					// 只在前100次失败时打印详细日志
-					if failed < 100 {
-						fmt.Printf("  解析失败: %s - 规则: %s\n", name, singleRule)
-					}
-					failed++
-					continue
-				}
-
-				// 检查是否已存在（根据名称去重）
-				var existing models.Fingerprint
-				err := database.DB.Where("name = ?", fingerprint.Name).
-					First(&existing).Error
-
-				if err == nil {
-					// 已存在，跳过
-					skipped++
-					continue
-				}
-
-				// 批量插入优化：收集到批次后再插入
-				if err := database.DB.Create(fingerprint).Error; err != nil {
-					// 忽略重复键错误
-					if !strings.Contains(err.Error(), "duplicate") && 
-					   !strings.Contains(err.Error(), "unique constraint") {
-						fmt.Printf("插入指纹失败: %s [规则%d] - %v\n", name, ruleIdx+1, err)
-					}
-					failed++
-					continue
-				}
-
-				imported++
-			}
-		}
-	}
-
-	return
-}
-
-// splitOrRules 拆分 || 连接的规则
-func (l *FingerprintLoader) splitOrRules(rule string) []string {
-	// 简单拆分：按 || 分割，但要注意引号内的内容
-	// 为简化实现，我们只在引号外进行拆分
-	
-	var results []string
-	var current strings.Builder
-	inQuotes := false
-	escapeNext := false
-	
-	runes := []rune(rule)
-	for i := 0; i < len(runes); i++ {
-		r := runes[i]
-		
-		if escapeNext {
-			current.WriteRune(r)
-			escapeNext = false
+			failed++
 			continue
 		}
-		
-		if r == '\\' {
-			current.WriteRune(r)
-			escapeNext = true
+
+		// 获取 dsl 规则数组
+		dslInterface, ok := fpData["dsl"]
+		if !ok {
+			failed++
 			continue
 		}
-		
-		if r == '"' || r == '\'' {
-			current.WriteRune(r)
-			inQuotes = !inQuotes
+
+		dslArray, ok := dslInterface.([]interface{})
+		if !ok {
+			failed++
 			continue
 		}
-		
-		// 检测 ||
-		if !inQuotes && r == '|' && i+1 < len(runes) && runes[i+1] == '|' {
-			// 找到分隔符
-			trimmed := strings.TrimSpace(current.String())
-			if trimmed != "" {
-				results = append(results, trimmed)
+
+		// 转换为字符串数组
+		var dslRules []string
+		for _, item := range dslArray {
+			if str, ok := item.(string); ok {
+				dslRules = append(dslRules, str)
 			}
-			current.Reset()
-			i++ // 跳过第二个 |
+		}
+
+		if len(dslRules) == 0 {
+			failed++
 			continue
 		}
-		
-		current.WriteRune(r)
-	}
-	
-	// 添加最后一部分
-	trimmed := strings.TrimSpace(current.String())
-	if trimmed != "" {
-		results = append(results, trimmed)
-	}
-	
-	// 如果没有找到分隔符，返回原规则
-	if len(results) == 0 {
-		return []string{rule}
-	}
-	
-	return results
-}
 
-// parseRule 解析指纹规则
-func (l *FingerprintLoader) parseRule(name, rule string) *models.Fingerprint {
-	// 清理规则字符串
-	rule = strings.TrimSpace(rule)
-	
-	// 确定规则类型和内容
-	ruleType, method, keywords := l.extractRuleInfo(rule)
-	
-	if ruleType == "" || len(keywords) == 0 {
-		return nil
-	}
+		// 检查是否已存在（根据名称去重）
+		var existing models.Fingerprint
+		err := database.DB.Where("name = ?", name).
+			First(&existing).Error
 
-	// 构建规则内容（JSON格式）
-	keywordsJSON, err := json.Marshal(keywords)
-	if err != nil {
-		return nil
-	}
-	ruleContent := fmt.Sprintf("%s:%s", method, string(keywordsJSON))
+		if err == nil {
+			// 已存在，跳过
+			skipped++
+			continue
+		}
 
-	return &models.Fingerprint{
-		Name:        name,
-		Category:    "Web", // 默认分类
-		RuleType:    ruleType,
-		RuleContent: ruleContent,
-		Confidence:  80, // 默认可信度
-		Description: fmt.Sprintf("Auto-imported from default fingerprint library"),
-		IsEnabled:   true,
-	}
-}
+		// 创建指纹记录
+		fingerprint := &models.Fingerprint{
+			Name:        name,
+			Category:    "Web", // 默认分类
+			DSL:         dslRules,
+			Description: fmt.Sprintf("从默认指纹库导入: %s", name),
+			IsEnabled:   true,
+		}
 
-// extractRuleInfo 提取规则信息
-func (l *FingerprintLoader) extractRuleInfo(rule string) (ruleType, method string, keywords []string) {
-	// 移除首尾的引号（如果有）
-	rule = strings.Trim(rule, "'\"")
-	
-	// 优先级顺序：body > title > header > banner > cert > protocol
-	// 这样可以确保优先使用最特征明显的规则类型
-	
-	priorityPatterns := []struct {
-		name    string
-		pattern *regexp.Regexp
-		ruleType string
-	}{
-		{"title", regexp.MustCompile(`title\s*==?\s*"([^"]+)"`), "title"},
-		{"body", regexp.MustCompile(`body\s*[=~]\s*"([^"]+)"`), "body"},
-		{"header", regexp.MustCompile(`header\s*=\s*"([^"]+)"`), "header"},
-		{"banner", regexp.MustCompile(`banner\s*[=!~]\s*"([^"]+)"`), "header"},
-		{"cert", regexp.MustCompile(`cert\s*=\s*"([^"]+)"`), "header"},
-		{"protocol", regexp.MustCompile(`protocol\s*=\s*"([^"]+)"`), "header"},
-		{"status", regexp.MustCompile(`status\s*=\s*"([^"]+)"`), "header"},
-	}
-
-	// 尝试按优先级匹配
-	for _, p := range priorityPatterns {
-		matches := p.pattern.FindAllStringSubmatch(rule, -1)
-		if len(matches) > 0 {
-			// 找到匹配
-			for _, match := range matches {
-				if len(match) > 1 && match[1] != "" {
-					// 清理关键词中的转义字符
-					keyword := strings.ReplaceAll(match[1], `\"`, `"`)
-					keyword = strings.ReplaceAll(keyword, `\'`, `'`)
-					keywords = append(keywords, keyword)
+		// 插入数据库
+		if err := database.DB.Create(fingerprint).Error; err != nil {
+			// 忽略重复键错误
+			if !strings.Contains(err.Error(), "duplicate") && 
+			   !strings.Contains(err.Error(), "unique constraint") {
+				if failed < 100 {
+					fmt.Printf("插入指纹失败: %s - %v\n", name, err)
 				}
 			}
-			
-			if len(keywords) > 0 {
-				ruleType = p.ruleType
-				method = "keyword"
-				return
-			}
+			failed++
+			continue
 		}
-	}
 
-	// 如果没有找到标准模式，尝试提取任何带引号的内容作为关键词
-	if len(keywords) == 0 {
-		simplePattern := regexp.MustCompile(`"([^"]{3,})"`)
-		matches := simplePattern.FindAllStringSubmatch(rule, -1)
-		if len(matches) > 0 && len(matches[0]) > 1 {
-			keywords = append(keywords, matches[0][1])
-			ruleType = "body" // 默认为 body
-			method = "keyword"
-		}
+		imported++
 	}
 
 	return

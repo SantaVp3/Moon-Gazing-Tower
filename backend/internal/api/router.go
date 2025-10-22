@@ -24,6 +24,12 @@ func SetupRouter(taskService *services.TaskService) *gin.Engine {
 		AllowCredentials: true,
 	}))
 
+	// WebSocket处理器（全局单例）
+	wsHandler := handlers.NewWebSocketHandler()
+	
+	// 将 WebSocket handler 传递给 taskService
+	taskService.SetWebSocketHandler(wsHandler)
+
 	// 健康检查
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
@@ -44,6 +50,9 @@ func SetupRouter(taskService *services.TaskService) *gin.Engine {
 		auth.POST("/login", authHandler.Login)
 		auth.POST("/register", authHandler.Register)
 	}
+
+	// WebSocket endpoint（不需要认证，但需要task_id验证）
+	router.GET("/api/v1/ws/progress", wsHandler.HandleWebSocket)
 
 	// API v1（需要认证）
 	v1 := router.Group("/api/v1")

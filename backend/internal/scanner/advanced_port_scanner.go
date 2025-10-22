@@ -112,7 +112,7 @@ func (aps *AdvancedPortScanner) ScanWithProgress(ctx *ScanContext, ips []models.
 	ctx.Logger.Printf("Timeout: %v", aps.timeout)
 
 	// 发送初始进度
-	aps.sendProgress(ctx.Task.ID, "port_scan", 0, totalScans, 0, 0, startTime, "开始端口扫描...")
+	aps.sendProgress(ctx, 0, totalScans, 0, 0, startTime, "开始端口扫描...")
 
 	var results []*PortScanResult
 	
@@ -135,7 +135,7 @@ func (aps *AdvancedPortScanner) ScanWithProgress(ctx *ScanContext, ips []models.
 	ctx.Logger.Printf("Average speed: %.0f ports/sec", float64(totalScans)/elapsed.Seconds())
 
 	// 发送完成进度
-	aps.sendProgress(ctx.Task.ID, "port_scan", totalScans, totalScans, len(results), 0, startTime, "端口扫描完成")
+	aps.sendProgress(ctx, totalScans, totalScans, len(results), 0, startTime, "端口扫描完成")
 
 	return results, nil
 }
@@ -168,6 +168,12 @@ func (aps *AdvancedPortScanner) scanWithNativeOptimized(ctx *ScanContext, ips []
 	}
 
 	ctx.Logger.Printf("TCP Connect scan: timeout=%v, concurrency=%d", scanTimeout, aps.maxConcurrent)
+
+	// 进度更新频率控制（每50次扫描或每0.5秒更新一次）
+	progressUpdateInterval := 50
+	if totalScans < 1000 {
+		progressUpdateInterval = 10 // 小任务更频繁更新
+	}
 
 	// 按IP并发扫描
 	for _, ip := range ips {
@@ -220,11 +226,16 @@ func (aps *AdvancedPortScanner) scanWithNativeOptimized(ctx *ScanContext, ips []
 				mu.Lock()
 				completed++
 				
-				// 每秒推送一次进度更新
-				if time.Since(lastProgressTime) >= time.Second || completed == totalScans {
+				// 更频繁的进度更新：每N次扫描或每0.5秒更新一次
+				shouldUpdate := (completed % progressUpdateInterval == 0) || 
+								(time.Since(lastProgressTime) >= 500*time.Millisecond) || 
+								(completed == totalScans)
+				
+				if shouldUpdate {
 					openPorts := len(results)
-					aps.sendProgress(ctx.Task.ID, "port_scan", completed, totalScans, 
-						openPorts, 0, startTime, fmt.Sprintf("扫描中... 已发现 %d 个开放端口", openPorts))
+					speed := float64(completed) / time.Since(startTime).Seconds()
+					aps.sendProgress(ctx, completed, totalScans, 
+						openPorts, speed, startTime, fmt.Sprintf("扫描中... 已发现 %d 个开放端口", openPorts))
 					lastProgressTime = time.Now()
 				}
 				mu.Unlock()
@@ -298,8 +309,17 @@ func (aps *AdvancedPortScanner) scanWithNmap(ctx *ScanContext, ips []models.IP, 
 	portRanges := buildPortRanges(ports)
 	ctx.Logger.Printf("Scanning %d IPs, ports: %s", len(ipList), portRanges)
 
-	// 分批扫描 (nmap建议一次不超过100个IP)
-	batchSize := 50
+	// 分批扫描（动态调整批次大小）
+	// 大量IP时使用更小的批次，提供更频繁的进度更新
+	batchSize := 20
+	if len(ipList) <= 10 {
+		batchSize = 5  // 小任务使用更小批次
+	} else if len(ipList) > 100 {
+		batchSize = 30 // 大任务稍微增大批次
+	}
+	
+	ctx.Logger.Printf("Using batch size: %d IPs per batch", batchSize)
+	
 	for i := 0; i < len(ipList); i += batchSize {
 		// 检查取消
 		select {
@@ -414,11 +434,18 @@ func (aps *AdvancedPortScanner) scanWithNmap(ctx *ScanContext, ips []models.IP, 
 			}
 		}
 
-		// 更新进度
-		progress := float64(end) / float64(len(ipList)) * 100
-		completed := end * len(ports)
-		aps.sendProgress(ctx.Task.ID, "port_scan", completed, totalScans, 
-			len(results), 0, startTime, fmt.Sprintf("nmap扫描: %.1f%%", progress))
+		// 更新进度（更准确的计算）
+		completed := end * len(ports) // 已扫描的IP数 × 每个IP的端口数
+		progress := float64(completed) / float64(totalScans) * 100
+		speed := float64(completed) / time.Since(startTime).Seconds()
+		
+		aps.sendProgress(ctx, completed, totalScans, 
+			len(results), speed, startTime, 
+			fmt.Sprintf("nmap扫描: 批次 %d/%d (%.1f%%)", 
+				(i/batchSize)+1, (len(ipList)+batchSize-1)/batchSize, progress))
+		
+		ctx.Logger.Printf("Batch %d/%d completed, found %d open ports so far", 
+			(i/batchSize)+1, (len(ipList)+batchSize-1)/batchSize, len(results))
 	}
 
 	return results
@@ -490,11 +517,15 @@ func (aps *AdvancedPortScanner) prioritizePorts(ports []int) []int {
 }
 
 // sendProgress 发送扫描进度
-func (aps *AdvancedPortScanner) sendProgress(taskID, stage string, current, total, openPorts int, speed float64, startTime time.Time, message string) {
+func (aps *AdvancedPortScanner) sendProgress(ctx *ScanContext, current, total, openPorts int, speed float64, startTime time.Time, message string) {
+	if ctx.ProgressChan == nil {
+		return // 没有进度通道，跳过
+	}
+
 	elapsed := time.Since(startTime)
 	percentage := float64(current) / float64(total) * 100
 	
-	if current > 0 {
+	if current > 0 && elapsed.Seconds() > 0 {
 		speed = float64(current) / elapsed.Seconds()
 	}
 
@@ -505,8 +536,8 @@ func (aps *AdvancedPortScanner) sendProgress(taskID, stage string, current, tota
 	}
 
 	progress := &ScanProgress{
-		TaskID:      taskID,
-		Stage:       stage,
+		TaskID:      ctx.Task.ID,
+		Stage:       "port_scan",
 		Current:     current,
 		Total:       total,
 		Percentage:  percentage,
@@ -520,7 +551,7 @@ func (aps *AdvancedPortScanner) sendProgress(taskID, stage string, current, tota
 
 	// 非阻塞发送
 	select {
-	case aps.progressChan <- progress:
+	case ctx.ProgressChan <- progress:
 	default:
 	}
 }

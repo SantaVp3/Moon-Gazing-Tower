@@ -12,10 +12,11 @@ import (
 
 // ScanContext 扫描上下文
 type ScanContext struct {
-	Task   *models.Task
-	DB     *gorm.DB
-	Logger *log.Logger
-	Ctx    context.Context // 用于取消任务
+	Task         *models.Task
+	DB           *gorm.DB
+	Logger       *log.Logger
+	Ctx          context.Context // 用于取消任务
+	ProgressChan chan *ScanProgress // WebSocket 进度推送通道
 }
 
 // Engine 扫描引擎
