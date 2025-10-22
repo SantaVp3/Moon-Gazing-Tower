@@ -14,10 +14,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/reconmaster/backend/internal/config"
 	"github.com/reconmaster/backend/internal/database"
 	"github.com/reconmaster/backend/internal/models"
-	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
 )
 
 // SettingHandler 设置处理器
@@ -28,7 +28,7 @@ type SettingHandler struct {
 // NewSettingHandler 创建设置处理器
 func NewSettingHandler() *SettingHandler {
 	// 从配置中获取加密密钥，如果没有则使用默认密钥
-	key := viper.GetString("encryption.key")
+	key := config.GlobalConfig.Encryption.Key
 	if key == "" {
 		key = "reconmaster-encryption-key-20251" // 正好32字节
 	}
@@ -40,13 +40,13 @@ func NewSettingHandler() *SettingHandler {
 // GetSettings 获取所有设置
 func (h *SettingHandler) GetSettings(c *gin.Context) {
 	category := c.Query("category")
-	
+
 	var settings []models.Setting
 	query := database.DB
 	if category != "" {
 		query = query.Where("category = ?", category)
 	}
-	
+
 	if err := query.Find(&settings).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get settings"})
 		return
@@ -67,7 +67,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 // GetSetting 获取单个设置
 func (h *SettingHandler) GetSetting(c *gin.Context) {
 	key := c.Param("key")
-	
+
 	var setting models.Setting
 	if err := database.DB.Where("key = ?", key).First(&setting).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Setting not found"})
@@ -101,7 +101,7 @@ func (h *SettingHandler) UpdateSetting(c *gin.Context) {
 
 	var setting models.Setting
 	result := database.DB.Where("key = ?", input.Key).First(&setting)
-	
+
 	value := input.Value
 	// 如果需要加密
 	if input.IsEncrypted && value != "" {
@@ -159,12 +159,12 @@ func (h *SettingHandler) BatchUpdateSettings(c *gin.Context) {
 
 	for _, s := range input.Settings {
 		value := s.Value
-		
+
 		// 如果是加密字段且值为空，跳过更新（保持原有值）
 		if s.IsEncrypted && value == "" {
 			continue
 		}
-		
+
 		if s.IsEncrypted && value != "" {
 			encrypted, err := h.encrypt(value)
 			if err != nil {
@@ -175,7 +175,7 @@ func (h *SettingHandler) BatchUpdateSettings(c *gin.Context) {
 
 		var setting models.Setting
 		result := database.DB.Where("key = ?", s.Key).First(&setting)
-		
+
 		if result.Error != nil {
 			// 新建记录时，如果是加密字段且值为空，跳过
 			if s.IsEncrypted && value == "" {
@@ -202,7 +202,7 @@ func (h *SettingHandler) BatchUpdateSettings(c *gin.Context) {
 // DeleteSetting 删除设置
 func (h *SettingHandler) DeleteSetting(c *gin.Context) {
 	key := c.Param("key")
-	
+
 	if err := database.DB.Where("key = ?", key).Delete(&models.Setting{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete setting"})
 		return
@@ -214,13 +214,13 @@ func (h *SettingHandler) DeleteSetting(c *gin.Context) {
 // ListDictionaries 列出所有字典
 func (h *SettingHandler) ListDictionaries(c *gin.Context) {
 	dictType := c.Query("type")
-	
+
 	var dictionaries []models.Dictionary
 	query := database.DB
 	if dictType != "" {
 		query = query.Where("type = ?", dictType)
 	}
-	
+
 	if err := query.Order("is_default DESC, created_at DESC").Find(&dictionaries).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get dictionaries"})
 		return
@@ -232,11 +232,11 @@ func (h *SettingHandler) ListDictionaries(c *gin.Context) {
 // UploadDictionary 上传字典
 func (h *SettingHandler) UploadDictionary(c *gin.Context) {
 	userID := c.GetString("userID")
-	
+
 	name := c.PostForm("name")
 	dictType := c.PostForm("type")
 	description := c.PostForm("description")
-	
+
 	if name == "" || dictType == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Name and type are required"})
 		return
@@ -256,7 +256,7 @@ func (h *SettingHandler) UploadDictionary(c *gin.Context) {
 	// 保存文件
 	filename := fmt.Sprintf("%d_%s", time.Now().Unix(), file.Filename)
 	filePath := filepath.Join(dictDir, filename)
-	
+
 	if err := c.SaveUploadedFile(file, filePath); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
 		return
@@ -291,7 +291,7 @@ func (h *SettingHandler) UploadDictionary(c *gin.Context) {
 // DeleteDictionary 删除字典
 func (h *SettingHandler) DeleteDictionary(c *gin.Context) {
 	id := c.Param("id")
-	
+
 	var dict models.Dictionary
 	if err := database.DB.Where("id = ?", id).First(&dict).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Dictionary not found"})
@@ -320,7 +320,7 @@ func (h *SettingHandler) DeleteDictionary(c *gin.Context) {
 // SetDefaultDictionary 设置默认字典
 func (h *SettingHandler) SetDefaultDictionary(c *gin.Context) {
 	id := c.Param("id")
-	
+
 	var dict models.Dictionary
 	if err := database.DB.Where("id = ?", id).First(&dict).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Dictionary not found"})
@@ -408,4 +408,3 @@ func (h *SettingHandler) countLines(filePath string) (int, error) {
 
 	return lineCount, scanner.Err()
 }
-

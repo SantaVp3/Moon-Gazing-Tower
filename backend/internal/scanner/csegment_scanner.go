@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/reconmaster/backend/internal/models"
 )
@@ -16,7 +17,7 @@ func NewCSegmentScanner() *CSegmentScanner {
 	return &CSegmentScanner{}
 }
 
-// Scan 扫描C段IP
+// Scan 扫描C段IP（带存活性检测）
 func (cs *CSegmentScanner) Scan(ctx *ScanContext) error {
 	if !ctx.Task.Options.EnableCSegment {
 		return nil
@@ -58,27 +59,66 @@ func (cs *CSegmentScanner) Scan(ctx *ScanContext) error {
 		}
 	}
 
-	ctx.Logger.Printf("Generated %d C segment IPs", len(cSegmentIPs))
+	ctx.Logger.Printf("Generated %d C segment IPs, checking liveness...", len(cSegmentIPs))
 
-	// 保存C段IP到数据库
+	// 存活性检测并保存（使用快速端口探测）
 	count := 0
-	for segmentIP := range cSegmentIPs {
+	aliveCount := 0
+
+	// 转换为切片用于并发处理
+	ipList := make([]string, 0, len(cSegmentIPs))
+	for ip := range cSegmentIPs {
+		ipList = append(ipList, ip)
+	}
+
+	// 并发探测存活IP
+	aliveChan := make(chan string, len(ipList))
+	semaphore := make(chan struct{}, 50) // 并发50个
+
+	for _, segmentIP := range ipList {
+		semaphore <- struct{}{}
+		go func(ip string) {
+			defer func() { <-semaphore }()
+
+			// 快速检测：尝试连接常用端口
+			if cs.isAlive(ip) {
+				aliveChan <- ip
+			}
+		}(segmentIP)
+	}
+
+	// 等待所有探测完成
+	go func() {
+		for i := 0; i < 50; i++ {
+			semaphore <- struct{}{}
+		}
+		close(aliveChan)
+	}()
+
+	// 保存存活的IP
+	for aliveIP := range aliveChan {
 		ipModel := &models.IP{
 			TaskID:    ctx.Task.ID,
-			IPAddress: segmentIP,
+			IPAddress: aliveIP,
 			Source:    "c_segment",
 		}
 
 		// 使用FirstOrCreate避免重复
-		if err := ctx.DB.Where("task_id = ? AND ip_address = ?", ctx.Task.ID, segmentIP).
+		if err := ctx.DB.Where("task_id = ? AND ip_address = ?", ctx.Task.ID, aliveIP).
 			FirstOrCreate(ipModel).Error; err != nil {
-			ctx.Logger.Printf("Failed to save C segment IP %s: %v", segmentIP, err)
+			ctx.Logger.Printf("Failed to save C segment IP %s: %v", aliveIP, err)
 			continue
 		}
 		count++
+		aliveCount++
+
+		if aliveCount%10 == 0 {
+			ctx.Logger.Printf("C segment: found %d alive IPs so far...", aliveCount)
+		}
 	}
 
-	ctx.Logger.Printf("C segment scanning completed, added %d new IPs", count)
+	ctx.Logger.Printf("C segment scanning completed: scanned %d IPs, found %d alive, saved %d new IPs",
+		len(ipList), aliveCount, count)
 	return nil
 }
 
@@ -117,3 +157,21 @@ func (cs *CSegmentScanner) generateCSegment(ipAddr string) []string {
 	return result
 }
 
+// isAlive 快速检测IP是否存活（探测常用端口）
+func (cs *CSegmentScanner) isAlive(ip string) bool {
+	// 常用端口列表（快速探测）
+	commonPorts := []int{80, 443, 22, 3389, 8080, 8443}
+
+	timeout := 500 // 500ms超时
+
+	for _, port := range commonPorts {
+		address := fmt.Sprintf("%s:%d", ip, port)
+		conn, err := net.DialTimeout("tcp", address, time.Duration(timeout)*time.Millisecond)
+		if err == nil {
+			conn.Close()
+			return true // 有任一端口开放，认为存活
+		}
+	}
+
+	return false
+}

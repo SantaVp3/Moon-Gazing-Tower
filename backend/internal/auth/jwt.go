@@ -5,18 +5,29 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/reconmaster/backend/internal/config"
 )
 
 var (
-	// JWTSecret JWT密钥，生产环境应该从配置文件读取
-	JWTSecret = []byte("arl_vp3_secret_key_change_in_production")
-	
+	// JWTSecret JWT密钥，从配置文件读取
+	JWTSecret []byte
+
 	// TokenExpiration token过期时间
 	TokenExpiration = 24 * time.Hour
-	
+
 	ErrInvalidToken = errors.New("invalid token")
 	ErrExpiredToken = errors.New("token has expired")
 )
+
+// Init 初始化JWT配置
+func Init() {
+	if config.GlobalConfig != nil && config.GlobalConfig.JWT.Secret != "" {
+		JWTSecret = []byte(config.GlobalConfig.JWT.Secret)
+	} else {
+		// 如果配置为空，使用默认值（不推荐用于生产环境）
+		JWTSecret = []byte("arl_vp3_secret_key_change_in_production")
+	}
+}
 
 // Claims JWT声明
 type Claims struct {
@@ -75,4 +86,3 @@ func RefreshToken(tokenString string) (string, error) {
 	// 生成新token
 	return GenerateToken(claims.UserID, claims.Username, claims.Role)
 }
-

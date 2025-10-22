@@ -2,32 +2,35 @@ package main
 
 import (
 	"log"
-	"os"
 
 	"github.com/reconmaster/backend/internal/api"
+	"github.com/reconmaster/backend/internal/auth"
 	"github.com/reconmaster/backend/internal/cache"
+	"github.com/reconmaster/backend/internal/config"
 	"github.com/reconmaster/backend/internal/database"
 	"github.com/reconmaster/backend/internal/scheduler"
 	"github.com/reconmaster/backend/internal/services"
-	"github.com/spf13/viper"
 )
 
 func main() {
-	// 加载配置
-	if err := loadConfig(); err != nil {
+	// 加载全局配置
+	if err := config.LoadConfig(); err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
+	// 初始化JWT配置
+	auth.Init()
+
 	// 初始化数据库
 	dbConfig := database.Config{
-		Host:         getEnvOrConfig("DB_HOST", viper.GetString("database.host")),
-		Port:         getEnvOrConfigInt("DB_PORT", viper.GetInt("database.port")),
-		User:         getEnvOrConfig("DB_USER", viper.GetString("database.user")),
-		Password:     getEnvOrConfig("DB_PASSWORD", viper.GetString("database.password")),
-		DBName:       getEnvOrConfig("DB_NAME", viper.GetString("database.dbname")),
-		SSLMode:      viper.GetString("database.sslmode"),
-		MaxIdleConns: viper.GetInt("database.max_idle_conns"),
-		MaxOpenConns: viper.GetInt("database.max_open_conns"),
+		Host:         config.GlobalConfig.Database.Host,
+		Port:         config.GlobalConfig.Database.Port,
+		User:         config.GlobalConfig.Database.User,
+		Password:     config.GlobalConfig.Database.Password,
+		DBName:       config.GlobalConfig.Database.DBName,
+		SSLMode:      config.GlobalConfig.Database.SSLMode,
+		MaxIdleConns: config.GlobalConfig.Database.MaxIdleConns,
+		MaxOpenConns: config.GlobalConfig.Database.MaxOpenConns,
 	}
 
 	if err := database.Initialize(dbConfig); err != nil {
@@ -50,10 +53,10 @@ func main() {
 
 	// 初始化Redis
 	redisConfig := cache.Config{
-		Host:     getEnvOrConfig("REDIS_HOST", viper.GetString("redis.host")),
-		Port:     getEnvOrConfigInt("REDIS_PORT", viper.GetInt("redis.port")),
-		Password: getEnvOrConfig("REDIS_PASSWORD", viper.GetString("redis.password")),
-		DB:       viper.GetInt("redis.db"),
+		Host:     config.GlobalConfig.Redis.Host,
+		Port:     config.GlobalConfig.Redis.Port,
+		Password: config.GlobalConfig.Redis.Password,
+		DB:       config.GlobalConfig.Redis.DB,
 	}
 
 	if err := cache.Initialize(redisConfig); err != nil {
@@ -73,7 +76,7 @@ func main() {
 	router := api.SetupRouter(taskService)
 
 	// 启动服务器
-	port := viper.GetString("server.port")
+	port := config.GlobalConfig.Server.Port
 	if port == "" {
 		port = "8080"
 	}
@@ -82,50 +85,4 @@ func main() {
 	if err := router.Run(":" + port); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
-}
-
-// loadConfig 加载配置文件
-func loadConfig() error {
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./configs")
-	viper.AddConfigPath(".")
-
-	// 读取环境变量
-	viper.AutomaticEnv()
-
-	if err := viper.ReadInConfig(); err != nil {
-		log.Printf("Warning: Failed to read config file: %v", err)
-		// 使用默认配置
-		setDefaults()
-	}
-
-	return nil
-}
-
-// setDefaults 设置默认配置
-func setDefaults() {
-	viper.SetDefault("server.port", "8080")
-	viper.SetDefault("database.host", "localhost")
-	viper.SetDefault("database.port", 5432)
-	viper.SetDefault("database.sslmode", "disable")
-	viper.SetDefault("redis.host", "localhost")
-	viper.SetDefault("redis.port", 6379)
-}
-
-// getEnvOrConfig 从环境变量或配置文件获取值
-func getEnvOrConfig(envKey, configValue string) string {
-	if value := os.Getenv(envKey); value != "" {
-		return value
-	}
-	return configValue
-}
-
-// getEnvOrConfigInt 从环境变量或配置文件获取整数值
-func getEnvOrConfigInt(envKey string, configValue int) int {
-	if value := os.Getenv(envKey); value != "" {
-		// 简单实现，实际应该处理转换错误
-		return configValue
-	}
-	return configValue
 }

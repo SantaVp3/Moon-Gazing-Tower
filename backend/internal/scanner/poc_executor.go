@@ -15,7 +15,8 @@ import (
 
 // PoCExecutor PoC执行器
 type PoCExecutor struct {
-	client *http.Client
+	client        *http.Client
+	neutronEngine *NeutronEngine
 }
 
 // NewPoCExecutor 创建PoC执行器
@@ -32,6 +33,7 @@ func NewPoCExecutor() *PoCExecutor {
 				IdleConnTimeout:     90 * time.Second,
 			},
 		},
+		neutronEngine: NewNeutronEngine(),
 	}
 }
 
@@ -78,7 +80,8 @@ func (e *PoCExecutor) Execute(poc *models.PoC, target string) (*ExecuteResult, e
 
 	switch poc.PoCType {
 	case "nuclei":
-		return e.executeNucleiPoC(poc, target)
+		// 使用Neutron引擎执行Nuclei格式的PoC
+		return e.executeNucleiPoCWithNeutron(poc, target)
 	case "custom":
 		return e.executeCustomPoC(poc, target)
 	default:
@@ -86,7 +89,21 @@ func (e *PoCExecutor) Execute(poc *models.PoC, target string) (*ExecuteResult, e
 	}
 }
 
-// executeNucleiPoC 执行Nuclei格式的PoC
+// executeNucleiPoCWithNeutron 使用Neutron引擎执行Nuclei格式的PoC
+func (e *PoCExecutor) executeNucleiPoCWithNeutron(poc *models.PoC, target string) (*ExecuteResult, error) {
+	result, err := e.neutronEngine.ExecutePoC(poc, target)
+	if err != nil {
+		return nil, fmt.Errorf("neutron execution failed: %w", err)
+	}
+
+	return &ExecuteResult{
+		Vulnerable: result.Vulnerable,
+		Message:    result.Message,
+		Details:    fmt.Sprintf("Template: %s, Matcher: %s", result.TemplateID, result.MatcherName),
+	}, nil
+}
+
+// executeNucleiPoC 执行Nuclei格式的PoC (保留原方法作为fallback)
 func (e *PoCExecutor) executeNucleiPoC(poc *models.PoC, target string) (*ExecuteResult, error) {
 	var template NucleiTemplate
 	if err := yaml.Unmarshal([]byte(poc.PoCContent), &template); err != nil {
