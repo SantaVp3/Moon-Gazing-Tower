@@ -51,16 +51,16 @@ func NewAdvancedPortScanner() *AdvancedPortScanner {
 	// 检测nmap是否可用
 	if isNmapAvailable() {
 		scanner.useNmap = true
-		fmt.Println("✓ nmap detected - using fast SYN scan (10-100x faster)")
-		fmt.Println("  • fast mode: SYN scan with T5 timing")
-		fmt.Println("  • normal mode: SYN scan + service detection")
-		fmt.Println("  • comprehensive mode: SYN scan + service + OS detection")
-		fmt.Println("  ⚠ NOTE: SYN scan requires root/admin privileges for best performance")
+		fmt.Println("✓ nmap detected - using professional port scanning")
+		fmt.Println("  • normal mode: SYN scan + service detection + version identification")
+		fmt.Println("  • comprehensive mode: Deep scan + scripts + OS detection")
+		fmt.Println("  ⚠ NOTE: SYN scan requires root/admin privileges for best results")
+		fmt.Println("  ℹ Running without root will auto-fallback to TCP Connect scan")
 	} else {
 		fmt.Println("✓ Using optimized TCP Connect scanner")
-		fmt.Println("  • fast mode: 500ms timeout, 1000 concurrency")
-		fmt.Println("  • normal mode: 1s timeout, 500 concurrency")
-		fmt.Println("  ⚠ TIP: Install nmap for 10-100x faster scanning:")
+		fmt.Println("  • normal mode: 3s timeout, 500 concurrency")
+		fmt.Println("  • comprehensive mode: 5s timeout, 200 concurrency")
+		fmt.Println("  ⚠ TIP: Install nmap for accurate service detection:")
 		fmt.Println("    macOS: brew install nmap")
 		fmt.Println("    Linux: apt install nmap / yum install nmap")
 	}
@@ -74,27 +74,27 @@ func (aps *AdvancedPortScanner) SetProgressChannel(ch chan *ScanProgress) {
 }
 
 // SetScanMode 设置扫描模式
-// fast: 快速SYN扫描（需要nmap），1000并发TCP Connect（fallback），1秒超时
-// normal: SYN扫描+基础服务识别（需要nmap），500并发TCP Connect（fallback），3秒超时
-// comprehensive: SYN扫描+深度服务探测+版本识别+OS指纹（需要nmap），200并发，5秒超时
+// normal: SYN扫描 + 完整服务识别 + 版本检测（推荐，平衡速度和准确性）
+// comprehensive: SYN扫描 + 深度服务探测 + 版本识别 + 脚本扫描 + OS指纹（最详细，较慢）
 func (aps *AdvancedPortScanner) SetScanMode(mode string) {
 	aps.scanMode = mode
 	switch mode {
-	case "fast":
-		aps.timeout = 1 * time.Second
-		aps.maxConcurrent = 1000
-		// fast模式优先使用nmap SYN扫描（快10-100倍）
 	case "normal":
 		aps.timeout = 3 * time.Second
 		aps.maxConcurrent = 500
-		// normal模式使用nmap或优化的TCP Connect
+		// normal模式：完整服务识别 + 版本检测
 	case "comprehensive":
 		aps.timeout = 5 * time.Second
 		aps.maxConcurrent = 200
-		// comprehensive模式必须使用nmap获取详细信息
+		// comprehensive模式：深度扫描 + OS指纹 + 脚本扫描
 		if !aps.useNmap {
 			aps.useNmap = isNmapAvailable()
 		}
+	default:
+		// 默认使用 normal 模式
+		aps.scanMode = "normal"
+		aps.timeout = 3 * time.Second
+		aps.maxConcurrent = 500
 	}
 }
 
@@ -140,13 +140,6 @@ func (aps *AdvancedPortScanner) ScanWithProgress(ctx *ScanContext, ips []models.
 	return results, nil
 }
 
-// scanWithNativeOptimized 使用优化的Go原生TCP Connect扫描
-// 优化策略：
-// 1. 启发式扫描 - 优先扫描常见端口（提前发现目标）
-// 2. 激进超时 - fast模式500ms，normal模式1s（比默认3s快很多）
-// 3. 高并发 - fast模式1000，normal模式500（充分利用CPU）
-// 4. 早期终止 - 连接失败立即返回，不等待完整超时
-// 5. 跳过Banner - fast模式不抓取Banner（节省2-3秒/端口）
 func (aps *AdvancedPortScanner) scanWithNativeOptimized(ctx *ScanContext, ips []models.IP, ports []int, startTime time.Time, totalScans int) []*PortScanResult {
 	var results []*PortScanResult
 	var mu sync.Mutex
@@ -310,15 +303,31 @@ func (aps *AdvancedPortScanner) scanWithNmap(ctx *ScanContext, ips []models.IP, 
 	ctx.Logger.Printf("Scanning %d IPs, ports: %s", len(ipList), portRanges)
 
 	// 分批扫描（动态调整批次大小）
-	// 大量IP时使用更小的批次，提供更频繁的进度更新
-	batchSize := 20
+	// 根据 IP 数量和端口数量动态调整批次大小
+	var batchSize int
+	portCount := len(ports)
+	
 	if len(ipList) <= 10 {
-		batchSize = 5  // 小任务使用更小批次
-	} else if len(ipList) > 100 {
-		batchSize = 30 // 大任务稍微增大批次
+		batchSize = 5  // 小任务：5 个 IP/批次
+	} else if len(ipList) <= 50 {
+		batchSize = 10 // 中小任务：10 个 IP/批次
+	} else if len(ipList) <= 200 {
+		batchSize = 15 // 中等任务：15 个 IP/批次
+	} else if len(ipList) <= 500 {
+		batchSize = 10 // 较大任务：减小批次，更频繁更新
+	} else {
+		// 超大任务（>500 IP）：根据端口数量调整
+		if portCount > 1000 {
+			batchSize = 5  // 全端口扫描：5 个 IP/批次
+		} else if portCount > 100 {
+			batchSize = 8  // 大端口范围：8 个 IP/批次
+		} else {
+			batchSize = 10 // 常用端口：10 个 IP/批次
+		}
 	}
 	
-	ctx.Logger.Printf("Using batch size: %d IPs per batch", batchSize)
+	ctx.Logger.Printf("Using batch size: %d IPs per batch (total: %d IPs, %d ports)", 
+		batchSize, len(ipList), portCount)
 	
 	for i := 0; i < len(ipList); i += batchSize {
 		// 检查取消
@@ -341,39 +350,37 @@ func (aps *AdvancedPortScanner) scanWithNmap(ctx *ScanContext, ips []models.IP, 
 		var err error
 		
 		switch aps.scanMode {
-		case "fast":
-			// 快速SYN扫描：-sS（需要root权限，否则自动降级到TCP Connect）
-			scanner, err = nmap.NewScanner(
-				nmap.WithTargets(batch...),
-				nmap.WithPorts(portRanges),
-				nmap.WithSYNScan(),                              // SYN扫描（快速）
-				nmap.WithTimingTemplate(nmap.TimingFastest),     // T5 最快速度
-				nmap.WithSkipHostDiscovery(),                    // 跳过主机发现
-			)
 		case "normal":
-			// 标准扫描：SYN + 基础服务识别
+			// 标准扫描：SYN + 完整服务识别 + 版本检测
 			scanner, err = nmap.NewScanner(
 				nmap.WithTargets(batch...),
 				nmap.WithPorts(portRanges),
 				nmap.WithSYNScan(),                              // SYN扫描
 				nmap.WithServiceInfo(),                          // 服务识别
-				nmap.WithTimingTemplate(nmap.TimingAggressive),  // T4 激进速度
+				nmap.WithVersionIntensity(7),                    // 版本检测强度 (0-9, 7为较高)
+				nmap.WithTimingTemplate(nmap.TimingAggressive),  // T4 速度
+				nmap.WithSkipHostDiscovery(),                    // 跳过主机发现（已知目标）
 			)
 		case "comprehensive":
-			// 全面扫描：SYN + 服务版本 + OS指纹
+			// 全面扫描：SYN + 深度服务探测 + 版本识别 + 脚本扫描 + OS指纹
 			scanner, err = nmap.NewScanner(
 				nmap.WithTargets(batch...),
 				nmap.WithPorts(portRanges),
 				nmap.WithSYNScan(),                              // SYN扫描
 				nmap.WithServiceInfo(),                          // 服务识别
+				nmap.WithVersionAll(),                           // 深度版本检测
 				nmap.WithOSDetection(),                          // OS检测
+				nmap.WithScripts("default"),                     // 默认脚本扫描
 				nmap.WithTimingTemplate(nmap.TimingNormal),      // T3 标准速度
 			)
 		default:
+			// 默认使用 normal 模式配置
 			scanner, err = nmap.NewScanner(
 				nmap.WithTargets(batch...),
 				nmap.WithPorts(portRanges),
 				nmap.WithSYNScan(),
+				nmap.WithServiceInfo(),
+				nmap.WithVersionIntensity(7),
 				nmap.WithTimingTemplate(nmap.TimingAggressive),
 			)
 		}
@@ -384,12 +391,55 @@ func (aps *AdvancedPortScanner) scanWithNmap(ctx *ScanContext, ips []models.IP, 
 			return aps.scanWithNativeOptimized(ctx, ips, ports, startTime, totalScans)
 		}
 
-		// 执行扫描
-		ctx.Logger.Printf("Scanning batch %d/%d (%d IPs)...", (i/batchSize)+1, (len(ipList)+batchSize-1)/batchSize, len(batch))
-		nmapResults, warnings, err := scanner.Run()
+		// 执行扫描（带超时控制）
+		batchNum := (i/batchSize) + 1
+		totalBatches := (len(ipList) + batchSize - 1) / batchSize
+		ctx.Logger.Printf("Scanning batch %d/%d (%d IPs)...", batchNum, totalBatches, len(batch))
+		
+		// 设置批次超时（根据批次大小和端口数量）
+		batchTimeout := time.Duration(len(batch)*len(ports)/100+30) * time.Second
+		if batchTimeout < 60*time.Second {
+			batchTimeout = 60 * time.Second
+		}
+		if batchTimeout > 300*time.Second {
+			batchTimeout = 300 * time.Second
+		}
+		
+		ctx.Logger.Printf("Batch %d/%d timeout: %v, scanning %d IPs", batchNum, totalBatches, batchTimeout, len(batch))
+		
+		// 使用 channel 实现超时控制
+		type scanResult struct {
+			results  *nmap.Run
+			warnings []string
+			err      error
+		}
+		
+		resultChan := make(chan scanResult, 1)
+		
+		// 在 goroutine 中执行扫描
+		go func() {
+			results, warnings, scanErr := scanner.Run()
+			resultChan <- scanResult{results: results, warnings: warnings, err: scanErr}
+		}()
+		
+		// 等待扫描完成或超时
+		var nmapResults *nmap.Run
+		var warnings []string
+		
+		select {
+		case result := <-resultChan:
+			nmapResults = result.results
+			warnings = result.warnings
+			err = result.err
+		case <-time.After(batchTimeout):
+			err = fmt.Errorf("batch scan timeout after %v", batchTimeout)
+			ctx.Logger.Printf("Batch %d/%d timeout, skipping", batchNum, totalBatches)
+			continue // 跳过超时的批次
+		}
 		
 		if err != nil {
-			ctx.Logger.Printf("nmap scan failed: %v", err)
+			ctx.Logger.Printf("nmap scan failed for batch %d/%d: %v", batchNum, totalBatches, err)
+			// 记录错误后继续下一个批次
 			continue
 		}
 
@@ -410,19 +460,34 @@ func (aps *AdvancedPortScanner) scanWithNmap(ctx *ScanContext, ips []models.IP, 
 				
 				for _, port := range host.Ports {
 					if port.State.State == "open" {
+						// 构建服务名称
+						serviceName := port.Service.Name
+						if serviceName == "" {
+							// 如果 nmap 没有识别出服务，使用端口号推断
+							serviceName = getServiceName(int(port.ID))
+						}
+						
+						// 构建 Banner 信息
+						var bannerParts []string
+						if port.Service.Product != "" {
+							bannerParts = append(bannerParts, port.Service.Product)
+						}
+						if port.Service.Version != "" {
+							bannerParts = append(bannerParts, port.Service.Version)
+						}
+						if port.Service.ExtraInfo != "" {
+							bannerParts = append(bannerParts, port.Service.ExtraInfo)
+						}
+						
+						banner := strings.TrimSpace(strings.Join(bannerParts, " "))
+						
 						result := &PortScanResult{
 							IP:       hostIP,
 							Port:     int(port.ID),
 							Protocol: port.Protocol,
 							Open:     true,
-							Service:  port.Service.Name,
-							Banner:   fmt.Sprintf("%s %s", port.Service.Product, port.Service.Version),
-						}
-						
-						// 清理Banner
-						result.Banner = strings.TrimSpace(result.Banner)
-						if result.Service == "" {
-							result.Service = "unknown"
+							Service:  serviceName,
+							Banner:   banner,
 						}
 						
 						mu.Lock()
@@ -669,13 +734,48 @@ func buildPortRanges(ports []int) string {
 		return ""
 	}
 
-	// 简单实现: 逗号分隔
-	// TODO: 优化为范围格式以提高nmap效率
-	portStrs := make([]string, len(ports))
-	for i, p := range ports {
-		portStrs[i] = fmt.Sprintf("%d", p)
+	// 排序端口列表
+	sortedPorts := make([]int, len(ports))
+	copy(sortedPorts, ports)
+	
+	// 简单冒泡排序（对于已排序或接近排序的列表很快）
+	for i := 0; i < len(sortedPorts)-1; i++ {
+		for j := 0; j < len(sortedPorts)-i-1; j++ {
+			if sortedPorts[j] > sortedPorts[j+1] {
+				sortedPorts[j], sortedPorts[j+1] = sortedPorts[j+1], sortedPorts[j]
+			}
+		}
 	}
-	return strings.Join(portStrs, ",")
+
+	// 将连续端口合并为范围
+	var ranges []string
+	start := sortedPorts[0]
+	end := sortedPorts[0]
+
+	for i := 1; i < len(sortedPorts); i++ {
+		if sortedPorts[i] == end+1 {
+			// 连续端口，扩展范围
+			end = sortedPorts[i]
+		} else {
+			// 不连续，保存当前范围并开始新范围
+			if start == end {
+				ranges = append(ranges, fmt.Sprintf("%d", start))
+			} else {
+				ranges = append(ranges, fmt.Sprintf("%d-%d", start, end))
+			}
+			start = sortedPorts[i]
+			end = sortedPorts[i]
+		}
+	}
+
+	// 添加最后一个范围
+	if start == end {
+		ranges = append(ranges, fmt.Sprintf("%d", start))
+	} else {
+		ranges = append(ranges, fmt.Sprintf("%d-%d", start, end))
+	}
+
+	return strings.Join(ranges, ",")
 }
 
 // isNmapAvailable 检查系统是否安装nmap
@@ -690,14 +790,12 @@ func isNmapAvailable() bool {
 // getNmapScanType 获取nmap扫描类型描述
 func getNmapScanType(mode string) string {
 	switch mode {
-	case "fast":
-		return "SYN (T5 Fastest)"
 	case "normal":
-		return "SYN + Service Detection (T4)"
+		return "SYN + Service + Version Detection (T4)"
 	case "comprehensive":
-		return "SYN + Service + OS Detection (T3)"
+		return "SYN + Deep Service + Scripts + OS Detection (T3)"
 	default:
-		return "SYN"
+		return "SYN + Service + Version Detection (T4)"
 	}
 }
 

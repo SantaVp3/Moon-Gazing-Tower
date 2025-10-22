@@ -18,7 +18,19 @@ var upgrader = websocket.Upgrader{
 	},
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
+	HandshakeTimeout: 10 * time.Second,
 }
+
+const (
+	// 客户端写入超时
+	writeWait = 10 * time.Second
+	// 客户端 pong 超时 - 如果在这个时间内没有收到 pong，则断开连接
+	pongWait = 90 * time.Second
+	// ping 发送间隔 - 服务器发送 ping 的间隔（必须小于 pongWait）
+	pingPeriod = 30 * time.Second
+	// 最大消息大小
+	maxMessageSize = 512
+)
 
 // WebSocketHandler WebSocket处理器
 type WebSocketHandler struct {
@@ -54,7 +66,6 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 		log.Printf("WebSocket upgrade failed: %v", err)
 		return
 	}
-	defer conn.Close()
 
 	// 注册客户端
 	h.clientsMutex.Lock()
@@ -63,6 +74,13 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 
 	log.Printf("WebSocket client connected for task: %s", taskID)
 
+	// 配置连接参数
+	conn.SetReadDeadline(time.Now().Add(pongWait))
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+
 	// 发送欢迎消息
 	welcomeMsg := map[string]interface{}{
 		"type":    "connected",
@@ -70,40 +88,90 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 		"message": "WebSocket connected successfully",
 		"time":    time.Now().Format(time.RFC3339),
 	}
+	conn.SetWriteDeadline(time.Now().Add(writeWait))
 	if err := conn.WriteJSON(welcomeMsg); err != nil {
 		log.Printf("Failed to send welcome message: %v", err)
+		conn.Close()
+		return
 	}
 
-	// 保持连接并处理客户端消息
-	for {
-		_, message, err := conn.ReadMessage()
-		if err != nil {
-			log.Printf("WebSocket read error: %v", err)
-			break
-		}
+	// 启动心跳 goroutine
+	done := make(chan struct{})
+	go h.writePump(conn, taskID, done)
 
-		// 处理ping/pong等心跳消息
-		var msg map[string]interface{}
-		if err := json.Unmarshal(message, &msg); err == nil {
-			if msgType, ok := msg["type"].(string); ok && msgType == "ping" {
-				pongMsg := map[string]interface{}{
-					"type": "pong",
-					"time": time.Now().Format(time.RFC3339),
-				}
-				if err := conn.WriteJSON(pongMsg); err != nil {
-					log.Printf("Failed to send pong: %v", err)
-					break
-				}
-			}
-		}
-	}
+	// 读取客户端消息
+	h.readPump(conn, taskID, done)
 
-	// 清理客户端
+	// 清理
+	close(done)
+	conn.Close()
+
 	h.clientsMutex.Lock()
 	delete(h.clients, conn)
 	h.clientsMutex.Unlock()
 
 	log.Printf("WebSocket client disconnected for task: %s", taskID)
+}
+
+// readPump 处理从客户端读取消息
+func (h *WebSocketHandler) readPump(conn *websocket.Conn, taskID string, done chan struct{}) {
+	defer func() {
+		select {
+		case <-done:
+		default:
+			close(done)
+		}
+	}()
+
+	conn.SetReadLimit(maxMessageSize)
+	conn.SetReadDeadline(time.Now().Add(pongWait))
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+
+	for {
+		select {
+		case <-done:
+			return
+		default:
+			_, message, err := conn.ReadMessage()
+			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					log.Printf("WebSocket read error: %v", err)
+				}
+				return
+			}
+
+			// 处理客户端消息
+			var msg map[string]interface{}
+			if err := json.Unmarshal(message, &msg); err == nil {
+				if msgType, ok := msg["type"].(string); ok && msgType == "ping" {
+					// ping 消息由 pong handler 自动处理
+					log.Printf("Received ping from task: %s", taskID)
+				}
+			}
+		}
+	}
+}
+
+// writePump 处理向客户端发送心跳
+func (h *WebSocketHandler) writePump(conn *websocket.Conn, taskID string, done chan struct{}) {
+	ticker := time.NewTicker(pingPeriod)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-done:
+			return
+		case <-ticker.C:
+			conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				log.Printf("Failed to send ping to task %s: %v", taskID, err)
+				return
+			}
+		}
+	}
 }
 
 // RegisterProgressChannel 注册任务的进度通道
@@ -172,8 +240,10 @@ func (h *WebSocketHandler) broadcastProgress(taskID string, progress *scanner.Sc
 
 	for conn, connTaskID := range h.clients {
 		if connTaskID == taskID {
+			conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := conn.WriteJSON(message); err != nil {
 				log.Printf("Failed to send progress to client: %v", err)
+				// 不关闭连接，让心跳机制处理
 			}
 		}
 	}
@@ -194,6 +264,7 @@ func (h *WebSocketHandler) BroadcastTaskComplete(taskID string, status string, m
 
 	for conn, connTaskID := range h.clients {
 		if connTaskID == taskID {
+			conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := conn.WriteJSON(completeMsg); err != nil {
 				log.Printf("Failed to send task complete message: %v", err)
 			}
