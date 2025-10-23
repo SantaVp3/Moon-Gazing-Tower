@@ -47,16 +47,29 @@ func NewSiteScanner() *SiteScanner {
 
 // Detect 识别站点
 func (ss *SiteScanner) Detect(ctx *ScanContext) error {
+	// 🆕 加载扫描器配置
+	scannerConfig := LoadScannerConfig(ctx)
+	ss.client.Timeout = scannerConfig.SiteTimeout
+	
+	// 🆕 使用配置重新创建爬虫
+	ss.crawler = NewCrawlerWithConfig(CrawlerConfig{
+		MaxDepth: scannerConfig.CrawlerMaxDepth,
+		MaxPages: scannerConfig.CrawlerMaxPages,
+		Timeout:  scannerConfig.SiteTimeout,
+	})
+	
 	var ports []models.Port
 	ctx.DB.Where("task_id = ? AND port IN (?)", ctx.Task.ID, []int{80, 443, 8080, 8443, 8888, 8000, 8001, 9090}).Find(&ports)
 
 	ctx.Logger.Printf("Detecting sites for %d ports", len(ports))
 
-	// 优化：使用并发处理，提高站点检测速度
-	concurrency := 30 // 并发数
+	// 🆕 使用配置的并发数
+	concurrency := scannerConfig.SiteConcurrency
 	if len(ports) < concurrency {
 		concurrency = len(ports)
 	}
+	ctx.Logger.Printf("[Config] Site scanner: concurrency=%d, timeout=%v, crawler_depth=%d, crawler_pages=%d", 
+		concurrency, ss.client.Timeout, scannerConfig.CrawlerMaxDepth, scannerConfig.CrawlerMaxPages)
 
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, concurrency)

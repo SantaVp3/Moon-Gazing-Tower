@@ -12,7 +12,9 @@ import (
 
 // ServiceScanner 服务扫描器
 type ServiceScanner struct {
-	serviceMap map[int]string
+	serviceMap    map[int]string
+	timeout       time.Duration // 从配置加载
+	bannerMaxLen  int           // 从配置加载
 }
 
 // NewServiceScanner 创建服务扫描器
@@ -44,6 +46,12 @@ func NewServiceScanner() *ServiceScanner {
 
 // Detect 识别服务
 func (ss *ServiceScanner) Detect(ctx *ScanContext) error {
+	// 🆕 加载扫描器配置
+	scannerConfig := LoadScannerConfig(ctx)
+	ss.timeout = scannerConfig.ServiceTimeout
+	ss.bannerMaxLen = scannerConfig.BannerMaxLength
+	ctx.Logger.Printf("[Config] Service scanner: timeout=%v, banner_max_len=%d", ss.timeout, ss.bannerMaxLen)
+	
 	var ports []models.Port
 	ctx.DB.Where("task_id = ? AND (service IS NULL OR service = '')", ctx.Task.ID).Find(&ports)
 
@@ -248,17 +256,29 @@ func (ss *ServiceScanner) isSubdomainOf(subdomain, domain string) bool {
 
 // grabBanner 抓取banner
 func (ss *ServiceScanner) grabBanner(ip string, port int) string {
+	// 🆕 使用配置的超时时间
+	timeout := ss.timeout
+	if timeout == 0 {
+		timeout = 3 * time.Second // 默认3秒
+	}
+	
+	// 🆕 使用配置的banner最大长度
+	bannerLen := ss.bannerMaxLen
+	if bannerLen == 0 {
+		bannerLen = 2048 // 默认2048字节
+	}
+	
 	address := fmt.Sprintf("%s:%d", ip, port)
-	conn, err := net.DialTimeout("tcp", address, 3*time.Second)
+	conn, err := net.DialTimeout("tcp", address, timeout)
 	if err != nil {
 		return ""
 	}
 	defer conn.Close()
 
 	// 设置读取超时
-	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	conn.SetReadDeadline(time.Now().Add(timeout))
 
-	buffer := make([]byte, 1024)
+	buffer := make([]byte, bannerLen)
 	n, err := conn.Read(buffer)
 	if err != nil {
 		return ""

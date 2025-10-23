@@ -189,6 +189,11 @@ func (h *AssetHandler) ListPorts(c *gin.Context) {
 // ListSites 列出站点资产
 func (h *AssetHandler) ListSites(c *gin.Context) {
 	taskID := c.Query("task_id")
+	url := c.Query("url")
+	domain := c.Query("domain")
+	ip := c.Query("ip")
+	port := c.Query("port")
+	statusCode := c.Query("status_code")
 	page := c.DefaultQuery("page", "1")
 	pageSize := c.DefaultQuery("page_size", "50")
 
@@ -206,6 +211,34 @@ func (h *AssetHandler) ListSites(c *gin.Context) {
 
 	if taskID != "" {
 		query = query.Where("task_id = ?", taskID)
+	}
+	
+	// URL 筛选
+	if url != "" {
+		query = query.Where("url LIKE ?", "%"+url+"%")
+	}
+	
+	// 域名筛选
+	if domain != "" {
+		query = query.Where("url LIKE ?", "%"+domain+"%")
+	}
+	
+	// IP 筛选
+	if ip != "" {
+		query = query.Where("ip = ? OR url LIKE ?", ip, "%"+ip+"%")
+	}
+	
+	// 端口筛选
+	if port != "" {
+		query = query.Where("url LIKE ?", "%:"+port+"%")
+	}
+	
+	// 状态码筛选
+	if statusCode != "" {
+		var statusInt int
+		if _, err := fmt.Sscanf(statusCode, "%d", &statusInt); err == nil {
+			query = query.Where("status_code = ?", statusInt)
+		}
 	}
 
 	var total int64

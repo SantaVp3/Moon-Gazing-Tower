@@ -98,6 +98,20 @@ func (aps *AdvancedPortScanner) SetScanMode(mode string) {
 	}
 }
 
+// ApplyConfig 应用扫描器配置
+func (aps *AdvancedPortScanner) ApplyConfig(config *ScannerConfig, portCount int) {
+	// 根据端口数量选择并发数
+	if portCount <= 1000 {
+		aps.maxConcurrent = config.PortConcurrencySmall
+	} else if portCount <= 10000 {
+		aps.maxConcurrent = config.PortConcurrencyMedium
+	} else {
+		aps.maxConcurrent = config.PortConcurrencyLarge
+	}
+	
+	aps.timeout = config.PortTimeout
+}
+
 // ScanWithProgress 执行端口扫描并推送进度
 func (aps *AdvancedPortScanner) ScanWithProgress(ctx *ScanContext, ips []models.IP, ports []int) ([]*PortScanResult, error) {
 	startTime := time.Now()

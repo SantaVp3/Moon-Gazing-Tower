@@ -27,6 +27,7 @@ type DomainScanner struct {
 	dnsResolvers []string
 	timeout      time.Duration
 	retryCount   int
+	concurrency  int // 域名爆破并发数（从配置加载）
 }
 
 // DomainStats 域名扫描统计
@@ -127,6 +128,14 @@ func (ds *DomainScanner) loadDictFromDatabase(ctx *ScanContext, dictName string)
 
 // Scan 执行域名扫描
 func (ds *DomainScanner) Scan(ctx *ScanContext) error {
+	// 🆕 加载扫描器配置
+	scannerConfig := LoadScannerConfig(ctx)
+	ds.timeout = scannerConfig.DomainTimeout
+	ds.retryCount = scannerConfig.DomainRetry
+	ds.concurrency = scannerConfig.DomainConcurrency
+	ctx.Logger.Printf("[Config] Domain scanner: concurrency=%d, timeout=%v, retry=%d", 
+		ds.concurrency, ds.timeout, ds.retryCount)
+	
 	targets := strings.Split(ctx.Task.Target, ",")
 
 	for _, target := range targets {
@@ -471,6 +480,12 @@ func (ds *DomainScanner) isValidSubdomain(subdomain string) bool {
 
 // calculateConcurrency 计算合理的并发数
 func (ds *DomainScanner) calculateConcurrency(dictSize int) int {
+	// 🆕 优先使用配置的并发数
+	if ds.concurrency > 0 {
+		return ds.concurrency
+	}
+	
+	// 回退到基于字典大小的动态计算
 	// 小字典
 	if dictSize < 100 {
 		return 20

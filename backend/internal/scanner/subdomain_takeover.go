@@ -271,14 +271,19 @@ func initTakeoverFingerprints() []TakeoverFingerprint {
 
 // Scan 执行子域名接管检测
 func (s *SubdomainTakeoverScanner) Scan(ctx *ScanContext) error {
+	// 🆕 加载扫描器配置
+	scannerConfig := LoadScannerConfig(ctx)
+	
 	var domains []models.Domain
 	ctx.DB.Where("task_id = ?", ctx.Task.ID).Find(&domains)
 
 	ctx.Logger.Printf("=== Subdomain Takeover Scan Started ===")
 	ctx.Logger.Printf("Checking %d domains for potential takeover vulnerabilities", len(domains))
 
-	// 并发检测
-	concurrency := 20
+	// 🆕 使用配置的并发数
+	concurrency := scannerConfig.SubdomainTakeoverConcurrency
+	ctx.Logger.Printf("[Config] Subdomain takeover scanner: concurrency=%d", concurrency)
+	
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, concurrency)
 	resultChan := make(chan *TakeoverResult, len(domains))

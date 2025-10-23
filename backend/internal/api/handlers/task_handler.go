@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/reconmaster/backend/internal/database"
 	"github.com/reconmaster/backend/internal/models"
 	"github.com/reconmaster/backend/internal/services"
-	"github.com/gin-gonic/gin"
 )
 
 // CreateTaskRequest 创建任务请求
 type CreateTaskRequest struct {
-	Name    string              `json:"name" binding:"required"`
-	Target  string              `json:"target" binding:"required"`
-	Options models.TaskOptions  `json:"options"`
+	Name    string             `json:"name" binding:"required"`
+	Target  string             `json:"target" binding:"required"`
+	Options models.TaskOptions `json:"options"`
 }
 
 // TaskHandler 任务处理器

@@ -33,6 +33,9 @@ func NewPortScanner() *PortScanner {
 
 // Scan 执行端口扫描
 func (ps *PortScanner) Scan(ctx *ScanContext) error {
+	// 🆕 加载扫描器配置
+	scannerConfig := LoadScannerConfig(ctx)
+	
 	// 获取所有IP
 	var ips []models.IP
 	ctx.DB.Where("task_id = ?", ctx.Task.ID).Find(&ips)
@@ -63,6 +66,12 @@ func (ps *PortScanner) Scan(ctx *ScanContext) error {
 
 	ctx.Logger.Printf("Starting port scan with mode: %s", scanMode)
 	ps.scanner.SetScanMode(scanMode)
+	
+	// 🆕 应用配置
+	ps.scanner.ApplyConfig(scannerConfig, len(ports))
+	ctx.Logger.Printf("[Config] Port scanner: concurrency=%d (for %d ports), timeout=%v", 
+		ps.scanner.maxConcurrent, len(ports), ps.scanner.timeout)
+	
 	return ps.scanWithScanner(ctx, ips, ports)
 }
 
