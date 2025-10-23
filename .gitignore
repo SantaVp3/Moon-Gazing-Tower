@@ -61,4 +61,4 @@ temp/
 
 # 配置文件（包含敏感信息）
 /backend/configs/config.yaml
-backend/configs/config.docker.yaml
+

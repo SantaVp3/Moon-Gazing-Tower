@@ -1,0 +1,82 @@
+server:
+  port: 5003
+  mode: release
+
+jwt:
+  secret: "change-me-in-production"
+
+database:
+  host: db
+  port: 5432
+  user: arl
+  password: arlpass
+  dbname: arl_vp3
+  sslmode: disable
+  max_idle_conns: 10
+  max_open_conns: 100
+
+redis:
+  host: redis
+  port: 6379
+  password: ""
+  db: 0
+
+scanner:
+  max_concurrent_tasks: 10
+  domain_brute_concurrent: 100
+  port_scan_concurrent: 50
+  site_detect_concurrent: 30
+
+security:
+  black_ips:
+    - "127.0.0.0/8"
+    - "10.0.0.0/8"
+    - "172.16.0.0/12"
+    - "192.168.0.0/16"
+    - "169.254.0.0/16"
+  black_domains:
+    - "localhost"
+
+notification:
+  dingding:
+    enabled: false
+    webhook: ""
+  email:
+    enabled: false
+    smtp_server: ""
+    smtp_port: 587
+    smtp_user: ""
+    smtp_password: ""
+    from: ""
+    to: ""
+  timeout: 3600
+  max_retries: 3
+  port_scan_timeout: 300
+  port_scan_threads: 100
+  domain_brute_threads: 50
+  domain_dict_path: "./configs/dicts/domain"
+  screenshot_timeout: 30
+  screenshot_dir: "./data/screenshots"
+  results_dir: "./exports"
+
+datasource:
+  fofa_email: ""
+  fofa_key: ""
+  hunter_key: ""
+  shodan_key: ""
+
+nuclei:
+  enabled: false
+  templates_path: "./tools/nuclei/templates"
+  severity: "critical,high,medium"
+
+webinfohunter:
+  enabled: false
+  bin_path: "./tools/webinfohunter"
+
+logging:
+  level: info
+  file: "./logs/arl.log"
+  max_size: 100
+  max_backups: 10
+  max_age: 30
