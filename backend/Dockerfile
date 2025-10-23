@@ -1,6 +1,11 @@
 # syntax=docker/dockerfile:1
 
-FROM golang:1.21-bullseye AS builder
+FROM golang:1.24-bullseye AS builder
+
+# 1. Install libpcap-dev for CGO to link against
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libpcap-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 ENV GOPROXY=https://goproxy.cn,direct
@@ -10,8 +15,12 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/bin/server ./cmd/server && \
-    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/bin/init-admin ./cmd/init-admin
+# 2. Remove CGO_ENABLED=0 so Go can link with libpcap
+# RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/bin/server ./cmd/server && \
+#     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/bin/init-admin ./cmd/init-admin
+RUN GOOS=linux GOARCH=amd64 go build -o /app/bin/server ./cmd/server && \
+    GOOS=linux GOARCH=amd64 go build -o /app/bin/init-admin ./cmd/init-admin
+    # Note: We keep the GOOS/GOARCH flags for cross-compilation environment consistency
 
 FROM debian:bookworm-slim
 
@@ -26,6 +35,8 @@ RUN apt-get update && \
         fonts-dejavu-core \
         nmap \
         python3 \
+# 3. Important: libpcap is required at runtime for the binary
+        libpcap0.8 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd --system --home /app --shell /usr/sbin/nologin appuser
