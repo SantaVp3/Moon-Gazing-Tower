@@ -2,8 +2,9 @@
 
 FROM golang:1.21-bullseye AS builder
 
-WORKDIR /app
 ENV GOPROXY=https://goproxy.cn,direct
+
+WORKDIR /app
 
 COPY go.mod go.sum ./
 RUN go mod download
@@ -18,15 +19,20 @@ FROM debian:bookworm-slim
 ENV TZ=Etc/UTC \
     CHROME_BIN=/usr/bin/chromium
 
-RUN apt-get update && \
+RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources && \
+    apt-get update && \
     apt-get install -y --no-install-recommends \
-        ca-certificates \
-        chromium \
-        dumb-init \
-        fonts-dejavu-core \
-        nmap \
-        python3 \
+    ca-certificates \
+    chromium \
+    dumb-init \
+    fonts-dejavu-core \
+    nmap \
+    masscan \
+    python3 \
+    libcap2-bin \
     && rm -rf /var/lib/apt/lists/*
+
+RUN setcap CAP_NET_RAW+eip /usr/bin/masscan
 
 RUN useradd --system --home /app --shell /usr/sbin/nologin appuser
 
