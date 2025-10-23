@@ -7,6 +7,8 @@ type PortScanResult struct {
 	Protocol string
 	Open     bool
 	Service  string
+	Version  string // 服务版本（通过gonmap识别）
+	Product  string // 产品名称（通过gonmap识别）
 	Banner   string
 }
 

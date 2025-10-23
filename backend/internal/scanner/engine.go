@@ -78,16 +78,47 @@ func (e *Engine) ResolveIPs(ctx *ScanContext) error {
 				continue
 			}
 
-			// 保存所有CIDR中的IP
+			ctx.Logger.Printf("Generated %d IPs from CIDR %s, checking liveness...", len(ips), target)
+
+			// 🆕 存活性检测：只保存存活的IP
+			aliveCount := 0
+			aliveChan := make(chan string, len(ips))
+			semaphore := make(chan struct{}, 50) // 并发50个
+
 			for _, ip := range ips {
+				semaphore <- struct{}{}
+				go func(ipAddr string) {
+					defer func() { <-semaphore }()
+					if e.cSegmentScanner.IsAlive(ipAddr) {
+						aliveChan <- ipAddr
+					}
+				}(ip)
+			}
+
+			// 等待所有探测完成
+			go func() {
+				for i := 0; i < 50; i++ {
+					semaphore <- struct{}{}
+				}
+				close(aliveChan)
+			}()
+
+			// 保存存活的IP
+			for aliveIP := range aliveChan {
 				ipModel := &models.IP{
 					TaskID:    ctx.Task.ID,
-					IPAddress: ip,
+					IPAddress: aliveIP,
 					Source:    "cidr",
 				}
-				ctx.DB.Where("task_id = ? AND ip_address = ?", ctx.Task.ID, ip).FirstOrCreate(ipModel)
+				ctx.DB.Where("task_id = ? AND ip_address = ?", ctx.Task.ID, aliveIP).FirstOrCreate(ipModel)
+				aliveCount++
+
+				if aliveCount%10 == 0 {
+					ctx.Logger.Printf("CIDR scan: found %d alive IPs so far...", aliveCount)
+				}
 			}
-			ctx.Logger.Printf("Parsed %d IPs from CIDR %s", len(ips), target)
+
+			ctx.Logger.Printf("CIDR %s: scanned %d IPs, found %d alive", target, len(ips), aliveCount)
 		} else if net.ParseIP(target) != nil {
 			// 单个IP地址
 			ctx.Logger.Printf("Parsing single IP: %s", target)

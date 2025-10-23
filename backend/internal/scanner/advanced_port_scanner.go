@@ -10,13 +10,13 @@ import (
 )
 
 // AdvancedPortScanner 高级端口扫描器
-// 使用 Masscan + Nmap 组合（MassMap 风格）
-// - 阶段1：Masscan 极速发现所有开放端口
+// 使用 Naabu + Nmap 组合
+// - 阶段1：Naabu 快速发现所有开放端口
 // - 阶段2：Nmap 详细识别服务版本和指纹
 type AdvancedPortScanner struct {
-	scanMode      string // normal, comprehensive
-	progressChan  chan *ScanProgress
-	masscanEngine *MasscanEngine // Masscan 引擎实例
+	scanMode     string // normal, comprehensive
+	progressChan chan *ScanProgress
+	naabuEngine  *NaabuEngine // Naabu 引擎实例
 }
 
 // ScanProgress 扫描进度
@@ -37,27 +37,17 @@ type ScanProgress struct {
 // NewAdvancedPortScanner 创建高级端口扫描器
 func NewAdvancedPortScanner() *AdvancedPortScanner {
 	scanner := &AdvancedPortScanner{
-		scanMode:      "normal",
-		progressChan:  make(chan *ScanProgress, 100),
-		masscanEngine: NewMasscanEngine(),
+		scanMode:     "normal",
+		progressChan: make(chan *ScanProgress, 100),
+		naabuEngine:  NewNaabuEngine(),
 	}
 
-	// 检查 Masscan 和 Nmap 是否可用
-	if !scanner.masscanEngine.isAvailable() {
-		fmt.Println("❌ ERROR: Masscan or Nmap not found!")
-		fmt.Println("   This scanner requires both Masscan and Nmap to be installed.")
-		fmt.Println("   Install instructions:")
-		fmt.Println("   • macOS: brew install masscan nmap")
-		fmt.Println("   • Ubuntu/Debian: apt install masscan nmap")
-		fmt.Println("   • CentOS/RHEL: yum install masscan nmap")
-		return nil
-	}
-
-	fmt.Println("✓ Masscan + Nmap detected - MassMap-style scanning enabled")
-	fmt.Println("  • Stage 1: Masscan rapid discovery (100k pps)")
-	fmt.Println("  • Stage 2: Nmap detailed enumeration")
-	fmt.Println("  • Perfect for: Large-scale internal network scanning")
-	fmt.Println("  ⚠ TIP: Run with root/sudo for best performance")
+	fmt.Println("✓ Port Scanner Ready - Naabu + Nmap Mode")
+	fmt.Println("  • Stage 1: Naabu rapid port discovery (high performance)")
+	fmt.Println("  • Stage 2: Nmap service & version detection")
+	fmt.Println("  • Perfect for: Internal network scanning")
+	fmt.Println("  ⚠️  IMPORTANT: Naabu requires root/sudo privileges")
+	fmt.Println("     Run server with: sudo ./bin/server")
 
 	return scanner
 }
@@ -68,51 +58,44 @@ func (aps *AdvancedPortScanner) SetProgressChannel(ch chan *ScanProgress) {
 }
 
 // SetScanMode 设置扫描模式
-// normal: Masscan 100k pps + Nmap 标准扫描
-// comprehensive: Masscan 50k pps + Nmap 深度扫描
+// normal: Naabu 自适应速率 + Nmap 标准扫描
+// comprehensive: Naabu 自适应速率 + Nmap 深度扫描
 func (aps *AdvancedPortScanner) SetScanMode(mode string) {
 	aps.scanMode = mode
-	if aps.masscanEngine == nil {
-		return
-	}
-
-	switch mode {
-	case "normal":
-		aps.masscanEngine.SetRate(100000) // 100k packets/sec
-	case "comprehensive":
-		aps.masscanEngine.SetRate(50000) // 50k packets/sec（更准确）
-	default:
-		aps.scanMode = "normal"
-		aps.masscanEngine.SetRate(100000)
-	}
+	// Naabu使用自适应速率，无需手动设置
+	// 速率会根据目标数量和端口范围自动调整
 }
 
 // ApplyConfig 应用扫描器配置（兼容接口）
 func (aps *AdvancedPortScanner) ApplyConfig(config *ScannerConfig, portCount int) {
-	// Masscan 模式下，速率由 SetScanMode 控制
-	// 这里保留配置接口以兼容现有代码
+	// Naabu使用自适应速率，这里保留配置接口以兼容现有代码
 }
 
 // ScanWithProgress 执行端口扫描并推送进度
 func (aps *AdvancedPortScanner) ScanWithProgress(ctx *ScanContext, ips []models.IP, ports []int) ([]*PortScanResult, error) {
-	if aps.masscanEngine == nil {
-		return nil, fmt.Errorf("Masscan engine not initialized. Please install masscan and nmap")
+	if aps == nil {
+		return nil, fmt.Errorf("port scanner not initialized")
+	}
+
+	if aps.naabuEngine == nil {
+		ctx.Logger.Printf("ERROR: Naabu engine not available")
+		return nil, fmt.Errorf("Naabu engine not initialized")
 	}
 
 	startTime := time.Now()
 	totalScans := len(ips) * len(ports)
 
-	ctx.Logger.Printf("=== MassMap-Style Port Scanner Started ===")
+	ctx.Logger.Printf("=== Naabu Port Scanner Started ===")
 	ctx.Logger.Printf("Scan Mode: %s", aps.scanMode)
 	ctx.Logger.Printf("Target IPs: %d", len(ips))
 	ctx.Logger.Printf("Ports per IP: %d", len(ports))
 	ctx.Logger.Printf("Total port checks: %d", totalScans)
 
 	// 发送初始进度
-	aps.sendProgress(ctx, 0, totalScans, 0, 0, startTime, "开始 Masscan 快速发现...")
+	aps.sendProgress(ctx, 0, totalScans, 0, 0, startTime, "开始 Naabu 快速发现...")
 
-	// 使用 Masscan + Nmap 扫描
-	results := aps.scanWithMasscan(ctx, ips, ports, startTime, totalScans)
+	// 使用 Naabu + Nmap 扫描
+	results := aps.scanWithNaabu(ctx, ips, ports, startTime, totalScans)
 
 	elapsed := time.Since(startTime)
 	ctx.Logger.Printf("=== Scan Complete ===")
@@ -128,10 +111,10 @@ func (aps *AdvancedPortScanner) ScanWithProgress(ctx *ScanContext, ips []models.
 	return results, nil
 }
 
-// scanWithMasscan 使用 Masscan + Nmap 进行扫描（MassMap风格）
-func (aps *AdvancedPortScanner) scanWithMasscan(ctx *ScanContext, ips []models.IP, ports []int, startTime time.Time, totalScans int) []*PortScanResult {
-	if aps.masscanEngine == nil {
-		ctx.Logger.Printf("ERROR: Masscan engine not initialized")
+// scanWithNaabu 使用 Naabu + Nmap 进行扫描
+func (aps *AdvancedPortScanner) scanWithNaabu(ctx *ScanContext, ips []models.IP, ports []int, startTime time.Time, totalScans int) []*PortScanResult {
+	if aps.naabuEngine == nil {
+		ctx.Logger.Printf("ERROR: Naabu engine not initialized")
 		return []*PortScanResult{}
 	}
 
@@ -141,17 +124,17 @@ func (aps *AdvancedPortScanner) scanWithMasscan(ctx *ScanContext, ips []models.I
 		ipStrings[i] = ip.IPAddress
 	}
 
-	ctx.Logger.Printf("Stage 1/2: Masscan rapid discovery...")
-	aps.sendProgress(ctx, 0, totalScans, 0, 0, startTime, "Masscan快速发现开放端口...")
+	ctx.Logger.Printf("Stage 1/2: Naabu rapid discovery...")
+	aps.sendProgress(ctx, 0, totalScans, 0, 0, startTime, "Naabu快速发现开放端口...")
 
-	// 使用 Masscan 引擎扫描
-	results, err := aps.masscanEngine.ScanPorts(ipStrings, ports)
+	// 使用 Naabu 引擎扫描
+	results, err := aps.naabuEngine.ScanPorts(ipStrings, ports)
 	if err != nil {
-		ctx.Logger.Printf("ERROR: Masscan scan failed: %v", err)
+		ctx.Logger.Printf("ERROR: Naabu scan failed: %v", err)
 		return []*PortScanResult{}
 	}
 
-	ctx.Logger.Printf("Stage 2/2: Nmap detailed enumeration completed")
+	ctx.Logger.Printf("Stage 2/2: Nmap service detection completed")
 	ctx.Logger.Printf("Found %d open ports total", len(results))
 
 	// 实时保存结果到数据库
@@ -160,7 +143,7 @@ func (aps *AdvancedPortScanner) scanWithMasscan(ctx *ScanContext, ips []models.I
 	}
 
 	// 更新最终进度
-	aps.sendProgress(ctx, totalScans, totalScans, len(results), 0, startTime, "Masscan + Nmap扫描完成")
+	aps.sendProgress(ctx, totalScans, totalScans, len(results), 0, startTime, "Naabu + Nmap扫描完成")
 
 	return results
 }

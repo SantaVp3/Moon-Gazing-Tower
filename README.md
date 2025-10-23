@@ -13,11 +13,12 @@
 ## 📅 更新时间线
 
 - **2025-10-23** - v0.6：端口扫描重构与敏感信息检测
-  - **端口扫描重构（MassMap 风格）**：
-    - 采用 Masscan + Nmap 组合扫描方案，参考 [MassMap 项目](https://github.com/capt-meelo/MassMap)
-    - 阶段1：Masscan 极速发现所有开放端口（100k packets/sec）
-    - 阶段2：Nmap 详细识别服务版本和指纹
-    - 移除 Native TCP 和独立 Nmap 扫描模式，简化架构
+  - **端口扫描重构（纯Go实现）**：
+    - 采用 **Naabu + gonmap** 组合扫描方案（ProjectDiscovery 生态）
+    - 阶段1：Naabu 极速发现所有开放端口（SYN扫描，10000 packets/sec）
+    - 阶段2：gonmap 详细识别服务版本和指纹（内置nmap指纹库）
+    - **自适应速率**：根据扫描规模自动调整（TOP100端口=10000pps，全端口=8000pps）
+    - **纯Go实现**：无需安装nmap/masscan等外部工具，开箱即用
     - 完美适配内网环境，不依赖域名查询插件
   - **新增敏感信息规则功能**：
     - 支持正则表达式和关键词两种匹配模式
@@ -237,13 +238,29 @@ cd backend
 go run cmd/init-admin/main.go
 ```
 
-#### 4. 启动系统
+#### 4. 端口扫描说明
+
+**无需安装任何扫描工具！** 🎉
+
+- **端口发现**: Naabu（纯Go实现，已集成）
+- **服务识别**: gonmap（纯Go实现，内置nmap指纹库，已集成）
+- **自适应速率**: 根据扫描规模自动调整（1000-10000 pps）
+
+所有扫描功能已通过Go依赖集成，开箱即用。
+
+#### 5. 启动系统
 ```bash
 cd backend
-go run cmd/server/main.go
+# 编译
+go build -o bin/server ./cmd/server
+
+# ⚠️ 重要：Naabu需要root权限进行SYN扫描（高性能模式）
+sudo ./bin/server
 ```
 
-#### 5. 访问系统
+**说明**：Naabu使用原始套接字（raw socket）进行SYN扫描，需要root权限。如果不想使用sudo，Naabu会自动降级为TCP Connect扫描（速度较慢）。
+
+#### 6. 访问系统
 浏览器打开：http://localhost:8080
 
 使用初始化时设置的管理员账号登录。

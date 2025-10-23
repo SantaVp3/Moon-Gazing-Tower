@@ -81,7 +81,7 @@ func (cs *CSegmentScanner) Scan(ctx *ScanContext) error {
 			defer func() { <-semaphore }()
 
 			// 快速检测：尝试连接常用端口
-			if cs.isAlive(ip) {
+			if cs.IsAlive(ip) {
 				aliveChan <- ip
 			}
 		}(segmentIP)
@@ -157,8 +157,8 @@ func (cs *CSegmentScanner) generateCSegment(ipAddr string) []string {
 	return result
 }
 
-// isAlive 快速检测IP是否存活（探测常用端口）
-func (cs *CSegmentScanner) isAlive(ip string) bool {
+// IsAlive 快速检测IP是否存活（探测常用端口）
+func (cs *CSegmentScanner) IsAlive(ip string) bool {
 	// 常用端口列表（快速探测）
 	commonPorts := []int{80, 443, 22, 3389, 8080, 8443}
 
