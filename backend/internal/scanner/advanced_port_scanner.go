@@ -108,7 +108,7 @@ func (aps *AdvancedPortScanner) ApplyConfig(config *ScannerConfig, portCount int
 	} else {
 		aps.maxConcurrent = config.PortConcurrencyLarge
 	}
-	
+
 	aps.timeout = config.PortTimeout
 }
 

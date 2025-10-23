@@ -11,18 +11,19 @@ import (
 
 // User 用户模型
 type User struct {
-	ID        string         `gorm:"type:varchar(36);primaryKey" json:"id"`
-	Username  string         `gorm:"type:varchar(50);uniqueIndex;not null" json:"username"`
-	Password  string         `gorm:"type:varchar(255);not null" json:"-"` // 不在JSON中返回
-	Email     string         `gorm:"type:varchar(100);uniqueIndex" json:"email"`
-	Nickname  string         `gorm:"type:varchar(100)" json:"nickname"`
-	Avatar    string         `gorm:"type:varchar(255)" json:"avatar"`
-	Role      string         `gorm:"type:varchar(20);default:'user'" json:"role"` // admin, user
-	Status    string         `gorm:"type:varchar(20);default:'active'" json:"status"` // active, disabled
-	LastLogin *time.Time     `json:"last_login"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	ID                 string         `gorm:"type:varchar(36);primaryKey" json:"id"`
+	Username           string         `gorm:"type:varchar(50);uniqueIndex;not null" json:"username"`
+	Password           string         `gorm:"type:varchar(255);not null" json:"-"` // 不在JSON中返回
+	Email              string         `gorm:"type:varchar(100);uniqueIndex" json:"email"`
+	Nickname           string         `gorm:"type:varchar(100)" json:"nickname"`
+	Avatar             string         `gorm:"type:varchar(255)" json:"avatar"`
+	Role               string         `gorm:"type:varchar(20);default:'user'" json:"role"`     // admin, user
+	Status             string         `gorm:"type:varchar(20);default:'active'" json:"status"` // active, disabled
+	MustChangePassword bool           `gorm:"default:false" json:"must_change_password"`       // 是否必须修改密码（首次登录）
+	LastLogin          *time.Time     `json:"last_login"`
+	CreatedAt          time.Time      `json:"created_at"`
+	UpdatedAt          time.Time      `json:"updated_at"`
+	DeletedAt          gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 // TableName 指定表名
@@ -111,4 +112,3 @@ type UpdateProfileRequest struct {
 	Email    string `json:"email" binding:"omitempty,email"`
 	Avatar   string `json:"avatar"`
 }
-

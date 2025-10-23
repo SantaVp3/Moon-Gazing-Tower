@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/reconmaster/backend/internal/database"
@@ -121,6 +122,23 @@ func (h *TaskHandler) ListTasks(c *gin.Context) {
 func (h *TaskHandler) DeleteTask(c *gin.Context) {
 	taskID := c.Param("id")
 
+	// 🆕 删除前先检查任务状态并尝试停止
+	var task models.Task
+	if err := database.DB.First(&task, "id = ?", taskID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+		return
+	}
+
+	// 如果任务正在运行，先取消它
+	if task.Status == models.TaskStatusRunning {
+		if err := h.taskService.CancelTask(taskID); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot delete running task. Please cancel it first."})
+			return
+		}
+		// 等待一小段时间让任务停止
+		time.Sleep(500 * time.Millisecond)
+	}
+
 	// 开启事务，确保所有删除操作都成功或都失败
 	tx := database.DB.Begin()
 	defer func() {
@@ -235,4 +253,67 @@ func (h *TaskHandler) GetTaskStats(c *gin.Context) {
 	database.DB.Model(&models.Task{}).Where("status = ?", models.TaskStatusFailed).Count(&stats.Failed)
 
 	c.JSON(http.StatusOK, stats)
+}
+
+// BatchDeleteTasks 批量删除任务
+func (h *TaskHandler) BatchDeleteTasks(c *gin.Context) {
+	var req struct {
+		TaskIDs []string `json:"task_ids" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	if len(req.TaskIDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No task IDs provided"})
+		return
+	}
+
+	// 批量处理任务删除
+	successCount := 0
+	failedTasks := []string{}
+
+	for _, taskID := range req.TaskIDs {
+		// 检查任务状态
+		var task models.Task
+		if err := database.DB.First(&task, "id = ?", taskID).Error; err != nil {
+			failedTasks = append(failedTasks, taskID)
+			continue
+		}
+
+		// 如果任务正在运行，先取消它
+		if task.Status == models.TaskStatusRunning {
+			if err := h.taskService.CancelTask(taskID); err != nil {
+				failedTasks = append(failedTasks, taskID)
+				continue
+			}
+			time.Sleep(200 * time.Millisecond) // 等待任务停止
+		}
+
+		// 删除任务及其相关数据
+		tx := database.DB.Begin()
+		
+		// 删除相关资产
+		tx.Where("task_id = ?", taskID).Delete(&models.Domain{})
+		tx.Where("task_id = ?", taskID).Delete(&models.IP{})
+		tx.Where("task_id = ?", taskID).Delete(&models.Port{})
+		tx.Where("task_id = ?", taskID).Delete(&models.Site{})
+		tx.Delete(&models.Task{}, "id = ?", taskID)
+		
+		if err := tx.Commit().Error; err != nil {
+			tx.Rollback()
+			failedTasks = append(failedTasks, taskID)
+			continue
+		}
+		
+		successCount++
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":       fmt.Sprintf("Successfully deleted %d/%d tasks", successCount, len(req.TaskIDs)),
+		"success_count": successCount,
+		"failed_tasks":  failedTasks,
+	})
 }

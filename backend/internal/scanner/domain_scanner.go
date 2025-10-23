@@ -133,9 +133,9 @@ func (ds *DomainScanner) Scan(ctx *ScanContext) error {
 	ds.timeout = scannerConfig.DomainTimeout
 	ds.retryCount = scannerConfig.DomainRetry
 	ds.concurrency = scannerConfig.DomainConcurrency
-	ctx.Logger.Printf("[Config] Domain scanner: concurrency=%d, timeout=%v, retry=%d", 
+	ctx.Logger.Printf("[Config] Domain scanner: concurrency=%d, timeout=%v, retry=%d",
 		ds.concurrency, ds.timeout, ds.retryCount)
-	
+
 	targets := strings.Split(ctx.Task.Target, ",")
 
 	for _, target := range targets {
@@ -484,7 +484,7 @@ func (ds *DomainScanner) calculateConcurrency(dictSize int) int {
 	if ds.concurrency > 0 {
 		return ds.concurrency
 	}
-	
+
 	// 回退到基于字典大小的动态计算
 	// 小字典
 	if dictSize < 100 {

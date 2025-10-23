@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/reconmaster/backend/internal/auth"
 	"github.com/reconmaster/backend/internal/database"
 	"github.com/reconmaster/backend/internal/middleware"
 	"github.com/reconmaster/backend/internal/models"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 // AuthHandler 认证处理器
@@ -210,6 +210,9 @@ func (h *AuthHandler) UpdatePassword(c *gin.Context) {
 		return
 	}
 
+	// 清除强制修改密码标识
+	user.MustChangePassword = false
+
 	if err := database.DB.Save(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新失败"})
 		return
@@ -236,16 +239,16 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 // ListUsers 用户列表（管理员）
 func (h *AuthHandler) ListUsers(c *gin.Context) {
 	var users []models.User
-	
+
 	query := database.DB.Model(&models.User{})
-	
+
 	// 分页
 	page := c.DefaultQuery("page", "1")
 	pageSize := c.DefaultQuery("page_size", "20")
-	
+
 	var total int64
 	query.Count(&total)
-	
+
 	offset := (atoi(page) - 1) * atoi(pageSize)
 	query.Offset(offset).Limit(atoi(pageSize)).Find(&users)
 
@@ -279,4 +282,3 @@ func atoi(s string) int {
 	fmt.Sscanf(s, "%d", &i)
 	return i
 }
-

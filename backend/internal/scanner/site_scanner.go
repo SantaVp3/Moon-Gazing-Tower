@@ -23,15 +23,15 @@ type SiteScanner struct {
 func NewSiteScanner() *SiteScanner {
 	// 初始化指纹库
 	InitFingerprints()
-	
+
 	return &SiteScanner{
 		client: &http.Client{
 			Timeout: 5 * time.Second, // 优化：降低HTTP超时时间到5秒
 			Transport: &http.Transport{
 				TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
-				MaxIdleConns:        100,                // 优化：增加连接池
-				MaxIdleConnsPerHost: 10,                 // 优化：增加每个host的连接数
-				IdleConnTimeout:     30 * time.Second,   // 优化：连接复用
+				MaxIdleConns:        100,              // 优化：增加连接池
+				MaxIdleConnsPerHost: 10,               // 优化：增加每个host的连接数
+				IdleConnTimeout:     30 * time.Second, // 优化：连接复用
 			},
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				if len(via) >= 5 {
@@ -50,14 +50,14 @@ func (ss *SiteScanner) Detect(ctx *ScanContext) error {
 	// 🆕 加载扫描器配置
 	scannerConfig := LoadScannerConfig(ctx)
 	ss.client.Timeout = scannerConfig.SiteTimeout
-	
+
 	// 🆕 使用配置重新创建爬虫
 	ss.crawler = NewCrawlerWithConfig(CrawlerConfig{
 		MaxDepth: scannerConfig.CrawlerMaxDepth,
 		MaxPages: scannerConfig.CrawlerMaxPages,
 		Timeout:  scannerConfig.SiteTimeout,
 	})
-	
+
 	var ports []models.Port
 	ctx.DB.Where("task_id = ? AND port IN (?)", ctx.Task.ID, []int{80, 443, 8080, 8443, 8888, 8000, 8001, 9090}).Find(&ports)
 
@@ -68,7 +68,7 @@ func (ss *SiteScanner) Detect(ctx *ScanContext) error {
 	if len(ports) < concurrency {
 		concurrency = len(ports)
 	}
-	ctx.Logger.Printf("[Config] Site scanner: concurrency=%d, timeout=%v, crawler_depth=%d, crawler_pages=%d", 
+	ctx.Logger.Printf("[Config] Site scanner: concurrency=%d, timeout=%v, crawler_depth=%d, crawler_pages=%d",
 		concurrency, ss.client.Timeout, scannerConfig.CrawlerMaxDepth, scannerConfig.CrawlerMaxPages)
 
 	var wg sync.WaitGroup
@@ -119,7 +119,7 @@ func (ss *SiteScanner) detectSiteForPort(ctx *ScanContext, port models.Port) {
 	// 查找该IP对应的域名
 	var domains []models.Domain
 	ctx.DB.Where("task_id = ? AND ip_address = ?", ctx.Task.ID, port.IPAddress).Find(&domains)
-	
+
 	// 优先使用域名，如果没有域名则使用IP
 	hosts := make([]string, 0)
 	for _, domain := range domains {
@@ -132,17 +132,17 @@ func (ss *SiteScanner) detectSiteForPort(ctx *ScanContext, port models.Port) {
 	for _, host := range hosts {
 		for _, scheme := range schemes {
 			url := fmt.Sprintf("%s://%s:%d", scheme, host, port.Port)
-			
+
 			if siteInfo := ss.probeSite(url); siteInfo != nil {
 				siteInfo.TaskID = ctx.Task.ID
 				ctx.DB.Create(siteInfo)
 				ctx.Logger.Printf("Site detected: %s - %s", url, siteInfo.Title)
-				
+
 				// 如果启用了爬虫
 				if ctx.Task.Options.EnableCrawler {
 					ss.crawlSite(ctx, url)
 				}
-				
+
 				break // 成功后不再尝试其他协议
 			}
 		}
@@ -185,7 +185,7 @@ func (ss *SiteScanner) probeSite(url string) *models.Site {
 
 	// 指纹识别
 	fingerprints := MatchFingerprints(headers, bodyStr, title)
-	
+
 	// 合并指纹为字符串
 	fingerprintStr := ""
 	if len(fingerprints) > 0 {
@@ -197,7 +197,7 @@ func (ss *SiteScanner) probeSite(url string) *models.Site {
 
 	// CDN检测
 	isCDN := IsCDN(headers, "")
-	
+
 	// 从URL中提取IP
 	ip := ExtractIPFromURL(url)
 
@@ -223,14 +223,14 @@ func (ss *SiteScanner) probeSite(url string) *models.Site {
 // crawlSite 爬取站点
 func (ss *SiteScanner) crawlSite(ctx *ScanContext, url string) {
 	ctx.Logger.Printf("Starting crawler for site: %s", url)
-	
+
 	// 使用任务选项配置爬虫
 	config := CrawlerConfig{
 		MaxDepth: 3,
 		MaxPages: 100,
 		Timeout:  10 * time.Second,
 	}
-	
+
 	// 如果任务选项中有爬虫配置，使用它们
 	if ctx.Task.Options.CrawlerDepth > 0 {
 		config.MaxDepth = ctx.Task.Options.CrawlerDepth
@@ -238,14 +238,14 @@ func (ss *SiteScanner) crawlSite(ctx *ScanContext, url string) {
 	if ctx.Task.Options.CrawlerPages > 0 {
 		config.MaxPages = ctx.Task.Options.CrawlerPages
 	}
-	
+
 	crawler := NewCrawlerWithConfig(config)
 	err := crawler.Crawl(ctx, url)
 	if err != nil {
 		ctx.Logger.Printf("[Crawler] Failed for %s: %v", url, err)
 		return
 	}
-	
+
 	ctx.Logger.Printf("[Crawler] Completed for %s", url)
 }
 
@@ -368,7 +368,7 @@ func (ss *SiteScanner) CheckFileLeaks(ctx *ScanContext) error {
 	for _, site := range sites {
 		for _, leak := range leakPaths {
 			url := site.URL + leak.path
-			
+
 			statusCode, contentType, size := ss.checkURLDetailed(url)
 			if statusCode == 200 && size > 0 {
 				vuln := &models.Vulnerability{
@@ -406,7 +406,7 @@ func (ss *SiteScanner) checkURLDetailed(url string) (int, string, int64) {
 
 	// 读取body获取大小
 	body, _ := io.ReadAll(resp.Body)
-	
+
 	return resp.StatusCode, resp.Header.Get("Content-Type"), int64(len(body))
 }
 

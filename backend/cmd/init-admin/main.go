@@ -44,12 +44,13 @@ func main() {
 
 	// 创建管理员账号
 	admin := models.User{
-		ID:       uuid.New().String(),
-		Username: "admin",
-		Email:    "admin@arl.local",
-		Nickname: "系统管理员",
-		Role:     "admin",
-		Status:   "active",
+		ID:                 uuid.New().String(),
+		Username:           "admin",
+		Email:              "admin@arl.local",
+		Nickname:           "系统管理员",
+		Role:               "admin",
+		Status:             "active",
+		MustChangePassword: true, // 首次登录必须修改密码
 	}
 
 	// 默认密码: arlpass

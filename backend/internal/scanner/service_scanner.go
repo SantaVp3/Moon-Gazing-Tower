@@ -12,9 +12,9 @@ import (
 
 // ServiceScanner 服务扫描器
 type ServiceScanner struct {
-	serviceMap    map[int]string
-	timeout       time.Duration // 从配置加载
-	bannerMaxLen  int           // 从配置加载
+	serviceMap   map[int]string
+	timeout      time.Duration // 从配置加载
+	bannerMaxLen int           // 从配置加载
 }
 
 // NewServiceScanner 创建服务扫描器
@@ -51,7 +51,7 @@ func (ss *ServiceScanner) Detect(ctx *ScanContext) error {
 	ss.timeout = scannerConfig.ServiceTimeout
 	ss.bannerMaxLen = scannerConfig.BannerMaxLength
 	ctx.Logger.Printf("[Config] Service scanner: timeout=%v, banner_max_len=%d", ss.timeout, ss.bannerMaxLen)
-	
+
 	var ports []models.Port
 	ctx.DB.Where("task_id = ? AND (service IS NULL OR service = '')", ctx.Task.ID).Find(&ports)
 
@@ -63,16 +63,16 @@ func (ss *ServiceScanner) Detect(ctx *ScanContext) error {
 	for _, port := range ports {
 		service := ss.detectService(port.IPAddress, port.Port)
 		banner := ss.grabBanner(port.IPAddress, port.Port)
-		
+
 		updates := make(map[string]interface{})
-		
+
 		if service != "" {
 			updates["service"] = service
 		}
-		
+
 		if banner != "" {
 			updates["banner"] = banner
-			
+
 			// 从banner检测版本
 			version := ss.extractVersion(banner)
 			if version != "" {
@@ -87,7 +87,7 @@ func (ss *ServiceScanner) Detect(ctx *ScanContext) error {
 				if err == nil {
 					updates["ssl_cert"] = sslScanner.FormatCertInfo(certInfo)
 					ctx.Logger.Printf("SSL cert obtained: %s:%d", port.IPAddress, port.Port)
-					
+
 					// 从证书提取域名（需要验证是否属于目标域名）
 					if len(certInfo.DNSNames) > 0 {
 						// 获取目标域名列表
@@ -103,7 +103,7 @@ func (ss *ServiceScanner) Detect(ctx *ScanContext) error {
 										break
 									}
 								}
-								
+
 								if isValidDomain {
 									// 保存发现的域名
 									d := &models.Domain{
@@ -175,55 +175,55 @@ func (ss *ServiceScanner) detectService(ip string, port int) string {
 // verifyService 验证服务是否与banner匹配（减少误报）
 func (ss *ServiceScanner) verifyService(expectedService, banner string) bool {
 	banner = strings.ToLower(banner)
-	
+
 	// 定义服务特征关键词
 	serviceKeywords := map[string][]string{
-		"ssh":          {"ssh", "openssh"},
-		"http":         {"http", "server:", "nginx", "apache"},
-		"https":        {"http", "server:", "nginx", "apache"},
-		"ftp":          {"ftp", "220"},
-		"smtp":         {"smtp", "220"},
-		"mysql":        {"mysql", "mariadb"},
-		"redis":        {"redis"},
-		"mongodb":      {"mongodb"},
-		"postgresql":   {"postgresql"},
+		"ssh":           {"ssh", "openssh"},
+		"http":          {"http", "server:", "nginx", "apache"},
+		"https":         {"http", "server:", "nginx", "apache"},
+		"ftp":           {"ftp", "220"},
+		"smtp":          {"smtp", "220"},
+		"mysql":         {"mysql", "mariadb"},
+		"redis":         {"redis"},
+		"mongodb":       {"mongodb"},
+		"postgresql":    {"postgresql"},
 		"elasticsearch": {"elasticsearch"},
 	}
-	
+
 	keywords, exists := serviceKeywords[expectedService]
 	if !exists {
 		return true // 没有特征关键词的服务，默认信任
 	}
-	
+
 	// 检查是否包含任何关键词
 	for _, keyword := range keywords {
 		if strings.Contains(banner, keyword) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
 // identifyFromBanner 从banner识别服务类型
 func (ss *ServiceScanner) identifyFromBanner(banner string) string {
 	banner = strings.ToLower(banner)
-	
+
 	// 定义服务识别规则
 	identifyRules := map[string][]string{
-		"ssh":          {"ssh-", "openssh"},
-		"http":         {"http/1", "server:"},
-		"ftp":          {"220", "ftp"},
-		"smtp":         {"220", "smtp", "esmtp"},
-		"mysql":        {"mysql", "mariadb"},
-		"redis":        {"-err", "redis"},
-		"mongodb":      {"mongodb"},
-		"postgresql":   {"postgresql"},
+		"ssh":           {"ssh-", "openssh"},
+		"http":          {"http/1", "server:"},
+		"ftp":           {"220", "ftp"},
+		"smtp":          {"220", "smtp", "esmtp"},
+		"mysql":         {"mysql", "mariadb"},
+		"redis":         {"-err", "redis"},
+		"mongodb":       {"mongodb"},
+		"postgresql":    {"postgresql"},
 		"elasticsearch": {"elasticsearch"},
-		"nginx":        {"nginx"},
-		"apache":       {"apache"},
+		"nginx":         {"nginx"},
+		"apache":        {"apache"},
 	}
-	
+
 	for service, keywords := range identifyRules {
 		for _, keyword := range keywords {
 			if strings.Contains(banner, keyword) {
@@ -231,7 +231,7 @@ func (ss *ServiceScanner) identifyFromBanner(banner string) string {
 			}
 		}
 	}
-	
+
 	return ""
 }
 
@@ -239,18 +239,18 @@ func (ss *ServiceScanner) identifyFromBanner(banner string) string {
 func (ss *ServiceScanner) isSubdomainOf(subdomain, domain string) bool {
 	subdomain = strings.ToLower(strings.TrimSpace(subdomain))
 	domain = strings.ToLower(strings.TrimSpace(domain))
-	
+
 	// 完全匹配
 	if subdomain == domain {
 		return true
 	}
-	
+
 	// 子域名必须以 .domain 结尾
 	suffix := "." + domain
 	if strings.HasSuffix(subdomain, suffix) {
 		return true
 	}
-	
+
 	return false
 }
 
@@ -261,13 +261,13 @@ func (ss *ServiceScanner) grabBanner(ip string, port int) string {
 	if timeout == 0 {
 		timeout = 3 * time.Second // 默认3秒
 	}
-	
+
 	// 🆕 使用配置的banner最大长度
 	bannerLen := ss.bannerMaxLen
 	if bannerLen == 0 {
 		bannerLen = 2048 // 默认2048字节
 	}
-	
+
 	address := fmt.Sprintf("%s:%d", ip, port)
 	conn, err := net.DialTimeout("tcp", address, timeout)
 	if err != nil {

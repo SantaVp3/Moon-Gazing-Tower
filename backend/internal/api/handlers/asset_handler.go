@@ -212,27 +212,27 @@ func (h *AssetHandler) ListSites(c *gin.Context) {
 	if taskID != "" {
 		query = query.Where("task_id = ?", taskID)
 	}
-	
+
 	// URL 筛选
 	if url != "" {
 		query = query.Where("url LIKE ?", "%"+url+"%")
 	}
-	
+
 	// 域名筛选
 	if domain != "" {
 		query = query.Where("url LIKE ?", "%"+domain+"%")
 	}
-	
+
 	// IP 筛选
 	if ip != "" {
 		query = query.Where("ip = ? OR url LIKE ?", ip, "%"+ip+"%")
 	}
-	
+
 	// 端口筛选
 	if port != "" {
 		query = query.Where("url LIKE ?", "%:"+port+"%")
 	}
-	
+
 	// 状态码筛选
 	if statusCode != "" {
 		var statusInt int

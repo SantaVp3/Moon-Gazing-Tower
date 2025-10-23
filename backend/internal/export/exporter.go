@@ -74,6 +74,9 @@ func (e *Exporter) ExportDomainsToCSV(domains []models.Domain, taskID string) (s
 	}
 	defer file.Close()
 
+	// 🆕 写入UTF-8 BOM，让Excel正确识别中文
+	file.Write([]byte{0xEF, 0xBB, 0xBF})
+
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
 
@@ -112,6 +115,9 @@ func (e *Exporter) ExportPortsToCSV(ports []models.Port, taskID string) (string,
 		return "", err
 	}
 	defer file.Close()
+
+	// 🆕 写入UTF-8 BOM
+	file.Write([]byte{0xEF, 0xBB, 0xBF})
 
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
@@ -152,6 +158,9 @@ func (e *Exporter) ExportSitesToCSV(sites []models.Site, taskID string) (string,
 		return "", err
 	}
 	defer file.Close()
+
+	// 🆕 写入UTF-8 BOM
+	file.Write([]byte{0xEF, 0xBB, 0xBF})
 
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
@@ -198,6 +207,9 @@ func (e *Exporter) ExportVulnerabilitiesToCSV(vulns []models.Vulnerability, task
 		return "", err
 	}
 	defer file.Close()
+
+	// 🆕 写入UTF-8 BOM
+	file.Write([]byte{0xEF, 0xBB, 0xBF})
 
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
