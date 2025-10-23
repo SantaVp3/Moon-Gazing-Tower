@@ -65,10 +65,6 @@ func (me *MasscanEngine) SetRate(rate int) {
 func isMasscanAvailable() bool {
 	masscanPath, err := exec.LookPath("masscan")
 	if err != nil {
-		// 在 PATH 中找不到 masscan
-		fmt.Println("========Masscan Check FAILED=========")
-		fmt.Printf("Error: 'masscan' executable not found in PATH: %v\n", err)
-		fmt.Println("=======================================")
 		return false
 	}
 	fmt.Printf("✓ 'masscan' executable found at: %s\n", masscanPath)
@@ -131,21 +127,11 @@ func (me *MasscanEngine) masscanDiscovery(targets []string, ports []int) (map[st
 
 	fmt.Printf("Executing: masscan --rate %d -p %s %s\n", me.rate, portRanges, strings.Join(targets, " "))
 
-	fmt.Println("======masscan2======")
-	fmt.Println("masscan", args)
-	fmt.Println("======masscan2======")
-
 	cmd := exec.Command("masscan", args...)
 	output, err := cmd.Output()
 	if err != nil {
-		fmt.Println("======masscan3======")
-		fmt.Println(err.Error())
-		fmt.Println("======masscan3======")
 		return nil, fmt.Errorf("masscan execution failed: %w", err)
 	}
-	fmt.Println("======masscan4======")
-	fmt.Println(output)
-	fmt.Println("======masscan4======")
 
 	// 解析 Masscan JSON 输出
 	return me.parseMasscanOutput(output)
@@ -371,10 +357,6 @@ func (me *MasscanEngine) isAvailable() bool {
 func (me *MasscanEngine) isNmapAvailable() bool {
 	cmd := exec.Command("nmap", "--version")
 	if err := cmd.Run(); err != nil {
-		fmt.Println("===========nmap======")
-		fmt.Println(err.Error())
-		fmt.Println("===========nmap======")
-
 		return false
 	}
 	return true
