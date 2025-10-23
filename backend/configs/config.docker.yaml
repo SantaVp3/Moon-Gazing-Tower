@@ -6,7 +6,7 @@ jwt:
   secret: "change-me-in-production"
 
 database:
-  host: localhost
+  host: db
   port: 5432
   user: arl
   password: arlpass
@@ -16,7 +16,7 @@ database:
   max_open_conns: 100
 
 redis:
-  host: localhost
+  host: redis
   port: 6379
   password: ""
   db: 0
