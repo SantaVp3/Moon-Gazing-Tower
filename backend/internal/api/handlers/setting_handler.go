@@ -10,9 +10,7 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/reconmaster/backend/internal/config"
@@ -229,113 +227,7 @@ func (h *SettingHandler) ListDictionaries(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"dictionaries": dictionaries})
 }
 
-// UploadDictionary 上传字典
-func (h *SettingHandler) UploadDictionary(c *gin.Context) {
-	userID := c.GetString("userID")
-
-	name := c.PostForm("name")
-	dictType := c.PostForm("type")
-	description := c.PostForm("description")
-
-	if name == "" || dictType == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Name and type are required"})
-		return
-	}
-
-	// 获取上传的文件
-	file, err := c.FormFile("file")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "File is required"})
-		return
-	}
-
-	// 创建字典目录
-	dictDir := filepath.Join("./configs/dicts", dictType)
-	os.MkdirAll(dictDir, 0755)
-
-	// 保存文件
-	filename := fmt.Sprintf("%d_%s", time.Now().Unix(), file.Filename)
-	filePath := filepath.Join(dictDir, filename)
-
-	if err := c.SaveUploadedFile(file, filePath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
-		return
-	}
-
-	// 统计行数
-	lineCount, err := h.countLines(filePath)
-	if err != nil {
-		lineCount = 0
-	}
-
-	// 创建字典记录
-	dict := models.Dictionary{
-		Name:        name,
-		Type:        dictType,
-		FilePath:    filePath,
-		Size:        file.Size,
-		LineCount:   lineCount,
-		Description: description,
-		CreatedBy:   userID,
-	}
-
-	if err := database.DB.Create(&dict).Error; err != nil {
-		os.Remove(filePath) // 删除文件
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create dictionary record"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Dictionary uploaded successfully", "dictionary": dict})
-}
-
-// DeleteDictionary 删除字典
-func (h *SettingHandler) DeleteDictionary(c *gin.Context) {
-	id := c.Param("id")
-
-	var dict models.Dictionary
-	if err := database.DB.Where("id = ?", id).First(&dict).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Dictionary not found"})
-		return
-	}
-
-	if dict.IsDefault {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot delete default dictionary"})
-		return
-	}
-
-	// 删除文件
-	if dict.FilePath != "" {
-		os.Remove(dict.FilePath)
-	}
-
-	// 删除记录
-	if err := database.DB.Delete(&dict).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete dictionary"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Dictionary deleted successfully"})
-}
-
-// SetDefaultDictionary 设置默认字典
-func (h *SettingHandler) SetDefaultDictionary(c *gin.Context) {
-	id := c.Param("id")
-
-	var dict models.Dictionary
-	if err := database.DB.Where("id = ?", id).First(&dict).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Dictionary not found"})
-		return
-	}
-
-	// 取消同类型的其他默认字典
-	database.DB.Model(&models.Dictionary{}).Where("type = ? AND is_default = ?", dict.Type, true).Update("is_default", false)
-
-	// 设置为默认
-	dict.IsDefault = true
-	database.DB.Save(&dict)
-
-	c.JSON(http.StatusOK, gin.H{"message": "Default dictionary set successfully"})
-}
+// 字典管理功能已迁移到 dictionary_handler.go
 
 // encrypt 加密字符串
 func (h *SettingHandler) encrypt(plaintext string) (string, error) {

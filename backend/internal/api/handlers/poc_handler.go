@@ -17,6 +17,21 @@ import (
 	"gorm.io/gorm"
 )
 
+// sanitizeString 清理字符串中的 NULL 字节和其他无效字符
+// PostgreSQL 的 text/varchar 类型不支持存储 NULL 字节 (0x00)
+func sanitizeString(s string) string {
+	// 移除 NULL 字节
+	s = strings.ReplaceAll(s, "\x00", "")
+	// 移除其他控制字符（可选）
+	// return strings.Map(func(r rune) rune {
+	// 	if r == 0 || (r < 32 && r != '\n' && r != '\r' && r != '\t') {
+	// 		return -1
+	// 	}
+	// 	return r
+	// }, s)
+	return s
+}
+
 // PoCHandler PoC处理器
 type PoCHandler struct{}
 
@@ -155,16 +170,16 @@ func (h *PoCHandler) CreatePoC(c *gin.Context) {
 	userID := c.GetString("userID")
 
 	poc := &models.PoC{
-		Name:        req.Name,
-		Category:    req.Category,
-		Severity:    req.Severity,
-		CVE:         req.CVE,
-		Author:      req.Author,
-		Description: req.Description,
-		Reference:   req.Reference,
-		PoCType:     req.PoCType,
-		PoCContent:  req.PoCContent,
-		Tags:        req.Tags,
+		Name:        sanitizeString(req.Name),
+		Category:    sanitizeString(req.Category),
+		Severity:    sanitizeString(req.Severity),
+		CVE:         sanitizeString(req.CVE),
+		Author:      sanitizeString(req.Author),
+		Description: sanitizeString(req.Description),
+		Reference:   sanitizeString(req.Reference),
+		PoCType:     sanitizeString(req.PoCType),
+		PoCContent:  sanitizeString(req.PoCContent),
+		Tags:        sanitizeString(req.Tags),
 		IsEnabled:   true,
 		CreatedBy:   userID,
 	}
@@ -218,17 +233,17 @@ func (h *PoCHandler) UpdatePoC(c *gin.Context) {
 		return
 	}
 
-	// 更新字段
-	poc.Name = req.Name
-	poc.Category = req.Category
-	poc.Severity = req.Severity
-	poc.CVE = req.CVE
-	poc.Author = req.Author
-	poc.Description = req.Description
-	poc.Reference = req.Reference
-	poc.PoCType = req.PoCType
-	poc.PoCContent = req.PoCContent
-	poc.Tags = req.Tags
+	// 更新字段（清理 NULL 字节）
+	poc.Name = sanitizeString(req.Name)
+	poc.Category = sanitizeString(req.Category)
+	poc.Severity = sanitizeString(req.Severity)
+	poc.CVE = sanitizeString(req.CVE)
+	poc.Author = sanitizeString(req.Author)
+	poc.Description = sanitizeString(req.Description)
+	poc.Reference = sanitizeString(req.Reference)
+	poc.PoCType = sanitizeString(req.PoCType)
+	poc.PoCContent = sanitizeString(req.PoCContent)
+	poc.Tags = sanitizeString(req.Tags)
 
 	if err := database.DB.Save(&poc).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update PoC"})
@@ -391,16 +406,16 @@ func (h *PoCHandler) BatchImportPoCs(c *gin.Context) {
 		}
 
 		poc := models.PoC{
-			Name:        req.Name,
-			Category:    req.Category,
-			Severity:    req.Severity,
-			CVE:         req.CVE,
-			Author:      req.Author,
-			Description: req.Description,
-			Reference:   req.Reference,
-			PoCType:     req.PoCType,
-			PoCContent:  req.PoCContent,
-			Tags:        req.Tags,
+			Name:        sanitizeString(req.Name),
+			Category:    sanitizeString(req.Category),
+			Severity:    sanitizeString(req.Severity),
+			CVE:         sanitizeString(req.CVE),
+			Author:      sanitizeString(req.Author),
+			Description: sanitizeString(req.Description),
+			Reference:   sanitizeString(req.Reference),
+			PoCType:     sanitizeString(req.PoCType),
+			PoCContent:  sanitizeString(req.PoCContent),
+			Tags:        sanitizeString(req.Tags),
 			IsEnabled:   true,
 			CreatedBy:   userID,
 		}
@@ -686,18 +701,18 @@ func (h *PoCHandler) ImportPoCsFromZip(c *gin.Context) {
 			continue
 		}
 
-		// 添加到待创建列表
+		// 添加到待创建列表（清理所有字符串字段中的 NULL 字节）
 		pocModel := models.PoC{
-			Name:        poc.Name,
-			Category:    poc.Category,
-			Severity:    poc.Severity,
-			CVE:         poc.CVE,
-			Author:      poc.Author,
-			Description: poc.Description,
-			Reference:   poc.Reference,
-			PoCType:     poc.PoCType,
-			PoCContent:  poc.PoCContent,
-			Tags:        poc.Tags,
+			Name:        sanitizeString(poc.Name),
+			Category:    sanitizeString(poc.Category),
+			Severity:    sanitizeString(poc.Severity),
+			CVE:         sanitizeString(poc.CVE),
+			Author:      sanitizeString(poc.Author),
+			Description: sanitizeString(poc.Description),
+			Reference:   sanitizeString(poc.Reference),
+			PoCType:     sanitizeString(poc.PoCType),
+			PoCContent:  sanitizeString(poc.PoCContent),
+			Tags:        sanitizeString(poc.Tags),
 			IsEnabled:   true,
 			CreatedBy:   userID,
 		}

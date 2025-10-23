@@ -23,35 +23,35 @@ func NewServiceDetector() *ServiceDetector {
 func (sd *ServiceDetector) DetectService(ip string, port int) (service, version, product string) {
 	// 使用gonmap进行服务探测
 	scanner := gonmap.New()
-	
+
 	// 设置超时
 	scanner.SetTimeout(sd.timeout)
-	
+
 	// 扫描单个端口
 	status, response := scanner.ScanTimeout(ip, port, sd.timeout)
-	
+
 	if status == gonmap.Matched && response != nil && response.FingerPrint != nil {
 		// 成功匹配到服务指纹
 		fp := response.FingerPrint
 		service = fp.Service
 		version = fp.Version
 		product = fp.ProductName
-		
+
 		// 如果没有版本信息，尝试从Info字段获取
 		if version == "" && fp.Info != "" {
 			version = fp.Info
 		}
-		
+
 		return service, version, product
 	}
-	
+
 	// 未匹配到指纹，返回基本信息
 	if status == gonmap.Open {
 		// 端口开放但无法识别服务
 		service = guessServiceByPort(port)
 		return service, "", ""
 	}
-	
+
 	// 默认返回 unknown
 	return "unknown", "", ""
 }
@@ -59,10 +59,10 @@ func (sd *ServiceDetector) DetectService(ip string, port int) (service, version,
 // DetectServices 批量识别多个端口的服务
 func (sd *ServiceDetector) DetectServices(results []*PortScanResult) []*PortScanResult {
 	fmt.Printf("🔍 Starting service detection for %d ports...\n", len(results))
-	
+
 	for i, result := range results {
 		service, version, product := sd.DetectService(result.IP, result.Port)
-		
+
 		// 更新服务信息
 		result.Service = service
 		if version != "" {
@@ -71,13 +71,13 @@ func (sd *ServiceDetector) DetectServices(results []*PortScanResult) []*PortScan
 		if product != "" {
 			result.Product = product
 		}
-		
+
 		// 打印进度
 		if (i+1)%10 == 0 || i == len(results)-1 {
 			fmt.Printf("  ✓ Detected %d/%d services\n", i+1, len(results))
 		}
 	}
-	
+
 	fmt.Printf("✓ Service detection complete\n")
 	return results
 }
@@ -107,11 +107,10 @@ func guessServiceByPort(port int) string {
 		5000:  "upnp",
 		8888:  "http-alt",
 	}
-	
+
 	if service, exists := commonPorts[port]; exists {
 		return service
 	}
-	
+
 	return "unknown"
 }
-

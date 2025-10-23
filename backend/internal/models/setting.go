@@ -33,35 +33,6 @@ func (s *Setting) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
-// Dictionary 字典模型
-type Dictionary struct {
-	ID          string         `gorm:"type:varchar(36);primaryKey" json:"id"`
-	Name        string         `gorm:"type:varchar(100);not null" json:"name"`
-	Type        string         `gorm:"type:varchar(50);not null" json:"type"` // domain, port, file_leak
-	FilePath    string         `gorm:"type:varchar(255);not null" json:"file_path"`
-	Size        int64          `json:"size"`        // 文件大小（字节）
-	LineCount   int            `json:"line_count"`  // 行数
-	IsDefault   bool           `gorm:"default:false" json:"is_default"`
-	Description string         `gorm:"type:text" json:"description"`
-	CreatedBy   string         `gorm:"type:varchar(36)" json:"created_by"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
-}
-
-// TableName 指定表名
-func (Dictionary) TableName() string {
-	return "dictionaries"
-}
-
-// BeforeCreate 创建前钩子
-func (d *Dictionary) BeforeCreate(tx *gorm.DB) error {
-	if d.ID == "" {
-		d.ID = uuid.New().String()
-	}
-	return nil
-}
-
 // SettingCategory 设置分类常量
 const (
 	SettingCategoryAPI          = "api"

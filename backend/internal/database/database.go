@@ -58,6 +58,11 @@ func Initialize(config Config) error {
 		return fmt.Errorf("failed to migrate database: %w", err)
 	}
 
+	// 应用 PoC 字段长度迁移
+	if err := ApplyPoCFieldsMigration(DB); err != nil {
+		log.Printf("Warning: Failed to migrate PoC fields: %v", err)
+	}
+
 	// 注释掉旧的硬编码指纹初始化，改为使用 YAML 文件加载
 	// if err := InitDefaultFingerprints(); err != nil {
 	// 	log.Printf("Warning: Failed to initialize fingerprints: %v", err)
@@ -66,6 +71,11 @@ func Initialize(config Config) error {
 	// 初始化内置敏感信息规则
 	if err := InitBuiltInSensitiveRules(DB); err != nil {
 		log.Printf("Warning: Failed to initialize built-in sensitive rules: %v", err)
+	}
+
+	// 初始化内置字典
+	if err := InitBuiltInDictionaries(DB); err != nil {
+		log.Printf("Warning: Failed to initialize built-in dictionaries: %v", err)
 	}
 
 	log.Println("Database connected successfully")
@@ -145,12 +155,6 @@ func InitDictionaries() error {
 				continue
 			}
 
-			// 获取文件信息
-			fileInfo, err := os.Stat(filePath)
-			if err != nil {
-				continue
-			}
-
 			// 统计行数
 			lineCount := countFileLines(filePath)
 
@@ -166,11 +170,10 @@ func InitDictionaries() error {
 				Name:        name,
 				Type:        dictType,
 				FilePath:    filePath,
-				Size:        fileInfo.Size(),
-				LineCount:   lineCount,
+				Size:        lineCount, // Size字段现在表示条目数量
 				Description: fmt.Sprintf("系统内置%s字典", dictType),
-				IsDefault:   file.Name() == "big.txt", // big.txt 设为默认
-				CreatedBy:   "system",
+				IsBuiltIn:   true,
+				IsEnabled:   true,
 			}
 
 			if err := DB.Create(&dict).Error; err != nil {

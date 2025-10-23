@@ -157,21 +157,7 @@ func SetupRouter(taskService *services.TaskService) *gin.Engine {
 			settings.DELETE("/:key", settingHandler.DeleteSetting)
 		}
 
-		// 字典管理
-		dictionaries := v1.Group("/dictionaries")
-		{
-			// 所有用户都可以查看字典列表
-			dictionaries.GET("", settingHandler.ListDictionaries)
-
-			// 以下操作需要管理员权限
-			admin := dictionaries.Group("")
-			admin.Use(middleware.AdminRequired())
-			{
-				admin.POST("/upload", settingHandler.UploadDictionary)
-				admin.DELETE("/:id", settingHandler.DeleteDictionary)
-				admin.POST("/:id/default", settingHandler.SetDefaultDictionary)
-			}
-		}
+		// 字典管理功能已迁移到下方（使用 DictionaryHandler）
 
 		// 指纹管理
 		fingerprintHandler := handlers.NewFingerprintHandler()
@@ -276,6 +262,22 @@ func SetupRouter(taskService *services.TaskService) *gin.Engine {
 
 			// 匹配记录
 			sensitiveRules.GET("/matches", sensitiveRuleHandler.ListSensitiveMatches)
+		}
+
+		// 字典管理
+		dictionaryHandler := handlers.NewDictionaryHandler()
+		dictionaries := v1.Group("/dictionaries")
+		{
+			dictionaries.GET("", dictionaryHandler.ListDictionaries)
+			dictionaries.GET("/:id", dictionaryHandler.GetDictionary)
+			dictionaries.POST("", dictionaryHandler.CreateDictionary)
+			dictionaries.PUT("/:id", dictionaryHandler.UpdateDictionary)
+			dictionaries.DELETE("/:id", dictionaryHandler.DeleteDictionary)
+			dictionaries.POST("/:id/toggle", dictionaryHandler.ToggleDictionary)
+			dictionaries.POST("/batch/delete", dictionaryHandler.BatchDeleteDictionaries)
+			dictionaries.POST("/upload", dictionaryHandler.UploadDictionary)
+			dictionaries.GET("/:id/download", dictionaryHandler.DownloadDictionary)
+			dictionaries.GET("/stats", dictionaryHandler.GetDictionaryStats)
 		}
 	}
 
