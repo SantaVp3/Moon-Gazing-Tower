@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -29,6 +30,22 @@ type MasscanResult struct {
 	Timestamp string `json:"timestamp"`
 }
 
+// MasscanHost 对应 Masscan JSON 输出中的顶级对象（按IP）
+type MasscanHost struct {
+	IP        string        `json:"ip"`
+	Timestamp string        `json:"timestamp"`
+	Ports     []MasscanPort `json:"ports"`
+}
+
+// MasscanPort 对应 Masscan JSON 输出中 "ports" 数组内的对象
+type MasscanPort struct {
+	Port   int    `json:"port"`
+	Proto  string `json:"proto"`
+	Status string `json:"status"`
+	Reason string `json:"reason"`
+	TTL    int    `json:"ttl"`
+}
+
 // NewMasscanEngine 创建 Masscan 扫描引擎
 func NewMasscanEngine() *MasscanEngine {
 	engine := &MasscanEngine{
@@ -46,10 +63,16 @@ func (me *MasscanEngine) SetRate(rate int) {
 
 // isMasscanAvailable 检测 Masscan 是否可用
 func isMasscanAvailable() bool {
-	cmd := exec.Command("masscan", "--version")
-	if err := cmd.Run(); err != nil {
+	masscanPath, err := exec.LookPath("masscan")
+	if err != nil {
+		// 在 PATH 中找不到 masscan
+		fmt.Println("========Masscan Check FAILED=========")
+		fmt.Printf("Error: 'masscan' executable not found in PATH: %v\n", err)
+		fmt.Println("=======================================")
 		return false
 	}
+	fmt.Printf("✓ 'masscan' executable found at: %s\n", masscanPath)
+
 	return true
 }
 
@@ -108,11 +131,21 @@ func (me *MasscanEngine) masscanDiscovery(targets []string, ports []int) (map[st
 
 	fmt.Printf("Executing: masscan --rate %d -p %s %s\n", me.rate, portRanges, strings.Join(targets, " "))
 
+	fmt.Println("======masscan2======")
+	fmt.Println("masscan", args)
+	fmt.Println("======masscan2======")
+
 	cmd := exec.Command("masscan", args...)
 	output, err := cmd.Output()
 	if err != nil {
+		fmt.Println("======masscan3======")
+		fmt.Println(err.Error())
+		fmt.Println("======masscan3======")
 		return nil, fmt.Errorf("masscan execution failed: %w", err)
 	}
+	fmt.Println("======masscan4======")
+	fmt.Println(output)
+	fmt.Println("======masscan4======")
 
 	// 解析 Masscan JSON 输出
 	return me.parseMasscanOutput(output)
@@ -121,45 +154,91 @@ func (me *MasscanEngine) masscanDiscovery(targets []string, ports []int) (map[st
 // buildPortRanges 构建端口范围字符串
 func (me *MasscanEngine) buildPortRanges(ports []int) string {
 	if len(ports) == 0 {
-		return "1-65535" // 扫描所有端口
+		return ""
 	}
 
-	// 将端口列表转换为字符串
-	portStrs := make([]string, len(ports))
-	for i, port := range ports {
-		portStrs[i] = strconv.Itoa(port)
+	// 确保端口是排序的
+	sort.Ints(ports)
+
+	var ranges []string
+	if len(ports) == 0 {
+		return ""
 	}
 
-	return strings.Join(portStrs, ",")
+	start := ports[0]
+	end := ports[0]
+
+	for i := 1; i < len(ports); i++ {
+		// 检查端口是否连续
+		if ports[i] == end+1 {
+			end = ports[i] // 扩展当前范围
+		} else {
+			// 发现不连续，保存上一个范围
+			if start == end {
+				ranges = append(ranges, strconv.Itoa(start))
+			} else {
+				ranges = append(ranges, fmt.Sprintf("%d-%d", start, end))
+			}
+			// 开始一个新范围
+			start = ports[i]
+			end = ports[i]
+		}
+	}
+
+	// 保存最后一个范围
+	if start == end {
+		ranges = append(ranges, strconv.Itoa(start))
+	} else {
+		ranges = append(ranges, fmt.Sprintf("%d-%d", start, end))
+	}
+
+	return strings.Join(ranges, ",")
 }
 
 // parseMasscanOutput 解析 Masscan JSON 输出
 func (me *MasscanEngine) parseMasscanOutput(output []byte) (map[string][]int, error) {
 	openPorts := make(map[string][]int)
 
-	// Masscan 输出多个 JSON 对象，每行一个
-	lines := strings.Split(string(output), "\n")
+	// 如果输出为空（没有找到任何主机），直接返回空 map
+	if len(strings.TrimSpace(string(output))) == 0 {
+		return openPorts, nil
+	}
 
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" || !strings.HasPrefix(line, "{") {
-			continue
+	// 定义一个 MasscanHost 切片来接收完整的 JSON 数组
+	var results []MasscanHost
+
+	// 将完整的 stdout 输出作为一个 JSON 数组进行解析
+	if err := json.Unmarshal(output, &results); err != nil {
+		// 截取部分输出来帮助调试
+		outputStr := string(output)
+		if len(outputStr) > 200 {
+			outputStr = outputStr[:200] + "..."
 		}
+		// 打印你收到的原始日志，帮助调试
+		fmt.Printf("======masscan PARSE FAILED======\n")
+		fmt.Printf("Error: %v\n", err)
+		fmt.Printf("Raw Output (truncated): %s\n", outputStr)
+		fmt.Printf("==================================\n")
+		return nil, fmt.Errorf("failed to parse masscan JSON array: %w. Output (truncated): %s", err, outputStr)
+	}
 
-		var result MasscanResult
-		if err := json.Unmarshal([]byte(line), &result); err != nil {
-			continue // 跳过解析错误的行
-		}
-
-		// 只处理开放的端口
-		if result.Status == "open" {
-			if _, exists := openPorts[result.IP]; !exists {
-				openPorts[result.IP] = []int{}
+	// 遍历解析出的每个主机（IP）
+	for _, host := range results {
+		// 遍历该主机的所有端口
+		for _, port := range host.Ports {
+			// 检查端口状态
+			if port.Status == "open" {
+				// 确保 map 中的切片已初始化
+				if _, exists := openPorts[host.IP]; !exists {
+					openPorts[host.IP] = []int{}
+				}
+				// 添加开放端口
+				openPorts[host.IP] = append(openPorts[host.IP], port.Port)
 			}
-			openPorts[result.IP] = append(openPorts[result.IP], result.Port)
 		}
 	}
 
+	fmt.Printf("✓ Parsed %d open ports from masscan output.\n", len(openPorts))
 	return openPorts, nil
 }
 
@@ -292,6 +371,10 @@ func (me *MasscanEngine) isAvailable() bool {
 func (me *MasscanEngine) isNmapAvailable() bool {
 	cmd := exec.Command("nmap", "--version")
 	if err := cmd.Run(); err != nil {
+		fmt.Println("===========nmap======")
+		fmt.Println(err.Error())
+		fmt.Println("===========nmap======")
+
 		return false
 	}
 	return true
