@@ -294,20 +294,20 @@ func (h *TaskHandler) BatchDeleteTasks(c *gin.Context) {
 
 		// 删除任务及其相关数据
 		tx := database.DB.Begin()
-		
+
 		// 删除相关资产
 		tx.Where("task_id = ?", taskID).Delete(&models.Domain{})
 		tx.Where("task_id = ?", taskID).Delete(&models.IP{})
 		tx.Where("task_id = ?", taskID).Delete(&models.Port{})
 		tx.Where("task_id = ?", taskID).Delete(&models.Site{})
 		tx.Delete(&models.Task{}, "id = ?", taskID)
-		
+
 		if err := tx.Commit().Error; err != nil {
 			tx.Rollback()
 			failedTasks = append(failedTasks, taskID)
 			continue
 		}
-		
+
 		successCount++
 	}
 

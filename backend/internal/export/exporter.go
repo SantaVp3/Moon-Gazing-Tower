@@ -28,14 +28,14 @@ func NewExporter(outputDir string) *Exporter {
 
 // ExportData 导出数据结构
 type ExportData struct {
-	Task            *models.Task            `json:"task"`
-	Domains         []models.Domain         `json:"domains"`
-	IPs             []models.IP             `json:"ips"`
-	Ports           []models.Port           `json:"ports"`
-	Sites           []models.Site           `json:"sites"`
-	URLs            []models.URL            `json:"urls"`
-	Vulnerabilities []models.Vulnerability  `json:"vulnerabilities"`
-	ExportTime      time.Time               `json:"export_time"`
+	Task            *models.Task           `json:"task"`
+	Domains         []models.Domain        `json:"domains"`
+	IPs             []models.IP            `json:"ips"`
+	Ports           []models.Port          `json:"ports"`
+	Sites           []models.Site          `json:"sites"`
+	URLs            []models.URL           `json:"urls"`
+	Vulnerabilities []models.Vulnerability `json:"vulnerabilities"`
+	ExportTime      time.Time              `json:"export_time"`
 }
 
 // ExportToJSON 导出为JSON
@@ -53,7 +53,7 @@ func (e *Exporter) ExportToJSON(data *ExportData) (string, error) {
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
-	
+
 	if err := encoder.Encode(data); err != nil {
 		return "", err
 	}
