@@ -69,8 +69,7 @@ func (ps *PortScanner) Scan(ctx *ScanContext) error {
 
 	// 🆕 应用配置
 	ps.scanner.ApplyConfig(scannerConfig, len(ports))
-	ctx.Logger.Printf("[Config] Port scanner: concurrency=%d (for %d ports), timeout=%v",
-		ps.scanner.maxConcurrent, len(ports), ps.scanner.timeout)
+	ctx.Logger.Printf("[Config] Port scanner: using Masscan + Nmap for %d ports", len(ports))
 
 	return ps.scanWithScanner(ctx, ips, ports)
 }

@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/reconmaster/backend/internal/database"
 	"github.com/reconmaster/backend/internal/models"
-	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
 	"gorm.io/gorm"
 )
@@ -36,11 +36,12 @@ func (h *ScheduledTaskHandler) StopCronManager() {
 
 // CreateScheduledTaskRequest 创建计划任务请求
 type CreateScheduledTaskRequest struct {
-	Name        string              `json:"name" binding:"required"`
-	Description string              `json:"description"`
-	CronType    string              `json:"cron_type" binding:"required"`
-	CronExpr    string              `json:"cron_expr"`
-	TaskOptions models.TaskOptions  `json:"task_options" binding:"required"`
+	Name        string             `json:"name" binding:"required"`
+	Description string             `json:"description"`
+	CronType    string             `json:"cron_type" binding:"required"`
+	CronExpr    string             `json:"cron_expr"`
+	PolicyID    string             `json:"policy_id"` // 可选：关联的策略ID
+	TaskOptions models.TaskOptions `json:"task_options" binding:"required"`
 }
 
 // ListScheduledTasks 列出所有计划任务
@@ -145,12 +146,25 @@ func (h *ScheduledTaskHandler) CreateScheduledTask(c *gin.Context) {
 
 	userID := c.GetString("userID")
 
+	// 如果指定了策略ID，从策略加载配置
+	taskOptions := req.TaskOptions
+	if req.PolicyID != "" {
+		var policy models.Policy
+		if err := database.DB.First(&policy, "id = ?", req.PolicyID).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Policy not found"})
+			return
+		}
+		// 将策略配置转换为任务配置（使用与 task_handler 相同的逻辑）
+		taskOptions = policyConfigToTaskOptions(policy.Config, taskOptions)
+	}
+
 	scheduledTask := &models.ScheduledTask{
 		Name:        req.Name,
 		Description: req.Description,
 		CronType:    req.CronType,
 		CronExpr:    cronExpr,
-		TaskOptions: req.TaskOptions,
+		PolicyID:    req.PolicyID,
+		TaskOptions: taskOptions,
 		IsEnabled:   true,
 		NextRunAt:   nextRun,
 		RunCount:    0,
@@ -212,12 +226,24 @@ func (h *ScheduledTaskHandler) UpdateScheduledTask(c *gin.Context) {
 		return
 	}
 
+	// 如果指定了策略ID，从策略加载配置
+	taskOptions := req.TaskOptions
+	if req.PolicyID != "" {
+		var policy models.Policy
+		if err := database.DB.First(&policy, "id = ?", req.PolicyID).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Policy not found"})
+			return
+		}
+		taskOptions = policyConfigToTaskOptions(policy.Config, taskOptions)
+	}
+
 	// 更新字段
 	task.Name = req.Name
 	task.Description = req.Description
 	task.CronType = req.CronType
 	task.CronExpr = cronExpr
-	task.TaskOptions = req.TaskOptions
+	task.PolicyID = req.PolicyID
+	task.TaskOptions = taskOptions
 	task.NextRunAt = nextRun
 
 	if err := database.DB.Save(&task).Error; err != nil {
@@ -352,10 +378,10 @@ func (h *ScheduledTaskHandler) GetScheduledTaskStats(c *gin.Context) {
 	database.DB.Model(&models.ScheduledTask{}).Select("COALESCE(SUM(fail_count), 0)").Scan(&totalFails)
 
 	c.JSON(http.StatusOK, gin.H{
-		"total_tasks":   totalTasks,
-		"active_tasks":  activeTasks,
-		"total_runs":    totalRuns,
-		"total_fails":   totalFails,
+		"total_tasks":  totalTasks,
+		"active_tasks": activeTasks,
+		"total_runs":   totalRuns,
+		"total_fails":  totalFails,
 	})
 }
 
@@ -456,4 +482,3 @@ func (h *ScheduledTaskHandler) BatchToggleScheduledTasks(c *gin.Context) {
 		"is_enabled": req.IsEnabled,
 	})
 }
-

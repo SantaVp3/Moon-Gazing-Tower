@@ -26,7 +26,7 @@ func SetupRouter(taskService *services.TaskService) *gin.Engine {
 
 	// WebSocket处理器（全局单例）
 	wsHandler := handlers.NewWebSocketHandler()
-	
+
 	// 将 WebSocket handler 传递给 taskService
 	taskService.SetWebSocketHandler(wsHandler)
 
@@ -66,7 +66,7 @@ func SetupRouter(taskService *services.TaskService) *gin.Engine {
 			tasks.GET("", taskHandler.ListTasks)
 			tasks.GET("/:id", taskHandler.GetTask)
 			tasks.DELETE("/:id", taskHandler.DeleteTask)
-			tasks.POST("/:id/start", taskHandler.StartTask)   // 手动启动任务
+			tasks.POST("/:id/start", taskHandler.StartTask) // 手动启动任务
 			tasks.POST("/:id/cancel", taskHandler.CancelTask)
 			tasks.GET("/stats", taskHandler.GetTaskStats)
 			tasks.POST("/batch/delete", taskHandler.BatchDeleteTasks) //  批量删除
@@ -84,14 +84,14 @@ func SetupRouter(taskService *services.TaskService) *gin.Engine {
 			assets.GET("/urls", assetHandler.ListURLs)
 			assets.GET("/vulnerabilities", assetHandler.ListVulnerabilities)
 			assets.GET("/stats", assetHandler.GetAssetStats)
-			
+
 			// 资产画像
 			assets.GET("/profile", assetProfileHandler.GetAssetProfile)
 			assets.GET("/relations", assetProfileHandler.GetAssetRelations)
 			assets.GET("/graph", assetProfileHandler.GetAssetGraph)
 			assets.GET("/c-segment", assetProfileHandler.AnalyzeCSegment)
 		}
-		
+
 		// 资产标签
 		assetTagHandler := handlers.NewAssetTagHandler()
 		tags := v1.Group("/tags")
@@ -113,8 +113,10 @@ func SetupRouter(taskService *services.TaskService) *gin.Engine {
 			monitors.POST("", monitorHandler.CreateMonitor)
 			monitors.GET("", monitorHandler.ListMonitors)
 			monitors.GET("/:id", monitorHandler.GetMonitor)
+			monitors.PUT("/:id", monitorHandler.UpdateMonitor) // 🆕 更新监控
 			monitors.PATCH("/:id/status", monitorHandler.UpdateMonitorStatus)
 			monitors.DELETE("/:id", monitorHandler.DeleteMonitor)
+			monitors.POST("/batch/delete", monitorHandler.BatchDeleteMonitors) // 🆕 批量删除
 			monitors.GET("/:id/results", monitorHandler.ListMonitorResults)
 		}
 
@@ -192,6 +194,11 @@ func SetupRouter(taskService *services.TaskService) *gin.Engine {
 		pocHandler := handlers.NewPoCHandler()
 		pocs := v1.Group("/pocs")
 		{
+			// 特定路径的路由要放在前面
+			pocs.POST("/import/zip", pocHandler.ImportPoCsFromZip) // zip批量导入接口
+			pocs.POST("/import", pocHandler.BatchImportPoCs)       // yaml批量导入接口
+
+			// 通用路由放在后面
 			pocs.GET("", pocHandler.ListPoCs)
 			pocs.GET("/:id", pocHandler.GetPoC)
 			pocs.POST("", pocHandler.CreatePoC)
@@ -200,7 +207,6 @@ func SetupRouter(taskService *services.TaskService) *gin.Engine {
 			pocs.POST("/:id/toggle", pocHandler.TogglePoCStatus)
 			pocs.POST("/:id/execute", pocHandler.ExecutePoC)
 			pocs.POST("/batch", pocHandler.BatchImportPoCs)
-			pocs.POST("/import", pocHandler.BatchImportPoCs) // 添加 /import 路由，指向同一个handler
 			pocs.GET("/categories", pocHandler.GetPoCCategories)
 			pocs.GET("/stats", pocHandler.GetPoCStats)
 		}
@@ -251,6 +257,25 @@ func SetupRouter(taskService *services.TaskService) *gin.Engine {
 			policies.GET("/default", policyHandler.GetDefaultPolicy)
 			policies.POST("/batch/delete", policyHandler.BatchDelete)
 			policies.GET("/stats", policyHandler.GetStats)
+		}
+
+		// 敏感信息规则
+		sensitiveRuleHandler := handlers.NewSensitiveRuleHandler()
+		sensitiveRules := v1.Group("/sensitive-rules")
+		{
+			// 规则管理
+			sensitiveRules.GET("", sensitiveRuleHandler.ListSensitiveRules)
+			sensitiveRules.GET("/:id", sensitiveRuleHandler.GetSensitiveRule)
+			sensitiveRules.POST("", sensitiveRuleHandler.CreateSensitiveRule)
+			sensitiveRules.PUT("/:id", sensitiveRuleHandler.UpdateSensitiveRule)
+			sensitiveRules.DELETE("/:id", sensitiveRuleHandler.DeleteSensitiveRule)
+			sensitiveRules.POST("/:id/toggle", sensitiveRuleHandler.ToggleSensitiveRule)
+			sensitiveRules.POST("/batch/delete", sensitiveRuleHandler.BatchDeleteSensitiveRules)
+			sensitiveRules.POST("/batch/toggle", sensitiveRuleHandler.BatchToggleSensitiveRules)
+			sensitiveRules.GET("/stats", sensitiveRuleHandler.GetSensitiveRuleStats)
+
+			// 匹配记录
+			sensitiveRules.GET("/matches", sensitiveRuleHandler.ListSensitiveMatches)
 		}
 	}
 

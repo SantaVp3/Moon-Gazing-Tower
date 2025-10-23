@@ -34,10 +34,13 @@ func NewScheduler(taskService *services.TaskService) *Scheduler {
 // Start 启动调度器
 func (s *Scheduler) Start() {
 	log.Println("Scheduler started")
-	
+
 	// 启动监控任务检查
 	s.cron.AddFunc("@every 1m", s.checkMonitorTasks)
-	
+
+	// 启动计划任务检查
+	s.cron.AddFunc("@every 1m", s.checkScheduledTasks)
+
 	s.cron.Start()
 }
 
@@ -50,25 +53,27 @@ func (s *Scheduler) Stop() {
 // checkMonitorTasks 检查并执行监控任务
 func (s *Scheduler) checkMonitorTasks() {
 	var monitors []models.Monitor
-	
+
 	// 查询活跃的监控任务
 	database.DB.Where("status = ?", models.MonitorStatusActive).Find(&monitors)
-	
+
 	now := time.Now()
-	
+
 	for _, monitor := range monitors {
 		// 检查是否需要执行
 		if monitor.NextRunTime != nil && now.After(*monitor.NextRunTime) {
-			log.Printf("Executing monitor task: %s", monitor.Name)
-			
-			// 更新上次运行时间
+			log.Printf("Executing monitor task: %s (RunCount: %d)", monitor.Name, monitor.RunCount)
+
+			// 更新运行信息
 			monitor.LastRunTime = &now
+			monitor.RunCount++
 			nextRun := now.Add(time.Duration(monitor.Interval) * time.Second)
 			monitor.NextRunTime = &nextRun
+			monitor.LastError = "" // 清空上次错误
 			database.DB.Save(&monitor)
-			
+
 			// 执行监控任务（异步）
-			go s.executeMonitor(&monitor)
+			go s.executeMonitorWithErrorHandling(&monitor)
 		} else if monitor.NextRunTime == nil {
 			// 首次执行，设置下次运行时间
 			nextRun := now.Add(time.Duration(monitor.Interval) * time.Second)
@@ -78,34 +83,57 @@ func (s *Scheduler) checkMonitorTasks() {
 	}
 }
 
+// executeMonitorWithErrorHandling 执行监控任务（带错误处理）
+func (s *Scheduler) executeMonitorWithErrorHandling(monitor *models.Monitor) {
+	defer func() {
+		if r := recover(); r != nil {
+			errorMsg := fmt.Sprintf("Monitor task panic: %v", r)
+			log.Printf("❌ %s", errorMsg)
+
+			// 记录错误
+			database.DB.Model(monitor).Update("last_error", errorMsg)
+		}
+	}()
+
+	// 执行监控
+	if err := s.executeMonitor(monitor); err != nil {
+		log.Printf("❌ Monitor task failed: %s - %v", monitor.Name, err)
+
+		// 记录错误到数据库
+		database.DB.Model(monitor).Update("last_error", err.Error())
+	}
+}
+
 // executeMonitor 执行监控任务
-func (s *Scheduler) executeMonitor(monitor *models.Monitor) {
+func (s *Scheduler) executeMonitor(monitor *models.Monitor) error {
 	log.Printf("Monitor task executing: %s (type: %s)", monitor.Name, monitor.Type)
-	
+
 	// 根据监控类型执行不同的逻辑
 	switch monitor.Type {
 	case models.MonitorTypeDomain:
-		s.executeDomainMonitor(monitor)
+		return s.executeDomainMonitor(monitor)
 	case models.MonitorTypeIP:
-		s.executeIPMonitor(monitor)
+		return s.executeIPMonitor(monitor)
 	case models.MonitorTypeSite:
-		s.executeSiteMonitor(monitor)
+		return s.executeSiteMonitor(monitor)
 	case models.MonitorTypeGithub:
-		s.executeGithubMonitor(monitor)
+		return s.executeGithubMonitor(monitor)
 	case models.MonitorTypeWIH:
-		s.executeWIHMonitor(monitor)
+		return s.executeWIHMonitor(monitor)
+	default:
+		return fmt.Errorf("unknown monitor type: %s", monitor.Type)
 	}
 }
 
 // executeDomainMonitor 执行域名监控
-func (s *Scheduler) executeDomainMonitor(monitor *models.Monitor) {
+func (s *Scheduler) executeDomainMonitor(monitor *models.Monitor) error {
 	log.Printf("Domain monitor: %s", monitor.Target)
-	
+
 	// 查询当前域名解析
 	ips, err := net.LookupHost(monitor.Target)
 	if err != nil {
 		log.Printf("Domain lookup failed: %v", err)
-		return
+		return fmt.Errorf("domain lookup failed: %w", err)
 	}
 
 	// 查询上次的记录
@@ -115,7 +143,7 @@ func (s *Scheduler) executeDomainMonitor(monitor *models.Monitor) {
 		First(&lastResult)
 
 	currentIPs := strings.Join(ips, ",")
-	
+
 	// 对比变化
 	if lastResult.Data != currentIPs && lastResult.Data != "" {
 		// 发现变化
@@ -137,12 +165,13 @@ func (s *Scheduler) executeDomainMonitor(monitor *models.Monitor) {
 		Data:        currentIPs,
 	}
 	database.DB.Create(result)
+	return nil
 }
 
 // executeIPMonitor 执行IP监控
-func (s *Scheduler) executeIPMonitor(monitor *models.Monitor) {
+func (s *Scheduler) executeIPMonitor(monitor *models.Monitor) error {
 	log.Printf("IP monitor: %s", monitor.Target)
-	
+
 	// 扫描该IP的开放端口（使用快速扫描）
 	commonPorts := []int{80, 443, 22, 21, 3306, 3389, 8080, 8443}
 	var openPorts []int
@@ -163,7 +192,7 @@ func (s *Scheduler) executeIPMonitor(monitor *models.Monitor) {
 		First(&lastResult)
 
 	currentPorts := fmt.Sprintf("%v", openPorts)
-	
+
 	// 对比变化
 	if lastResult.Data != currentPorts && lastResult.Data != "" {
 		result := &models.MonitorResult{
@@ -184,12 +213,13 @@ func (s *Scheduler) executeIPMonitor(monitor *models.Monitor) {
 		Data:        currentPorts,
 	}
 	database.DB.Create(result)
+	return nil
 }
 
 // executeSiteMonitor 执行站点监控
-func (s *Scheduler) executeSiteMonitor(monitor *models.Monitor) {
+func (s *Scheduler) executeSiteMonitor(monitor *models.Monitor) error {
 	log.Printf("Site monitor: %s", monitor.Target)
-	
+
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 		Transport: &http.Transport{
@@ -200,7 +230,7 @@ func (s *Scheduler) executeSiteMonitor(monitor *models.Monitor) {
 	resp, err := client.Get(monitor.Target)
 	if err != nil {
 		log.Printf("Site request failed: %v", err)
-		return
+		return fmt.Errorf("site request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -218,7 +248,7 @@ func (s *Scheduler) executeSiteMonitor(monitor *models.Monitor) {
 		First(&lastResult)
 
 	currentData := fmt.Sprintf("status:%d,hash:%s", statusCode, contentHash)
-	
+
 	// 对比变化
 	if lastResult.Data != currentData && lastResult.Data != "" {
 		result := &models.MonitorResult{
@@ -239,20 +269,21 @@ func (s *Scheduler) executeSiteMonitor(monitor *models.Monitor) {
 		Data:        currentData,
 	}
 	database.DB.Create(result)
+	return nil
 }
 
 // executeGithubMonitor 执行Github监控
-func (s *Scheduler) executeGithubMonitor(monitor *models.Monitor) {
+func (s *Scheduler) executeGithubMonitor(monitor *models.Monitor) error {
 	log.Printf("Github monitor: %s", monitor.Target)
-	
+
 	// 创建Github监控器
 	githubMonitor := scanner.NewGithubMonitor("")
-	
+
 	// 搜索关键字
 	result, err := githubMonitor.SearchKeyword(monitor.Target, 10)
 	if err != nil {
 		log.Printf("Github search failed: %v", err)
-		return
+		return fmt.Errorf("github search failed: %w", err)
 	}
 
 	// 查询上次的记录
@@ -262,7 +293,7 @@ func (s *Scheduler) executeGithubMonitor(monitor *models.Monitor) {
 		First(&lastResult)
 
 	currentCount := fmt.Sprintf("%d", result.TotalCount)
-	
+
 	// 如果发现新结果
 	if lastResult.Data != currentCount && result.TotalCount > 0 {
 		monitorResult := &models.MonitorResult{
@@ -283,31 +314,32 @@ func (s *Scheduler) executeGithubMonitor(monitor *models.Monitor) {
 		Data:        currentCount,
 	}
 	database.DB.Create(checkResult)
+	return nil
 }
 
 // executeWIHMonitor 执行WIH监控
-func (s *Scheduler) executeWIHMonitor(monitor *models.Monitor) {
+func (s *Scheduler) executeWIHMonitor(monitor *models.Monitor) error {
 	log.Printf("WIH monitor: %s", monitor.Target)
-	
+
 	// 创建WIH扫描器
 	wih := scanner.NewWebInfoHunter("")
-	
+
 	// 执行扫描
 	ctx := &scanner.ScanContext{
 		Logger: log.Default(),
 		DB:     database.DB,
 	}
-	
+
 	results, err := wih.Scan(ctx, []string{monitor.Target})
 	if err != nil {
 		log.Printf("WIH scan failed: %v", err)
-		return
+		return fmt.Errorf("WIH scan failed: %w", err)
 	}
 
 	// 统计发现的信息
 	totalFindings := 0
 	for _, r := range results {
-		totalFindings += len(r.Subdomains) + len(r.AccessKeys) + 
+		totalFindings += len(r.Subdomains) + len(r.AccessKeys) +
 			len(r.SecretKeys) + len(r.APIKeys) + len(r.APIEndpoints)
 	}
 
@@ -318,7 +350,7 @@ func (s *Scheduler) executeWIHMonitor(monitor *models.Monitor) {
 		First(&lastResult)
 
 	currentData := fmt.Sprintf("%d", totalFindings)
-	
+
 	// 如果发现新信息
 	if lastResult.Data != currentData && totalFindings > 0 {
 		monitorResult := &models.MonitorResult{
@@ -339,4 +371,140 @@ func (s *Scheduler) executeWIHMonitor(monitor *models.Monitor) {
 		Data:        currentData,
 	}
 	database.DB.Create(checkResult)
+	return nil
+}
+
+// checkScheduledTasks 检查并执行计划任务
+func (s *Scheduler) checkScheduledTasks() {
+	var scheduledTasks []models.ScheduledTask
+
+	// 查询已启用的计划任务
+	database.DB.Where("is_enabled = ?", true).Find(&scheduledTasks)
+
+	now := time.Now()
+
+	for _, scheduledTask := range scheduledTasks {
+		// 检查是否需要执行
+		if scheduledTask.NextRunAt != nil && now.After(*scheduledTask.NextRunAt) {
+			log.Printf("📅 Executing scheduled task: %s (Type: %s)", scheduledTask.Name, scheduledTask.CronType)
+
+			// 执行计划任务（异步）
+			go s.executeScheduledTask(&scheduledTask)
+		}
+	}
+}
+
+// executeScheduledTask 执行计划任务
+func (s *Scheduler) executeScheduledTask(scheduledTask *models.ScheduledTask) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("❌ Scheduled task panic: %s - %v", scheduledTask.Name, r)
+
+			// 增加失败计数
+			scheduledTask.FailCount++
+			database.DB.Save(scheduledTask)
+
+			// 记录失败日志
+			logEntry := &models.ScheduledTaskLog{
+				ScheduledTaskID: scheduledTask.ID,
+				Status:          "failed",
+				Message:         fmt.Sprintf("Task panic: %v", r),
+				StartTime:       time.Now(),
+			}
+			endTime := time.Now()
+			logEntry.EndTime = &endTime
+			database.DB.Create(logEntry)
+		}
+	}()
+
+	startTime := time.Now()
+
+	// 创建任务
+	task := &models.Task{
+		Name:     fmt.Sprintf("%s (计划任务)", scheduledTask.Name),
+		Target:   scheduledTask.TaskOptions.Target,
+		PolicyID: scheduledTask.PolicyID, // 使用计划任务关联的策略
+		Status:   models.TaskStatusPending,
+		Options:  scheduledTask.TaskOptions,
+	}
+
+	if err := database.DB.Create(task).Error; err != nil {
+		log.Printf("❌ Failed to create task for scheduled task %s: %v", scheduledTask.Name, err)
+
+		// 增加失败计数
+		scheduledTask.FailCount++
+		database.DB.Save(scheduledTask)
+
+		// 记录失败日志
+		logEntry := &models.ScheduledTaskLog{
+			ScheduledTaskID: scheduledTask.ID,
+			Status:          "failed",
+			Message:         fmt.Sprintf("Failed to create task: %v", err),
+			StartTime:       startTime,
+		}
+		endTime := time.Now()
+		logEntry.EndTime = &endTime
+		database.DB.Create(logEntry)
+		return
+	}
+
+	log.Printf("✅ Task created for scheduled task %s: %s", scheduledTask.Name, task.ID)
+
+	// 异步启动任务执行
+	go s.taskService.ExecuteTask(task.ID)
+
+	// 更新计划任务统计和下次运行时间
+	scheduledTask.LastRunAt = &startTime
+	scheduledTask.RunCount++
+
+	// 计算下次运行时间
+	if scheduledTask.CronType == "once" {
+		// 一次性任务，执行后禁用
+		scheduledTask.IsEnabled = false
+		scheduledTask.NextRunAt = nil
+		log.Printf("📅 One-time scheduled task completed, disabled: %s", scheduledTask.Name)
+	} else {
+		// 计算下次运行时间
+		nextRun, err := s.calculateNextRun(scheduledTask.CronExpr, scheduledTask.CronType)
+		if err != nil {
+			log.Printf("⚠️ Failed to calculate next run for %s: %v", scheduledTask.Name, err)
+		} else {
+			scheduledTask.NextRunAt = nextRun
+			log.Printf("📅 Next run scheduled for %s: %s", scheduledTask.Name, nextRun.Format("2006-01-02 15:04:05"))
+		}
+	}
+
+	database.DB.Save(scheduledTask)
+
+	// 记录成功日志
+	logEntry := &models.ScheduledTaskLog{
+		ScheduledTaskID: scheduledTask.ID,
+		TaskID:          task.ID,
+		Status:          "success",
+		Message:         "Task created and started successfully",
+		StartTime:       startTime,
+	}
+	endTime := time.Now()
+	logEntry.EndTime = &endTime
+	database.DB.Create(logEntry)
+}
+
+// calculateNextRun 计算下次运行时间
+func (s *Scheduler) calculateNextRun(cronExpr, cronType string) (*time.Time, error) {
+	if cronType == "once" {
+		return nil, nil
+	}
+
+	if cronExpr == "" {
+		return nil, fmt.Errorf("cron expression is empty")
+	}
+
+	parser := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+	schedule, err := parser.Parse(cronExpr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse cron expression: %w", err)
+	}
+
+	nextRun := schedule.Next(time.Now())
+	return &nextRun, nil
 }

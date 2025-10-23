@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"archive/zip"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -512,7 +515,7 @@ func (h *PoCHandler) ExecutePoC(c *gin.Context) {
 	// 记录执行日志
 	logResult := "safe"
 	details := ""
-	
+
 	if err != nil {
 		logResult = "error"
 		details = fmt.Sprintf("Execution failed: %v", err)
@@ -553,6 +556,242 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// ImportPoCsFromZip 从zip文件批量导入PoC
+func (h *PoCHandler) ImportPoCsFromZip(c *gin.Context) {
+	// 获取上传的zip文件
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get uploaded file: " + err.Error()})
+		return
+	}
+
+	// 检查文件扩展名
+	if !strings.HasSuffix(strings.ToLower(file.Filename), ".zip") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Only .zip files are supported"})
+		return
+	}
+
+	// 限制文件大小（100MB）
+	const maxFileSize = 100 * 1024 * 1024
+	if file.Size > maxFileSize {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("File too large. Maximum size: %dMB, uploaded: %.2fMB",
+				maxFileSize/(1024*1024), float64(file.Size)/(1024*1024)),
+		})
+		return
+	}
+
+	// 创建临时目录
+	tempDir := filepath.Join(os.TempDir(), fmt.Sprintf("poc_import_%s", c.GetString("userID")))
+	os.RemoveAll(tempDir) // 清理可能存在的旧目录
+	if err := os.MkdirAll(tempDir, 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create temp directory"})
+		return
+	}
+	defer os.RemoveAll(tempDir) // 清理临时目录
+
+	// 保存上传的zip文件
+	zipPath := filepath.Join(tempDir, file.Filename)
+	if err := c.SaveUploadedFile(file, zipPath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save uploaded file"})
+		return
+	}
+
+	// 解压zip文件
+	extractDir := filepath.Join(tempDir, "extracted")
+	if err := unzipFile(zipPath, extractDir); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to extract zip file: " + err.Error()})
+		return
+	}
+
+	// 递归查找所有yaml文件
+	var yamlFiles []string
+	err = filepath.Walk(extractDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			ext := strings.ToLower(filepath.Ext(path))
+			if ext == ".yaml" || ext == ".yml" {
+				yamlFiles = append(yamlFiles, path)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan yaml files: " + err.Error()})
+		return
+	}
+
+	if len(yamlFiles) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No YAML files found in the zip archive"})
+		return
+	}
+
+	fmt.Printf("📦 找到 %d 个YAML文件，开始批量导入...\n", len(yamlFiles))
+
+	// 批量导入PoC
+	userID := c.GetString("userID")
+	var created []models.PoC
+	var skipped int
+	var failed int
+	var failedFiles []string
+
+	for _, yamlPath := range yamlFiles {
+		relPath, _ := filepath.Rel(extractDir, yamlPath)
+		fmt.Printf("📄 处理文件: %s\n", relPath)
+
+		// 读取yaml文件内容
+		content, err := os.ReadFile(yamlPath)
+		if err != nil {
+			fmt.Printf("  ❌ 读取失败: %v\n", err)
+			failed++
+			failedFiles = append(failedFiles, relPath)
+			continue
+		}
+
+		// 尝试解析为Nuclei模板
+		var template map[string]interface{}
+		if err := yaml.Unmarshal(content, &template); err != nil {
+			fmt.Printf("  ❌ YAML解析失败: %v\n", err)
+			failed++
+			failedFiles = append(failedFiles, relPath)
+			continue
+		}
+
+		// 转换为CreatePoCRequest
+		poc, err := convertNucleiTemplate(template)
+		if err != nil {
+			fmt.Printf("  ❌ 模板转换失败: %v\n", err)
+			failed++
+			failedFiles = append(failedFiles, relPath)
+			continue
+		}
+
+		// 验证必填字段
+		if poc.Name == "" || poc.Category == "" || poc.Severity == "" || poc.PoCType == "" || poc.PoCContent == "" {
+			fmt.Printf("  ⏭️ 跳过: 缺少必填字段\n")
+			failed++
+			failedFiles = append(failedFiles, relPath)
+			continue
+		}
+
+		// 检查是否已存在（去重）
+		var existingPoC models.PoC
+		if err := database.DB.Where("name = ? AND cve = ?", poc.Name, poc.CVE).First(&existingPoC).Error; err == nil {
+			fmt.Printf("  ⏭️ 跳过（已存在）: %s\n", poc.Name)
+			skipped++
+			continue
+		}
+
+		// 添加到待创建列表
+		pocModel := models.PoC{
+			Name:        poc.Name,
+			Category:    poc.Category,
+			Severity:    poc.Severity,
+			CVE:         poc.CVE,
+			Author:      poc.Author,
+			Description: poc.Description,
+			Reference:   poc.Reference,
+			PoCType:     poc.PoCType,
+			PoCContent:  poc.PoCContent,
+			Tags:        poc.Tags,
+			IsEnabled:   true,
+			CreatedBy:   userID,
+		}
+		created = append(created, pocModel)
+		fmt.Printf("  ✅ 准备导入: %s\n", poc.Name)
+	}
+
+	// 批量插入到数据库（分批处理，每批100条）
+	if len(created) > 0 {
+		batchSize := 100
+		for i := 0; i < len(created); i += batchSize {
+			end := i + batchSize
+			if end > len(created) {
+				end = len(created)
+			}
+			batch := created[i:end]
+
+			if err := database.DB.Create(&batch).Error; err != nil {
+				fmt.Printf("❌ 批量插入失败 (batch %d-%d): %v\n", i, end, err)
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error":          "Failed to import PoCs: " + err.Error(),
+					"imported_count": i,
+					"skipped_count":  skipped,
+					"failed_count":   failed + (len(created) - i),
+					"failed_files":   failedFiles,
+					"total_files":    len(yamlFiles),
+				})
+				return
+			}
+			fmt.Printf("✅ 批量插入成功 (batch %d-%d)\n", i, end)
+		}
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message":        "PoCs imported from zip successfully",
+		"imported_count": len(created),
+		"skipped_count":  skipped,
+		"failed_count":   failed,
+		"failed_files":   failedFiles,
+		"total_files":    len(yamlFiles),
+	})
+}
+
+// unzipFile 解压zip文件到指定目录
+func unzipFile(zipPath, destDir string) error {
+	r, err := zip.OpenReader(zipPath)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	if err := os.MkdirAll(destDir, 0755); err != nil {
+		return err
+	}
+
+	for _, f := range r.File {
+		// 防止路径遍历攻击
+		fpath := filepath.Join(destDir, f.Name)
+		if !strings.HasPrefix(fpath, filepath.Clean(destDir)+string(os.PathSeparator)) {
+			return fmt.Errorf("illegal file path: %s", f.Name)
+		}
+
+		if f.FileInfo().IsDir() {
+			os.MkdirAll(fpath, f.Mode())
+			continue
+		}
+
+		// 创建父目录
+		if err := os.MkdirAll(filepath.Dir(fpath), 0755); err != nil {
+			return err
+		}
+
+		// 解压文件
+		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+		if err != nil {
+			return err
+		}
+
+		rc, err := f.Open()
+		if err != nil {
+			outFile.Close()
+			return err
+		}
+
+		_, err = io.Copy(outFile, rc)
+		outFile.Close()
+		rc.Close()
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // convertNucleiTemplate 转换Nuclei模板为CreatePoCRequest

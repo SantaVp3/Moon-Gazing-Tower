@@ -22,23 +22,45 @@ const (
 type MonitorStatus string
 
 const (
-	MonitorStatusActive   MonitorStatus = "active"
-	MonitorStatusPaused   MonitorStatus = "paused"
-	MonitorStatusStopped  MonitorStatus = "stopped"
+	MonitorStatusActive  MonitorStatus = "active"
+	MonitorStatusPaused  MonitorStatus = "paused"
+	MonitorStatusStopped MonitorStatus = "stopped"
 )
+
+// MonitorOptions 监控选项
+type MonitorOptions struct {
+	EnableDomainBrute bool `json:"enable_domain_brute"` // 启用域名爆破
+	EnablePortScan    bool `json:"enable_port_scan"`    // 启用端口扫描
+	EnableSiteDetect  bool `json:"enable_site_detect"`  // 启用站点识别
+	EnableScreenshot  bool `json:"enable_screenshot"`   // 启用站点截图
+	EnablePoCscan     bool `json:"enable_poc_scan"`     // 启用POC检测
+}
+
+// NotificationConfig 通知配置
+type NotificationConfig struct {
+	EnableDingDing bool     `json:"enable_dingding"` // 钉钉通知
+	EnableFeishu   bool     `json:"enable_feishu"`   // 飞书通知
+	EnableEmail    bool     `json:"enable_email"`    // 邮件通知
+	EmailReceivers []string `json:"email_receivers"` // 邮件接收人
+}
 
 // Monitor 监控任务
 type Monitor struct {
-	ID          string        `gorm:"primaryKey;type:uuid" json:"id"`
-	Name        string        `gorm:"type:varchar(255);not null" json:"name"`
-	Type        MonitorType   `gorm:"type:varchar(50);not null" json:"type"`
-	Target      string        `gorm:"type:text;not null" json:"target"`
-	Status      MonitorStatus `gorm:"type:varchar(50);default:'active'" json:"status"`
-	Interval    int           `gorm:"not null" json:"interval"` // 监控间隔（秒）
-	LastRunTime *time.Time    `json:"last_run_time,omitempty"`
-	NextRunTime *time.Time    `json:"next_run_time,omitempty"`
-	CreatedAt   time.Time     `json:"created_at"`
-	UpdatedAt   time.Time     `json:"updated_at"`
+	ID                 string        `gorm:"primaryKey;type:uuid" json:"id"`
+	Name               string        `gorm:"type:varchar(255);not null" json:"name"`
+	Type               MonitorType   `gorm:"type:varchar(50);not null" json:"type"`
+	Target             string        `gorm:"type:text;not null" json:"target"`
+	Status             MonitorStatus `gorm:"type:varchar(50);default:'active'" json:"status"`
+	Interval           int           `gorm:"not null" json:"interval"`                  // 监控间隔（秒）
+	Options            string        `gorm:"type:text" json:"options"`                  // JSON格式的监控选项
+	NotificationConfig string        `gorm:"type:text" json:"notification_config"`      // JSON格式的通知配置
+	AssetGroupID       string        `gorm:"type:uuid" json:"asset_group_id,omitempty"` // 资产分组ID
+	RunCount           int           `gorm:"default:0" json:"run_count"`                // 运行次数
+	LastRunTime        *time.Time    `json:"last_run_time,omitempty"`
+	NextRunTime        *time.Time    `json:"next_run_time,omitempty"`
+	LastError          string        `gorm:"type:text" json:"last_error,omitempty"` // 最后一次错误
+	CreatedAt          time.Time     `json:"created_at"`
+	UpdatedAt          time.Time     `json:"updated_at"`
 }
 
 func (m *Monitor) BeforeCreate(tx *gorm.DB) error {
@@ -95,11 +117,11 @@ func (AssetGroup) TableName() string {
 
 // AssetGroupItem 资产分组项
 type AssetGroupItem struct {
-	ID           string    `gorm:"primaryKey;type:uuid" json:"id"`
-	GroupID      string    `gorm:"type:uuid;index;not null" json:"group_id"`
-	AssetType    string    `gorm:"type:varchar(50);not null" json:"asset_type"` // domain, ip, site
-	AssetID      string    `gorm:"type:uuid;not null" json:"asset_id"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID        string    `gorm:"primaryKey;type:uuid" json:"id"`
+	GroupID   string    `gorm:"type:uuid;index;not null" json:"group_id"`
+	AssetType string    `gorm:"type:varchar(50);not null" json:"asset_type"` // domain, ip, site
+	AssetID   string    `gorm:"type:uuid;not null" json:"asset_id"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (agi *AssetGroupItem) BeforeCreate(tx *gorm.DB) error {

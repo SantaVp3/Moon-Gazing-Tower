@@ -63,6 +63,11 @@ func Initialize(config Config) error {
 	// 	log.Printf("Warning: Failed to initialize fingerprints: %v", err)
 	// }
 
+	// 初始化内置敏感信息规则
+	if err := InitBuiltInSensitiveRules(DB); err != nil {
+		log.Printf("Warning: Failed to initialize built-in sensitive rules: %v", err)
+	}
+
 	log.Println("Database connected successfully")
 	return nil
 }
@@ -101,6 +106,8 @@ func autoMigrate() error {
 		&models.ScheduledTaskLog{},
 		&models.AssetTag{},
 		&models.AssetTagRelation{},
+		&models.SensitiveRule{},
+		&models.SensitiveMatch{},
 	)
 }
 
@@ -108,52 +115,52 @@ func autoMigrate() error {
 func InitDictionaries() error {
 	// 扫描字典目录
 	dictTypes := []string{"domain", "port", "file"}
-	
+
 	for _, dictType := range dictTypes {
 		dictDir := fmt.Sprintf("./configs/dicts/%s", dictType)
-		
+
 		// 检查目录是否存在
 		if _, err := os.Stat(dictDir); os.IsNotExist(err) {
 			continue
 		}
-		
+
 		// 读取目录中的文件
 		files, err := os.ReadDir(dictDir)
 		if err != nil {
 			log.Printf("Failed to read dict directory %s: %v", dictDir, err)
 			continue
 		}
-		
+
 		for _, file := range files {
 			if file.IsDir() || !strings.HasSuffix(file.Name(), ".txt") {
 				continue
 			}
-			
+
 			filePath := fmt.Sprintf("%s/%s", dictDir, file.Name())
-			
+
 			// 检查数据库中是否已存在
 			var existingDict models.Dictionary
 			if err := DB.Where("file_path = ?", filePath).First(&existingDict).Error; err == nil {
 				// 已存在，跳过
 				continue
 			}
-			
+
 			// 获取文件信息
 			fileInfo, err := os.Stat(filePath)
 			if err != nil {
 				continue
 			}
-			
+
 			// 统计行数
 			lineCount := countFileLines(filePath)
-			
+
 			// 生成字典名称（去掉时间戳前缀和.txt后缀）
 			name := strings.TrimSuffix(file.Name(), ".txt")
 			// 如果文件名以时间戳_开头，去掉时间戳部分
 			if idx := strings.Index(name, "_"); idx > 0 && idx < 15 {
 				name = name[idx+1:]
 			}
-			
+
 			// 创建字典记录
 			dict := models.Dictionary{
 				Name:        name,
@@ -165,7 +172,7 @@ func InitDictionaries() error {
 				IsDefault:   file.Name() == "big.txt", // big.txt 设为默认
 				CreatedBy:   "system",
 			}
-			
+
 			if err := DB.Create(&dict).Error; err != nil {
 				log.Printf("Failed to create dictionary record for %s: %v", filePath, err)
 			} else {
@@ -173,7 +180,7 @@ func InitDictionaries() error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -184,7 +191,7 @@ func countFileLines(filePath string) int {
 		return 0
 	}
 	defer file.Close()
-	
+
 	scanner := bufio.NewScanner(file)
 	lineCount := 0
 	for scanner.Scan() {
@@ -193,7 +200,7 @@ func countFileLines(filePath string) int {
 			lineCount++
 		}
 	}
-	
+
 	return lineCount
 }
 

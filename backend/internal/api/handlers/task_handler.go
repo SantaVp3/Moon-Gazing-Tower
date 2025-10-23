@@ -13,9 +13,10 @@ import (
 
 // CreateTaskRequest 创建任务请求
 type CreateTaskRequest struct {
-	Name    string             `json:"name" binding:"required"`
-	Target  string             `json:"target" binding:"required"`
-	Options models.TaskOptions `json:"options"`
+	Name     string             `json:"name" binding:"required"`
+	Target   string             `json:"target" binding:"required"`
+	PolicyID string             `json:"policy_id"` // 可选：关联的策略ID
+	Options  models.TaskOptions `json:"options"`
 }
 
 // TaskHandler 任务处理器
@@ -38,11 +39,24 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 		return
 	}
 
+	// 如果指定了策略ID，从策略加载配置
+	taskOptions := req.Options
+	if req.PolicyID != "" {
+		var policy models.Policy
+		if err := database.DB.First(&policy, "id = ?", req.PolicyID).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Policy not found"})
+			return
+		}
+		// 将策略配置转换为任务配置
+		taskOptions = policyConfigToTaskOptions(policy.Config, taskOptions)
+	}
+
 	task := &models.Task{
-		Name:    req.Name,
-		Target:  req.Target,
-		Options: req.Options,
-		Status:  models.TaskStatusPending,
+		Name:     req.Name,
+		Target:   req.Target,
+		PolicyID: req.PolicyID,
+		Options:  taskOptions,
+		Status:   models.TaskStatusPending,
 	}
 
 	if err := database.DB.Create(task).Error; err != nil {
@@ -57,6 +71,62 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 		"message": "Task created successfully. Please start it manually.",
 		"task":    task,
 	})
+}
+
+// policyConfigToTaskOptions 将策略配置转换为任务选项
+func policyConfigToTaskOptions(policyConfig models.PolicyConfig, baseOptions models.TaskOptions) models.TaskOptions {
+	// 如果baseOptions已有自定义配置，优先使用baseOptions，否则使用策略配置
+	options := baseOptions
+
+	// 域名爆破配置（策略优先，除非baseOptions明确设置）
+	if policyConfig.EnableDomainBrute {
+		options.EnableDomainBrute = true
+		if options.DomainBruteType == "" {
+			options.DomainBruteType = policyConfig.DomainBruteType
+		}
+		options.SmartDictGen = policyConfig.SmartDictGen
+	}
+
+	// 端口扫描配置
+	if policyConfig.EnablePortScan {
+		options.EnablePortScan = true
+		if options.PortScanType == "" {
+			options.PortScanType = policyConfig.PortScanType
+		}
+	}
+
+	// 服务识别配置
+	options.EnableServiceDetect = policyConfig.EnableServiceDetect
+	options.EnableOSDetect = policyConfig.EnableOSDetect
+	options.EnableSSLCert = policyConfig.EnableSSLCert
+
+	// 域名查询插件
+	options.EnableDomainPlugins = policyConfig.EnableDomainPlugins
+	if len(policyConfig.DomainPlugins) > 0 && len(options.DomainPlugins) == 0 {
+		options.DomainPlugins = policyConfig.DomainPlugins
+	}
+
+	// ARL历史查询
+	options.EnableARLHistory = policyConfig.EnableARLHistory
+
+	// CDN
+	options.SkipCDN = policyConfig.SkipCDN
+
+	// 站点识别
+	options.EnableSiteDetect = policyConfig.EnableSiteDetect
+	options.EnableSearchEngine = policyConfig.EnableSearchEngine
+	options.EnableCrawler = policyConfig.EnableCrawler
+	options.EnableScreenshot = policyConfig.EnableScreenshot
+
+	// 风险检测
+	options.EnableFileLeak = policyConfig.EnableFileLeak
+	options.EnableHostCollision = policyConfig.EnableHostCollision
+
+	// 高级功能
+	options.EnablePoCDetection = policyConfig.EnablePoCDetection
+	options.EnableWIH = policyConfig.EnableWIH
+
+	return options
 }
 
 // GetTask 获取任务详情

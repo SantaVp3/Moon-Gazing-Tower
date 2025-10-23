@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/reconmaster/backend/internal/database"
 	"github.com/reconmaster/backend/internal/models"
-	"github.com/gin-gonic/gin"
 	"gopkg.in/yaml.v3"
 	"gorm.io/gorm"
 )
@@ -236,8 +236,50 @@ type FingerprintImportItem struct {
 	Keyword  []string `json:"keyword" yaml:"keyword"`
 }
 
-// ImportFingerprints 导入指纹 (支持JSON和YAML格式)
+// UniversalFingerprintFormat 通用指纹格式（自动解析多种格式）
+type UniversalFingerprintFormat struct {
+	// 通用字段
+	Name        string      `yaml:"name" json:"name"`
+	ID          string      `yaml:"id" json:"id"`
+	CMS         string      `yaml:"cms" json:"cms"`
+	Category    string      `yaml:"category" json:"category"`
+	Tags        interface{} `yaml:"tags" json:"tags"` // 可能是字符串或数组
+	Description string      `yaml:"description" json:"description"`
+
+	// Nuclei风格
+	Info     map[string]interface{}   `yaml:"info" json:"info"`
+	Matchers []map[string]interface{} `yaml:"matchers" json:"matchers"`
+
+	// EHole/简化风格
+	Method   string   `yaml:"method" json:"method"`
+	Location string   `yaml:"location" json:"location"`
+	Keyword  []string `yaml:"keyword" json:"keyword"`
+
+	// 自定义patterns格式
+	Patterns map[string]interface{} `yaml:"patterns" json:"patterns"`
+
+	// ObserverWard风格
+	Priority   int                      `yaml:"priority" json:"priority"`
+	MatchRules []map[string]interface{} `yaml:"match_rules" json:"match_rules"`
+
+	// Wappalyzer风格（键值对格式）
+	Cats    interface{}            `yaml:"cats" json:"cats"`
+	HTML    interface{}            `yaml:"html" json:"html"`
+	Headers map[string]interface{} `yaml:"headers" json:"headers"`
+	Implies interface{}            `yaml:"implies" json:"implies"`
+
+	// 原始数据（用于处理未知格式）
+	Raw map[string]interface{} `yaml:",inline" json:"-"`
+}
+
+// ImportFingerprints 导入指纹 (支持多种YAML/JSON格式 - 智能识别)
 func (h *FingerprintHandler) ImportFingerprints(c *gin.Context) {
+	// 调用通用导入接口
+	h.ImportFingerprintsUniversal(c)
+}
+
+// ImportFingerprintsLegacy 导入指纹 (旧版格式 - 仅用于向后兼容)
+func (h *FingerprintHandler) ImportFingerprintsLegacy(c *gin.Context) {
 	// 读取原始数据
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
@@ -248,7 +290,7 @@ func (h *FingerprintHandler) ImportFingerprints(c *gin.Context) {
 	// 检测是否为 YAML 格式
 	contentType := c.GetHeader("Content-Type")
 	isYAML := strings.Contains(contentType, "yaml") || strings.Contains(contentType, "yml")
-	
+
 	// 如果 Content-Type 不明确，尝试通过内容判断
 	if !isYAML && len(body) > 0 {
 		// YAML 通常包含 ":" 作为键值分隔符，且第一行不是 "[" 或 "{"
@@ -259,7 +301,7 @@ func (h *FingerprintHandler) ImportFingerprints(c *gin.Context) {
 	}
 
 	var items []FingerprintImportItem
-	
+
 	if isYAML {
 		fmt.Println("检测到 YAML 格式，开始解析...")
 		if err := yaml.Unmarshal(body, &items); err != nil {
@@ -284,12 +326,12 @@ func (h *FingerprintHandler) ImportFingerprints(c *gin.Context) {
 	var failedReasons []string
 
 	for i, item := range items {
-		fmt.Printf("处理第 %d 条: CMS=%s, Method=%s, Location=%s, Keywords=%v\n", 
+		fmt.Printf("处理第 %d 条: CMS=%s, Method=%s, Location=%s, Keywords=%v\n",
 			i+1, item.CMS, item.Method, item.Location, item.Keyword)
 
 		// 验证必填字段
 		if item.CMS == "" || item.Method == "" || item.Location == "" || len(item.Keyword) == 0 {
-			reason := fmt.Sprintf("第%d条：缺少必填字段 (cms=%s, method=%s, location=%s, keywords=%d个)", 
+			reason := fmt.Sprintf("第%d条：缺少必填字段 (cms=%s, method=%s, location=%s, keywords=%d个)",
 				i+1, item.CMS, item.Method, item.Location, len(item.Keyword))
 			failedReasons = append(failedReasons, reason)
 			fmt.Printf("  -> 跳过: %s\n", reason)
@@ -359,20 +401,20 @@ func (h *FingerprintHandler) ImportFingerprints(c *gin.Context) {
 	// 分批插入，使用FirstOrCreate避免重复错误
 	successCount := 0
 	duplicateCount := 0
-	
+
 	if len(created) > 0 {
 		for i, fingerprint := range created {
 			// 使用FirstOrCreate来避免重复（根据名称）
 			var existing models.Fingerprint
 			result := database.DB.Where("name = ?", fingerprint.Name).
 				FirstOrCreate(&existing, &fingerprint)
-			
+
 			if result.Error != nil {
 				fmt.Printf("第 %d 条保存失败: %v\n", i+1, result.Error)
 				failed++
 				continue
 			}
-			
+
 			if result.RowsAffected > 0 {
 				// 新创建的记录
 				successCount++
@@ -384,7 +426,7 @@ func (h *FingerprintHandler) ImportFingerprints(c *gin.Context) {
 				duplicateCount++
 			}
 		}
-		
+
 		fmt.Printf("全部完成：新增 %d 条，跳过重复 %d 条\n", successCount, duplicateCount)
 	}
 
@@ -422,3 +464,379 @@ func convertLocationToRuleType(location string) string {
 	}
 }
 
+// parseUniversalFingerprint 智能解析通用指纹格式
+func parseUniversalFingerprint(item *UniversalFingerprintFormat, index int) (*models.Fingerprint, error) {
+	var name, category, description string
+	var dslRules []string
+
+	// 1. 提取名称（优先级：name > id > cms）
+	if item.Name != "" {
+		name = item.Name
+	} else if item.ID != "" {
+		name = item.ID
+	} else if item.CMS != "" {
+		name = item.CMS
+	}
+
+	if name == "" {
+		return nil, fmt.Errorf("指纹缺少名称字段")
+	}
+
+	// 2. 提取分类
+	category = "Web" // 默认分类
+	if item.Category != "" {
+		category = item.Category
+	} else if item.Info != nil {
+		if cat, ok := item.Info["category"].(string); ok {
+			category = cat
+		} else if tags, ok := item.Info["tags"].(string); ok {
+			category = tags
+		}
+	} else if item.Tags != nil {
+		if tagStr, ok := item.Tags.(string); ok {
+			category = tagStr
+		} else if tagArr, ok := item.Tags.([]interface{}); ok && len(tagArr) > 0 {
+			if firstTag, ok := tagArr[0].(string); ok {
+				category = firstTag
+			}
+		}
+	}
+
+	// 3. 提取描述
+	description = item.Description
+	if description == "" && item.Info != nil {
+		if desc, ok := item.Info["description"].(string); ok {
+			description = desc
+		}
+	}
+
+	// 4. 根据不同格式提取匹配规则
+
+	// 格式1: Nuclei风格 (matchers)
+	if len(item.Matchers) > 0 {
+		fmt.Printf("  [格式识别] Nuclei风格\n")
+		for _, matcher := range item.Matchers {
+			matcherType, _ := matcher["type"].(string)
+			part, _ := matcher["part"].(string)
+			if part == "" {
+				part = "body"
+			}
+
+			// 提取关键词
+			var words []string
+			if wordList, ok := matcher["words"].([]interface{}); ok {
+				for _, w := range wordList {
+					if ws, ok := w.(string); ok {
+						words = append(words, ws)
+					}
+				}
+			} else if word, ok := matcher["word"].(string); ok {
+				words = append(words, word)
+			}
+
+			// 生成DSL规则
+			for _, word := range words {
+				dsl := generateDSLRule(part, matcherType, word)
+				if dsl != "" {
+					dslRules = append(dslRules, dsl)
+				}
+			}
+		}
+	}
+
+	// 格式2: EHole风格 (method + location + keyword)
+	if len(dslRules) == 0 && len(item.Keyword) > 0 {
+		fmt.Printf("  [格式识别] EHole风格\n")
+		location := item.Location
+		if location == "" {
+			location = "body"
+		}
+		for _, keyword := range item.Keyword {
+			dsl := generateDSLRule(location, "keyword", keyword)
+			if dsl != "" {
+				dslRules = append(dslRules, dsl)
+			}
+		}
+	}
+
+	// 格式3: 自定义patterns格式
+	if len(dslRules) == 0 && item.Patterns != nil {
+		fmt.Printf("  [格式识别] Patterns风格\n")
+		for location, patterns := range item.Patterns {
+			if patternList, ok := patterns.([]interface{}); ok {
+				for _, p := range patternList {
+					if pattern, ok := p.(string); ok {
+						dsl := generateDSLRule(location, "keyword", pattern)
+						if dsl != "" {
+							dslRules = append(dslRules, dsl)
+						}
+					}
+				}
+			} else if patternStr, ok := patterns.(string); ok {
+				dsl := generateDSLRule(location, "keyword", patternStr)
+				if dsl != "" {
+					dslRules = append(dslRules, dsl)
+				}
+			}
+		}
+	}
+
+	// 格式4: ObserverWard风格 (match_rules)
+	if len(dslRules) == 0 && len(item.MatchRules) > 0 {
+		fmt.Printf("  [格式识别] ObserverWard风格\n")
+		for _, rule := range item.MatchRules {
+			// url_path
+			if urlPath, ok := rule["url_path"].(string); ok {
+				dsl := fmt.Sprintf("contains(url, '%s')", strings.ReplaceAll(urlPath, "'", "\\'"))
+				dslRules = append(dslRules, dsl)
+			}
+			// response_body
+			if respBody, ok := rule["response_body"].(string); ok {
+				dsl := fmt.Sprintf("contains(body, '%s')", strings.ReplaceAll(respBody, "'", "\\'"))
+				dslRules = append(dslRules, dsl)
+			}
+			// response_header
+			if respHeader, ok := rule["response_header"].(string); ok {
+				dsl := fmt.Sprintf("contains(header, '%s')", strings.ReplaceAll(respHeader, "'", "\\'"))
+				dslRules = append(dslRules, dsl)
+			}
+			// status_code
+			if statusCode, ok := rule["status_code"].(int); ok {
+				dsl := fmt.Sprintf("status_code == %d", statusCode)
+				dslRules = append(dslRules, dsl)
+			}
+		}
+	}
+
+	// 格式5: Wappalyzer风格 (html, headers)
+	if len(dslRules) == 0 && (item.HTML != nil || item.Headers != nil) {
+		fmt.Printf("  [格式识别] Wappalyzer风格\n")
+		// 处理HTML模式
+		if item.HTML != nil {
+			if htmlList, ok := item.HTML.([]interface{}); ok {
+				for _, h := range htmlList {
+					if htmlStr, ok := h.(string); ok {
+						dsl := generateDSLRule("body", "keyword", htmlStr)
+						if dsl != "" {
+							dslRules = append(dslRules, dsl)
+						}
+					}
+				}
+			} else if htmlStr, ok := item.HTML.(string); ok {
+				dsl := generateDSLRule("body", "keyword", htmlStr)
+				if dsl != "" {
+					dslRules = append(dslRules, dsl)
+				}
+			}
+		}
+		// 处理Headers
+		if item.Headers != nil {
+			for headerName, headerValue := range item.Headers {
+				if hvStr, ok := headerValue.(string); ok {
+					dsl := fmt.Sprintf("contains(header, '%s: %s')", headerName, strings.ReplaceAll(hvStr, "'", "\\'"))
+					dslRules = append(dslRules, dsl)
+				}
+			}
+		}
+	}
+
+	// 如果没有提取到任何规则
+	if len(dslRules) == 0 {
+		return nil, fmt.Errorf("无法从指纹中提取匹配规则")
+	}
+
+	// 生成描述
+	if description == "" {
+		description = fmt.Sprintf("自动导入的指纹 - 规则数: %d", len(dslRules))
+	}
+
+	fingerprint := &models.Fingerprint{
+		Name:        name,
+		Category:    category,
+		DSL:         dslRules,
+		Description: description,
+		IsEnabled:   true,
+	}
+
+	return fingerprint, nil
+}
+
+// generateDSLRule 生成DSL规则
+func generateDSLRule(location, matchType, pattern string) string {
+	location = strings.ToLower(location)
+
+	// 转换location为DSL目标
+	var target string
+	switch location {
+	case "body", "response_body", "html":
+		target = "body"
+	case "header", "headers", "response_header", "banner", "server":
+		target = "header"
+	case "title":
+		target = "title"
+	case "url", "path", "url_path":
+		target = "url"
+	case "favicon", "icon":
+		target = "favicon"
+	default:
+		target = "body"
+	}
+
+	// 转义单引号
+	escapedPattern := strings.ReplaceAll(pattern, "'", "\\'")
+
+	// 根据匹配类型生成规则
+	switch strings.ToLower(matchType) {
+	case "word", "keyword", "contains":
+		return fmt.Sprintf("contains(%s, '%s')", target, escapedPattern)
+	case "regex", "regexp":
+		return fmt.Sprintf("regex(%s, '%s')", target, escapedPattern)
+	case "exact", "equals":
+		return fmt.Sprintf("%s == '%s'", target, escapedPattern)
+	default:
+		// 默认使用contains
+		return fmt.Sprintf("contains(%s, '%s')", target, escapedPattern)
+	}
+}
+
+// ImportFingerprintsUniversal 通用指纹导入接口（智能识别多种格式）
+func (h *FingerprintHandler) ImportFingerprintsUniversal(c *gin.Context) {
+	// 读取原始数据
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read request body: " + err.Error()})
+		return
+	}
+
+	// 检测是否为YAML格式
+	contentType := c.GetHeader("Content-Type")
+	isYAML := strings.Contains(contentType, "yaml") || strings.Contains(contentType, "yml")
+
+	if !isYAML && len(body) > 0 {
+		bodyStr := strings.TrimSpace(string(body))
+		if !strings.HasPrefix(bodyStr, "[") && !strings.HasPrefix(bodyStr, "{") {
+			isYAML = true
+		}
+	}
+
+	fmt.Printf("📦 开始导入指纹（格式: %s）\n", map[bool]string{true: "YAML", false: "JSON"}[isYAML])
+
+	// 尝试解析为通用格式数组
+	var items []UniversalFingerprintFormat
+
+	if isYAML {
+		// 先尝试作为数组解析
+		if err := yaml.Unmarshal(body, &items); err != nil {
+			// 如果失败，尝试作为单个对象解析
+			var singleItem UniversalFingerprintFormat
+			if err := yaml.Unmarshal(body, &singleItem); err != nil {
+				// 如果还是失败，尝试作为map[string]UniversalFingerprintFormat解析（Wappalyzer风格）
+				var itemsMap map[string]UniversalFingerprintFormat
+				if err := yaml.Unmarshal(body, &itemsMap); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid YAML format: " + err.Error()})
+					return
+				}
+				// 转换map为数组
+				for name, item := range itemsMap {
+					if item.Name == "" {
+						item.Name = name
+					}
+					items = append(items, item)
+				}
+			} else {
+				items = append(items, singleItem)
+			}
+		}
+	} else {
+		// JSON解析
+		if err := json.Unmarshal(body, &items); err != nil {
+			// 尝试单个对象
+			var singleItem UniversalFingerprintFormat
+			if err := json.Unmarshal(body, &singleItem); err != nil {
+				// 尝试map格式
+				var itemsMap map[string]UniversalFingerprintFormat
+				if err := json.Unmarshal(body, &itemsMap); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format: " + err.Error()})
+					return
+				}
+				for name, item := range itemsMap {
+					if item.Name == "" {
+						item.Name = name
+					}
+					items = append(items, item)
+				}
+			} else {
+				items = append(items, singleItem)
+			}
+		}
+	}
+
+	fmt.Printf("✅ 解析成功，共 %d 条指纹\n", len(items))
+
+	var created []models.Fingerprint
+	var skipped int
+	var failed int
+	var failedReasons []string
+
+	for i, item := range items {
+		fmt.Printf("\n[%d/%d] 处理指纹...\n", i+1, len(items))
+
+		// 智能解析
+		fingerprint, err := parseUniversalFingerprint(&item, i)
+		if err != nil {
+			reason := fmt.Sprintf("第%d条: %s", i+1, err.Error())
+			failedReasons = append(failedReasons, reason)
+			fmt.Printf("  ❌ %s\n", reason)
+			failed++
+			continue
+		}
+
+		// 检查是否已存在
+		var existing models.Fingerprint
+		if err := database.DB.Where("name = ?", fingerprint.Name).First(&existing).Error; err == nil {
+			fmt.Printf("  ⏭️ 跳过（已存在）: %s\n", fingerprint.Name)
+			skipped++
+			continue
+		}
+
+		fmt.Printf("  ✅ %s (分类: %s, 规则数: %d)\n", fingerprint.Name, fingerprint.Category, len(fingerprint.DSL))
+		created = append(created, *fingerprint)
+	}
+
+	// 批量插入
+	successCount := 0
+	if len(created) > 0 {
+		batchSize := 100
+		for i := 0; i < len(created); i += batchSize {
+			end := i + batchSize
+			if end > len(created) {
+				end = len(created)
+			}
+			batch := created[i:end]
+
+			if err := database.DB.Create(&batch).Error; err != nil {
+				fmt.Printf("❌ 批量插入失败 (batch %d-%d): %v\n", i, end, err)
+				failed += len(batch)
+			} else {
+				successCount += len(batch)
+				fmt.Printf("✅ 批量插入成功 (batch %d-%d)\n", i, end)
+			}
+		}
+	}
+
+	response := gin.H{
+		"message":        "Fingerprints imported successfully",
+		"imported_count": successCount,
+		"skipped_count":  skipped,
+		"failed_count":   failed,
+		"total":          len(items),
+	}
+
+	if len(failedReasons) > 0 && len(failedReasons) <= 10 {
+		response["failed_reasons"] = failedReasons
+	} else if len(failedReasons) > 10 {
+		response["failed_reasons"] = append(failedReasons[:10], fmt.Sprintf("... 还有 %d 个失败", len(failedReasons)-10))
+	}
+
+	c.JSON(http.StatusCreated, response)
+}
