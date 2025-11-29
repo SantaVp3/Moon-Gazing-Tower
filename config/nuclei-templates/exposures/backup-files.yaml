@@ -1,0 +1,41 @@
+id: backup-files
+
+info:
+  name: Backup File Detection
+  author: moon-gazing-tower
+  severity: medium
+  description: Detects common backup files that may contain sensitive information.
+  tags: exposure,backup
+  reference:
+    - https://owasp.org/www-project-web-security-testing-guide/
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/backup.zip"
+      - "{{BaseURL}}/backup.tar.gz"
+      - "{{BaseURL}}/backup.sql"
+      - "{{BaseURL}}/database.sql"
+      - "{{BaseURL}}/db.sql"
+      - "{{BaseURL}}/dump.sql"
+      - "{{BaseURL}}/www.zip"
+      - "{{BaseURL}}/wwwroot.zip"
+      - "{{BaseURL}}/web.zip"
+      - "{{BaseURL}}/site.zip"
+
+    stop-at-first-match: true
+
+    matchers-condition: and
+    matchers:
+      - type: word
+        part: header
+        words:
+          - "application/zip"
+          - "application/x-gzip"
+          - "application/octet-stream"
+          - "application/sql"
+        condition: or
+
+      - type: status
+        status:
+          - 200

@@ -1,0 +1,42 @@
+# Moon Gazing Tower Configuration
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  mode: "debug"  # debug, release, test
+
+jwt:
+  secret: "moon-gazing-tower-secret-key-change-in-production"
+  expire: 7200  # 2 hours in seconds
+  issuer: "moon-gazing-tower"
+
+mongodb:
+  uri: "mongodb://localhost:27017"
+  database: "moongazing"
+  timeout: 10
+
+redis:
+  host: "localhost"
+  port: 34535
+  password: ""
+  db: 0
+
+scanner:
+  worker_count: 10
+  timeout: 300
+  retry_count: 3
+  retry_delay: 5
+
+log:
+  level: "debug"
+  file: "logs/app.log"
+  max_size: 100
+  max_backups: 3
+  max_age: 7
+
+alert:
+  enabled: true
+  types:
+    - email
+    - dingtalk
+    - feishu

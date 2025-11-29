@@ -1,0 +1,49 @@
+id: sql-injection-error-based
+
+info:
+  name: SQL Injection Detection (Error Based)
+  author: moon-gazing-tower
+  severity: high
+  description: Detects potential SQL injection vulnerabilities through error messages.
+  tags: sqli,injection,database
+  classification:
+    cwe-id: CWE-89
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/?id=1'"
+      - "{{BaseURL}}/?id=1\""
+      - "{{BaseURL}}/?id=1%27"
+      - "{{BaseURL}}/?id=1%22"
+
+    stop-at-first-match: true
+
+    matchers-condition: and
+    matchers:
+      - type: word
+        words:
+          - "SQL syntax"
+          - "mysql_fetch"
+          - "ORA-01756"
+          - "SQLServer"
+          - "ODBC SQL Server Driver"
+          - "PostgreSQL"
+          - "pg_query"
+          - "sqlite3"
+          - "SQLite3::"
+          - "Warning: mysql"
+          - "MySqlException"
+          - "valid MySQL result"
+          - "mysqli_"
+          - "MySqlClient"
+          - "com.mysql.jdbc"
+          - "Syntax error"
+          - "unterminated quoted string"
+        condition: or
+
+      - type: status
+        status:
+          - 200
+          - 500
+          - 403

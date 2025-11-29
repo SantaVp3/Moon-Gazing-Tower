@@ -1,0 +1,42 @@
+id: env-file-exposure
+
+info:
+  name: Environment File Exposure
+  author: moon-gazing-tower
+  severity: high
+  description: Detects exposed .env files which may contain sensitive configuration.
+  tags: exposure,env,config
+  reference:
+    - https://owasp.org/www-project-web-security-testing-guide/
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/.env"
+      - "{{BaseURL}}/.env.local"
+      - "{{BaseURL}}/.env.production"
+      - "{{BaseURL}}/.env.development"
+
+    stop-at-first-match: true
+
+    matchers-condition: and
+    matchers:
+      - type: word
+        words:
+          - "DB_PASSWORD"
+          - "API_KEY"
+          - "SECRET_KEY"
+          - "AWS_ACCESS"
+          - "MYSQL_PASSWORD"
+          - "DATABASE_URL"
+        condition: or
+
+      - type: status
+        status:
+          - 200
+
+    extractors:
+      - type: regex
+        name: secrets
+        regex:
+          - '(?i)(password|secret|key|token)\s*[=:]\s*["\']?([^"\'\s]+)'

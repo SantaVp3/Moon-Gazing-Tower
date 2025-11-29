@@ -1,0 +1,51 @@
+id: spring-actuator-exposure
+
+info:
+  name: Spring Boot Actuator Exposure
+  author: moon-gazing-tower
+  severity: high
+  description: Detects exposed Spring Boot Actuator endpoints which may leak sensitive information.
+  tags: exposure,springboot,actuator
+  classification:
+    cwe-id: CWE-200
+  reference:
+    - https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/actuator"
+      - "{{BaseURL}}/actuator/env"
+      - "{{BaseURL}}/actuator/health"
+      - "{{BaseURL}}/actuator/info"
+      - "{{BaseURL}}/actuator/mappings"
+      - "{{BaseURL}}/actuator/configprops"
+      - "{{BaseURL}}/actuator/heapdump"
+
+    stop-at-first-match: true
+
+    matchers-condition: and
+    matchers:
+      - type: word
+        words:
+          - "_links"
+          - "actuator"
+          - "self"
+        condition: and
+
+      - type: word
+        part: header
+        words:
+          - "application/json"
+          - "application/vnd.spring-boot.actuator"
+        condition: or
+
+      - type: status
+        status:
+          - 200
+
+    extractors:
+      - type: json
+        name: endpoints
+        json:
+          - '._links'

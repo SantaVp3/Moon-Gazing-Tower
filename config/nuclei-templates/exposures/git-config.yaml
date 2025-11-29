@@ -1,0 +1,34 @@
+id: git-config-exposure
+
+info:
+  name: Git Config Exposure
+  author: moon-gazing-tower
+  severity: medium
+  description: Detects exposed .git/config files which may contain sensitive information.
+  tags: exposure,git,config
+  reference:
+    - https://owasp.org/www-project-web-security-testing-guide/
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/.git/config"
+
+    matchers-condition: and
+    matchers:
+      - type: word
+        words:
+          - "[core]"
+          - "[remote"
+        condition: or
+
+      - type: status
+        status:
+          - 200
+
+    extractors:
+      - type: regex
+        name: remote_url
+        regex:
+          - 'url\s*=\s*(.+)'
+        group: 1
