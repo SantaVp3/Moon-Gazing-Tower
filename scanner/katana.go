@@ -12,7 +12,6 @@ import (
 )
 
 // KatanaScanner 使用 Katana 进行网页爬虫
-// 配置参考 ScopeSentry-Scan
 type KatanaScanner struct {
 	BinPath          string
 	Depth            int    // 爬取深度
@@ -55,20 +54,18 @@ type KatanaJSONOutput struct {
 }
 
 // NewKatanaScanner 创建 Katana 扫描器
-// 配置与 ScopeSentry-Scan 保持一致
-// ScopeSentry 默认: threads=5, timeout=5, maxDepth=5, executionTimeout=20
 func NewKatanaScanner() *KatanaScanner {
 	tm := NewToolsManager()
 	binPath := tm.GetToolPath("katana")
 
 	return &KatanaScanner{
 		BinPath:          binPath,
-		Depth:            5,   // 与 ScopeSentry 一致: maxDepth = "5"
-		Concurrency:      5,   // 与 ScopeSentry 一致: threads = "5"
-		Timeout:          5,   // 与 ScopeSentry 一致: timeout = "5"
-		RateLimit:        150, // nuclei 默认值
+		Depth:            5,
+		Concurrency:      5,
+		Timeout:          5,
+		RateLimit:        150,
 		TempDir:          os.TempDir(),
-		ExecutionTimeout: 20,  // 与 ScopeSentry 一致: executionTimeout = 20
+		ExecutionTimeout: 20,
 	}
 }
 

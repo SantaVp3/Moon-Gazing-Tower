@@ -1,6 +1,5 @@
 // httpx.go - HTTP 探测器
 // 用于获取子域名的 HTTP 信息：IP、Title、StatusCode、CDN、指纹等
-// 参考 ScopeSentry-Scan 的 httpx 实现
 
 package scanner
 

@@ -12,7 +12,6 @@ import (
 )
 
 // RadScanner 使用 rad 进行浏览器爬虫（基于 Chrome）
-// 配置参考 ScopeSentry-Scan
 type RadScanner struct {
 	BinPath          string
 	Timeout          int    // 超时时间(秒)
@@ -49,7 +48,6 @@ type RadJSONOutput struct {
 }
 
 // NewRadScanner 创建 rad 扫描器
-// 配置与 ScopeSentry-Scan 保持一致
 func NewRadScanner() *RadScanner {
 	tm := NewToolsManager()
 	binPath := tm.GetToolPath("rad")

@@ -14,7 +14,6 @@ import (
 )
 
 // SubfinderScanner 被动子域名收集器
-// 参考 ScopeSentry-Scan 的实现
 type SubfinderScanner struct {
 	Threads            int    // 线程数
 	Timeout            int    // 单个源的超时时间（秒）
@@ -42,7 +41,6 @@ type SubfinderScanResult struct {
 }
 
 // NewSubfinderScanner 创建新的 subfinder 扫描器
-// 配置与 ScopeSentry 保持一致
 func NewSubfinderScanner() *SubfinderScanner {
 	return &SubfinderScanner{
 		Threads:            10, // 默认 10 线程
@@ -68,7 +66,7 @@ func (s *SubfinderScanner) Scan(ctx context.Context, domain string) (*SubfinderS
 	var wg sync.WaitGroup
 	subdomainChan := make(chan string, 1000)
 	
-	// 禁用 log 时间戳（与 ScopeSentry 一致）
+	// 禁用 log 时间戳
 	log.SetFlags(0)
 
 	// 配置 subfinder 选项

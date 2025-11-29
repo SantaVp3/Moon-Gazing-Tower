@@ -15,20 +15,20 @@ import (
 )
 
 // ScanPipeline 扫描流水线
-// 参考 ScopeSentry-Scan 的扫描流程:
-// 1. TargetHandler - 目标解析
-// 2. SubdomainScan - 子域名扫描 (subfinder + 内置扫描)
-// 3. SubdomainSecurity - 子域名安全检测 (接管检测)
-// 4. PortScanPreparation - 端口扫描预处理 (CDN检测)
-// 5. PortScan - 端口扫描 (rustscan)
-// 6. PortFingerprint - 端口指纹识别
-// 7. AssetMapping - 资产测绘 (HTTP探测)
-// 8. AssetHandle - 资产处理
-// 9. URLScan - URL扫描 (katana + wayback)
-// 10. WebCrawler - Web爬虫 (rad)
-// 11. URLSecurity - URL安全检测 (敏感信息)
-// 12. DirScan - 目录扫描
-// 13. VulnerabilityScan - 漏洞扫描 (nuclei)
+// 扫描流程:
+// 1. 目标解析
+// 2. 子域名扫描 (subfinder)
+// 3. 子域名安全检测 (接管检测)
+// 4. 端口扫描预处理 (CDN检测)
+// 5. 端口扫描 (rustscan)
+// 6. 端口指纹识别
+// 7. 资产测绘 (HTTP探测)
+// 8. 资产处理
+// 9. URL扫描 (katana)
+// 10. Web爬虫 (rad)
+// 11. URL安全检测 (敏感信息)
+// 12. 目录扫描
+// 13. 漏洞扫描 (nuclei)
 type ScanPipeline struct {
 	task          *models.Task
 	taskService   *TaskService
