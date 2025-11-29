@@ -1,4 +1,4 @@
-# Moon-Gazing-Tower (望月楼)
+# Moon-Gazing-Tower (望月塔)
 
 一款现代化的自动化安全扫描平台，集成资产管理、漏洞扫描、任务调度等功能。
 
