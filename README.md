@@ -145,12 +145,6 @@ backend/
 | rad | Web 爬虫 | https://github.com/chaitin/rad |
 | nuclei | 漏洞扫描 | https://github.com/projectdiscovery/nuclei |
 
-## Docker 部署
-
-```bash
-docker-compose up -d
-```
-
 ## 许可证
 
 MIT License
