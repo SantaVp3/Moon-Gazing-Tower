@@ -184,12 +184,35 @@ func (s *POCService) GetByTemplateID(templateID string) (*models.POC, error) {
 }
 
 func (s *POCService) Create(poc *models.POC) error {
+	collection := database.GetCollection("pocs")
+	
+	// 检查是否已存在（按 template_id 或 name 去重）
+	var filter bson.M
+	if poc.TemplateID != "" {
+		filter = bson.M{"template_id": poc.TemplateID}
+	} else if poc.Name != "" {
+		filter = bson.M{"name": poc.Name}
+	}
+	
+	if filter != nil {
+		var existing models.POC
+		err := collection.FindOne(context.Background(), filter).Decode(&existing)
+		if err == nil {
+			// 已存在，更新而不是插入
+			poc.ID = existing.ID
+			poc.CreatedAt = existing.CreatedAt
+			poc.UpdatedAt = time.Now()
+			_, err = collection.ReplaceOne(context.Background(), filter, poc)
+			return err
+		}
+	}
+	
+	// 新建
 	poc.ID = primitive.NewObjectID()
 	poc.CreatedAt = time.Now()
 	poc.UpdatedAt = time.Now()
 	poc.Enabled = true
 	
-	collection := database.GetCollection("pocs")
 	_, err := collection.InsertOne(context.Background(), poc)
 	return err
 }
@@ -235,6 +258,41 @@ func (s *POCService) Delete(id string) error {
 	collection := database.GetCollection("pocs")
 	_, err = collection.DeleteOne(context.Background(), bson.M{"_id": objectID})
 	return err
+}
+
+// BatchDelete 批量删除 POC
+func (s *POCService) BatchDelete(ids []string) (int, int) {
+	deleted := 0
+	failed := 0
+	
+	collection := database.GetCollection("pocs")
+	
+	for _, id := range ids {
+		objectID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			failed++
+			continue
+		}
+		
+		result, err := collection.DeleteOne(context.Background(), bson.M{"_id": objectID})
+		if err != nil || result.DeletedCount == 0 {
+			failed++
+		} else {
+			deleted++
+		}
+	}
+	
+	return deleted, failed
+}
+
+// ClearAll 清除所有 POC
+func (s *POCService) ClearAll() (int64, error) {
+	collection := database.GetCollection("pocs")
+	result, err := collection.DeleteMany(context.Background(), bson.M{})
+	if err != nil {
+		return 0, err
+	}
+	return result.DeletedCount, nil
 }
 
 type POCListParams struct {

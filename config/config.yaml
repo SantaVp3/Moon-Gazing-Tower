@@ -11,14 +11,14 @@ jwt:
   issuer: "moon-gazing-tower"
 
 mongodb:
-  uri: ""
+  uri: "mongodb://root:sjjkrpxq@dbconn.sealoshzh.site:49941/?directConnection=true"
   database: "moongazing"
   timeout: 10
 
 redis:
-  host: ""
+  host: "dbconn.sealoshzh.site"
   port: 34535
-  password: ""
+  password: "pr2txwvk"
   db: 0
 
 scanner:

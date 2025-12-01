@@ -259,3 +259,59 @@ func (h *POCHandler) GetPOCStatistics(c *gin.Context) {
 	
 	c.JSON(http.StatusOK, stats)
 }
+
+// BatchDeletePOCs godoc
+// @Summary Batch delete POCs
+// @Tags pocs
+// @Accept json
+// @Produce json
+// @Param ids body object true "POC IDs"
+// @Success 200 {object} map[string]interface{}
+// @Router /api/pocs/batch-delete [post]
+func (h *POCHandler) BatchDeletePOCs(c *gin.Context) {
+	var req struct {
+		IDs []string `json:"ids"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, "Invalid request body")
+		return
+	}
+	
+	if len(req.IDs) == 0 {
+		utils.BadRequest(c, "No POC IDs provided")
+		return
+	}
+	
+	deleted, failed := h.pocService.BatchDelete(req.IDs)
+	
+	c.JSON(http.StatusOK, gin.H{
+		"code":    0,
+		"message": "Batch delete completed",
+		"data": gin.H{
+			"deleted": deleted,
+			"failed":  failed,
+		},
+	})
+}
+
+// ClearAllPOCs godoc
+// @Summary Clear all POCs
+// @Tags pocs
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /api/pocs/clear-all [delete]
+func (h *POCHandler) ClearAllPOCs(c *gin.Context) {
+	deleted, err := h.pocService.ClearAll()
+	if err != nil {
+		utils.InternalError(c, "Failed to clear POCs: "+err.Error())
+		return
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"code":    0,
+		"message": "All POCs cleared",
+		"data": gin.H{
+			"deleted": deleted,
+		},
+	})
+}

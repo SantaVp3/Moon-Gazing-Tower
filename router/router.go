@@ -149,6 +149,8 @@ func SetupRouter() *gin.Engine {
 				pocGroup.GET("", pocHandler.ListPOCs)
 				pocGroup.GET("/statistics", pocHandler.GetPOCStatistics)
 				pocGroup.POST("/import", pocHandler.ImportPOCsFromZip)
+				pocGroup.POST("/batch-delete", pocHandler.BatchDeletePOCs)
+				pocGroup.DELETE("/clear-all", pocHandler.ClearAllPOCs)
 				pocGroup.GET("/:id", pocHandler.GetPOC)
 				pocGroup.POST("", pocHandler.CreatePOC)
 				pocGroup.PUT("/:id", pocHandler.UpdatePOC)
