@@ -3,20 +3,25 @@ package scanner
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 // RustScanScanner 使用 RustScan 进行高速端口扫描
 type RustScanScanner struct {
-	BinPath   string
-	Timeout   int      // 超时时间(毫秒)
-	BatchSize int      // 批量大小 (并发数)
-	Ulimit    int      // 文件描述符限制
-	TempDir   string
+	BinPath       string
+	Timeout       int    // 超时时间(毫秒)
+	BatchSize     int    // 批量大小 (并发数)
+	Ulimit        int    // 文件描述符限制
+	TempDir       string
+	VerifyPorts   bool   // 是否验证端口服务
+	VerifyTimeout int    // 验证超时时间(秒)
+	VerifyWorkers int    // 验证并发数
 }
 
 // RustScanConfig RustScan 扫描配置
@@ -32,11 +37,14 @@ func NewRustScanScanner() *RustScanScanner {
 	binPath := tm.GetToolPath("rustscan")
 
 	return &RustScanScanner{
-		BinPath:   binPath,
-		Timeout:   3000,  // 3秒超时 (毫秒)
-		BatchSize: 4500,  // 批量大小
-		Ulimit:    5000,  // 文件描述符
-		TempDir:   os.TempDir(),
+		BinPath:       binPath,
+		Timeout:       1500,  // 1.5秒超时 (毫秒) - 默认值
+		BatchSize:     1000,  // 降低批量大小以提高准确性
+		Ulimit:        5000,  // 文件描述符
+		TempDir:       os.TempDir(),
+		VerifyPorts:   true,  // 默认开启端口验证
+		VerifyTimeout: 3,     // 验证超时3秒
+		VerifyWorkers: 50,    // 并发验证50个端口
 	}
 }
 
@@ -91,12 +99,13 @@ func (r *RustScanScanner) ScanPorts(ctx context.Context, target string, ports st
 	}
 
 	// 构建命令
-	// rustscan -a target -u 5000 -b 4500 -t 3000 -g [-p ports | -r range | --top]
+	// rustscan -a target -u 5000 -b 1000 -t 1500 --tries 2 -g [-p ports | -r range | --top]
 	args := []string{
 		"-a", target,
 		"-u", fmt.Sprintf("%d", r.Ulimit),
 		"-b", fmt.Sprintf("%d", r.BatchSize),
 		"-t", fmt.Sprintf("%d", r.Timeout),
+		"--tries", "2", // 增加重试次数减少误报
 		"-g", // greppable 输出格式
 	}
 
@@ -160,6 +169,9 @@ func (r *RustScanScanner) ScanPorts(ctx context.Context, target string, ports st
 		}
 	}
 
+	// 验证端口服务
+	result.Ports = r.verifyPorts(ctx, target, result.Ports)
+
 	result.EndTime = time.Now()
 
 	return result, nil
@@ -184,6 +196,7 @@ func (r *RustScanScanner) ScanRange(ctx context.Context, target string, portRang
 		"-u", fmt.Sprintf("%d", r.Ulimit),
 		"-b", fmt.Sprintf("%d", r.BatchSize),
 		"-t", fmt.Sprintf("%d", r.Timeout),
+		"--tries", "2", // 增加重试次数减少误报
 		"-g",
 		"-r", portRange, // 使用 -r 参数指定范围
 	}
@@ -234,6 +247,9 @@ func (r *RustScanScanner) ScanRange(ctx context.Context, target string, portRang
 		}
 	}
 
+	// 验证端口服务
+	result.Ports = r.verifyPorts(ctx, target, result.Ports)
+
 	result.EndTime = time.Now()
 	return result, nil
 }
@@ -255,6 +271,7 @@ func (r *RustScanScanner) Top1000Scan(ctx context.Context, target string) (*Scan
 		"-u", fmt.Sprintf("%d", r.Ulimit),
 		"-b", fmt.Sprintf("%d", r.BatchSize),
 		"-t", fmt.Sprintf("%d", r.Timeout),
+		"--tries", "2", // 增加重试次数减少误报
 		"-g",
 		"--top", // 使用内置的 top 1000 端口
 	}
@@ -304,6 +321,9 @@ func (r *RustScanScanner) Top1000Scan(ctx context.Context, target string) (*Scan
 			})
 		}
 	}
+
+	// 验证端口服务
+	result.Ports = r.verifyPorts(ctx, target, result.Ports)
 
 	result.EndTime = time.Now()
 	return result, nil
@@ -384,4 +404,141 @@ func isPortRange(ports string) bool {
 	}
 	
 	return true
+}
+
+// verifyPorts 验证端口是否真正开放服务
+func (r *RustScanScanner) verifyPorts(ctx context.Context, target string, ports []PortResult) []PortResult {
+	if !r.VerifyPorts || len(ports) == 0 {
+		return ports
+	}
+
+	fmt.Printf("[*] Verifying %d ports on %s...\n", len(ports), target)
+
+	var verified []PortResult
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	// 使用 channel 控制并发
+	sem := make(chan struct{}, r.VerifyWorkers)
+
+	for _, port := range ports {
+		select {
+		case <-ctx.Done():
+			return verified
+		default:
+		}
+
+		wg.Add(1)
+		sem <- struct{}{}
+
+		go func(p PortResult) {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			if r.verifyPort(target, p.Port) {
+				mu.Lock()
+				verified = append(verified, p)
+				mu.Unlock()
+			}
+		}(port)
+	}
+
+	wg.Wait()
+
+	fmt.Printf("[*] Verified: %d/%d ports are actually open\n", len(verified), len(ports))
+	return verified
+}
+
+// verifyPort 验证单个端口是否真正开放
+func (r *RustScanScanner) verifyPort(target string, port int) bool {
+	address := fmt.Sprintf("%s:%d", target, port)
+	timeout := time.Duration(r.VerifyTimeout) * time.Second
+
+	// 尝试建立 TCP 连接
+	conn, err := net.DialTimeout("tcp", address, timeout)
+	if err != nil {
+		return false
+	}
+	defer conn.Close()
+
+	// 设置读写超时
+	conn.SetDeadline(time.Now().Add(timeout))
+
+	// 根据端口发送探针并检查响应
+	banner := r.probeBanner(conn, port)
+	
+	// 如果能建立连接且有响应，则认为端口开放
+	// 对于某些服务，可能需要先发送数据才能获得响应
+	return banner != "" || r.isConnectionValid(conn, port)
+}
+
+// probeBanner 尝试获取服务 banner
+func (r *RustScanScanner) probeBanner(conn net.Conn, port int) string {
+	// 设置短超时
+	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+
+	// 某些服务会主动发送 banner
+	buffer := make([]byte, 1024)
+	n, err := conn.Read(buffer)
+	if err == nil && n > 0 {
+		return strings.TrimSpace(string(buffer[:n]))
+	}
+
+	// 对 HTTP 端口发送请求
+	if isHTTPPort(port) {
+		conn.SetWriteDeadline(time.Now().Add(2 * time.Second))
+		conn.Write([]byte("HEAD / HTTP/1.0\r\n\r\n"))
+		
+		conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+		n, err = conn.Read(buffer)
+		if err == nil && n > 0 {
+			return strings.TrimSpace(string(buffer[:n]))
+		}
+	}
+
+	return ""
+}
+
+// isConnectionValid 检查连接是否有效（针对不返回 banner 的服务）
+func (r *RustScanScanner) isConnectionValid(conn net.Conn, port int) bool {
+	// 尝试写入少量数据检查连接是否真正建立
+	conn.SetWriteDeadline(time.Now().Add(1 * time.Second))
+	
+	// 发送一个空行或简单探针
+	var probe []byte
+	switch {
+	case isHTTPPort(port):
+		probe = []byte("GET / HTTP/1.0\r\n\r\n")
+	case port == 22:
+		probe = []byte("SSH-2.0-Test\r\n")
+	case port == 21:
+		probe = []byte("QUIT\r\n")
+	case port == 25 || port == 587:
+		probe = []byte("EHLO test\r\n")
+	default:
+		probe = []byte("\r\n")
+	}
+
+	_, err := conn.Write(probe)
+	if err != nil {
+		return false
+	}
+
+	// 尝试读取响应
+	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	buffer := make([]byte, 256)
+	n, _ := conn.Read(buffer)
+	
+	// 如果有任何响应数据，说明服务存在
+	return n > 0
+}
+
+// isHTTPPort 判断是否是 HTTP 相关端口
+func isHTTPPort(port int) bool {
+	httpPorts := map[int]bool{
+		80: true, 443: true, 8080: true, 8443: true,
+		8000: true, 8888: true, 9000: true, 9090: true,
+		3000: true, 5000: true, 8081: true, 8082: true,
+	}
+	return httpPorts[port]
 }

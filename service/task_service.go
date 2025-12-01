@@ -334,13 +334,34 @@ func (s *TaskService) GetTaskStats(workspaceID string) (map[string]interface{}, 
 	}
 	
 	total := 0
+	running := 0
+	completed := 0
+	failed := 0
+	pending := 0
+	
 	for _, r := range results {
 		statusStats[r.ID] = r.Count
 		total += r.Count
+		
+		// 根据状态分类
+		switch r.ID {
+		case string(models.TaskStatusRunning):
+			running = r.Count
+		case string(models.TaskStatusCompleted):
+			completed = r.Count
+		case string(models.TaskStatusFailed):
+			failed = r.Count
+		case string(models.TaskStatusPending):
+			pending = r.Count
+		}
 	}
 	
-	stats["by_status"] = statusStats
 	stats["total"] = total
+	stats["running"] = running
+	stats["completed"] = completed
+	stats["failed"] = failed
+	stats["pending"] = pending
+	stats["by_status"] = statusStats
 	
 	return stats, nil
 }
