@@ -148,3 +148,7 @@ backend/
 ## 许可证
 
 MIT License
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=SantaVp3/Moon-Gazing-Tower&type=date&legend=top-left)](https://www.star-history.com/#SantaVp3/Moon-Gazing-Tower&type=date&legend=top-left)
