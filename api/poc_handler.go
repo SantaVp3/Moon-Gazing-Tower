@@ -22,6 +22,56 @@ func NewPOCHandler() *POCHandler {
 	}
 }
 
+// ImportPOCsFromZip 从 ZIP 包导入 POC
+// @Summary Import POCs from ZIP file
+// @Tags pocs
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "ZIP file containing POCs"
+// @Success 200 {object} map[string]interface{}
+// @Router /api/pocs/import [post]
+func (h *POCHandler) ImportPOCsFromZip(c *gin.Context) {
+	file, err := c.FormFile("file")
+	if err != nil {
+		utils.BadRequest(c, "No file uploaded")
+		return
+	}
+
+	// 检查文件类型
+	if file.Header.Get("Content-Type") != "application/zip" &&
+		file.Header.Get("Content-Type") != "application/x-zip-compressed" &&
+		file.Header.Get("Content-Type") != "application/octet-stream" {
+		// 也检查文件扩展名
+		if len(file.Filename) < 4 || file.Filename[len(file.Filename)-4:] != ".zip" {
+			utils.BadRequest(c, "Only ZIP files are allowed")
+			return
+		}
+	}
+
+	// 打开上传的文件
+	src, err := file.Open()
+	if err != nil {
+		utils.InternalError(c, "Failed to open uploaded file")
+		return
+	}
+	defer src.Close()
+
+	// 调用 service 处理 ZIP 导入
+	result, err := h.pocService.ImportFromZip(src, file.Size)
+	if err != nil {
+		utils.InternalError(c, "Failed to import POCs: "+err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":  "POCs imported successfully",
+		"imported": result.Imported,
+		"failed":   result.Failed,
+		"skipped":  result.Skipped,
+		"errors":   result.Errors,
+	})
+}
+
 // CreatePOC godoc
 // @Summary Create a new POC
 // @Tags pocs

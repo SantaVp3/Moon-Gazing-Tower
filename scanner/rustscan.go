@@ -91,17 +91,23 @@ func (r *RustScanScanner) ScanPorts(ctx context.Context, target string, ports st
 	}
 
 	// 构建命令
-	// rustscan -a target -p ports --ulimit 5000 -b 4500 -t 3000 -g
+	// rustscan -a target -u 5000 -b 4500 -t 3000 -g [-p ports | -r range | --top]
 	args := []string{
 		"-a", target,
-		"--ulimit", fmt.Sprintf("%d", r.Ulimit),
+		"-u", fmt.Sprintf("%d", r.Ulimit),
 		"-b", fmt.Sprintf("%d", r.BatchSize),
 		"-t", fmt.Sprintf("%d", r.Timeout),
 		"-g", // greppable 输出格式
 	}
 
 	if ports != "" {
-		args = append(args, "-p", ports)
+		// 检查是否是端口范围格式 (如 "8000-10000")
+		// 端口范围只包含数字和单个横杠，且横杠不在开头或结尾
+		if isPortRange(ports) {
+			args = append(args, "-r", ports)
+		} else {
+			args = append(args, "-p", ports)
+		}
 	}
 
 	cmd := exec.CommandContext(ctx, r.BinPath, args...)
@@ -175,7 +181,7 @@ func (r *RustScanScanner) ScanRange(ctx context.Context, target string, portRang
 
 	args := []string{
 		"-a", target,
-		"--ulimit", fmt.Sprintf("%d", r.Ulimit),
+		"-u", fmt.Sprintf("%d", r.Ulimit),
 		"-b", fmt.Sprintf("%d", r.BatchSize),
 		"-t", fmt.Sprintf("%d", r.Timeout),
 		"-g",
@@ -246,7 +252,7 @@ func (r *RustScanScanner) Top1000Scan(ctx context.Context, target string) (*Scan
 
 	args := []string{
 		"-a", target,
-		"--ulimit", fmt.Sprintf("%d", r.Ulimit),
+		"-u", fmt.Sprintf("%d", r.Ulimit),
 		"-b", fmt.Sprintf("%d", r.BatchSize),
 		"-t", fmt.Sprintf("%d", r.Timeout),
 		"-g",
@@ -350,4 +356,32 @@ func guessService(port int) string {
 		return service
 	}
 	return "unknown"
+}
+
+// isPortRange 检查是否是端口范围格式 (如 "8000-10000")
+// 端口范围格式：数字-数字，只有一个横杠，横杠不在开头或结尾
+func isPortRange(ports string) bool {
+	// 必须包含横杠
+	if !strings.Contains(ports, "-") {
+		return false
+	}
+	
+	// 分割检查是否是 "数字-数字" 格式
+	parts := strings.Split(ports, "-")
+	if len(parts) != 2 {
+		return false
+	}
+	
+	// 两边都必须是纯数字
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			return false
+		}
+		if _, err := strconv.Atoi(part); err != nil {
+			return false
+		}
+	}
+	
+	return true
 }

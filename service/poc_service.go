@@ -1,8 +1,12 @@
 package service
 
 import (
+	"archive/zip"
 	"context"
 	"errors"
+	"io"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"moongazing/database"
@@ -11,12 +15,155 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"gopkg.in/yaml.v3"
 )
 
 type POCService struct{}
 
 func NewPOCService() *POCService {
 	return &POCService{}
+}
+
+// ImportResult ZIP 导入结果
+type ImportResult struct {
+	Imported int      `json:"imported"`
+	Failed   int      `json:"failed"`
+	Skipped  int      `json:"skipped"`
+	Errors   []string `json:"errors"`
+}
+
+// NucleiTemplate Nuclei 模板结构（用于解析）
+type NucleiTemplate struct {
+	ID   string `yaml:"id"`
+	Info struct {
+		Name        string   `yaml:"name"`
+		Author      string   `yaml:"author"`
+		Severity    string   `yaml:"severity"`
+		Description string   `yaml:"description"`
+		Reference   []string `yaml:"reference"`
+		Tags        string   `yaml:"tags"`
+		Classification struct {
+			CVEID []string `yaml:"cve-id"`
+		} `yaml:"classification"`
+	} `yaml:"info"`
+}
+
+// ImportFromZip 从 ZIP 文件导入 POC
+func (s *POCService) ImportFromZip(reader io.ReaderAt, size int64) (*ImportResult, error) {
+	result := &ImportResult{
+		Errors: make([]string, 0),
+	}
+
+	// 打开 ZIP 文件
+	zipReader, err := zip.NewReader(reader, size)
+	if err != nil {
+		return nil, errors.New("failed to read ZIP file: " + err.Error())
+	}
+
+	// 遍历 ZIP 中的文件
+	for _, file := range zipReader.File {
+		// 跳过目录
+		if file.FileInfo().IsDir() {
+			continue
+		}
+
+		// 只处理 YAML 文件
+		ext := strings.ToLower(filepath.Ext(file.Name))
+		if ext != ".yaml" && ext != ".yml" {
+			continue
+		}
+
+		// 跳过隐藏文件和 macOS 元数据
+		baseName := filepath.Base(file.Name)
+		if strings.HasPrefix(baseName, ".") || strings.HasPrefix(baseName, "__MACOSX") {
+			continue
+		}
+
+		// 打开文件
+		rc, err := file.Open()
+		if err != nil {
+			result.Failed++
+			result.Errors = append(result.Errors, "Failed to open "+file.Name+": "+err.Error())
+			continue
+		}
+
+		// 读取文件内容
+		content, err := io.ReadAll(rc)
+		rc.Close()
+		if err != nil {
+			result.Failed++
+			result.Errors = append(result.Errors, "Failed to read "+file.Name+": "+err.Error())
+			continue
+		}
+
+		// 解析 YAML
+		var template NucleiTemplate
+		if err := yaml.Unmarshal(content, &template); err != nil {
+			result.Failed++
+			result.Errors = append(result.Errors, "Failed to parse "+file.Name+": "+err.Error())
+			continue
+		}
+
+		// 验证必要字段
+		if template.ID == "" || template.Info.Name == "" {
+			result.Failed++
+			result.Errors = append(result.Errors, "Invalid template "+file.Name+": missing id or name")
+			continue
+		}
+
+		// 检查是否已存在（按名称去重）
+		existing, _ := s.GetByName(template.Info.Name)
+		if existing != nil {
+			result.Skipped++
+			continue
+		}
+
+		// 解析标签
+		var tags []string
+		if template.Info.Tags != "" {
+			tags = strings.Split(template.Info.Tags, ",")
+			for i := range tags {
+				tags[i] = strings.TrimSpace(tags[i])
+			}
+		}
+
+		// 创建 POC
+		poc := &models.POC{
+			Name:        template.Info.Name,
+			Description: template.Info.Description,
+			Author:      template.Info.Author,
+			Severity:    models.VulnSeverity(strings.ToLower(template.Info.Severity)),
+			Type:        "nuclei",
+			Tags:        tags,
+			Content:     string(content),
+			CVEID:       template.Info.Classification.CVEID,
+			References:  template.Info.Reference,
+			Enabled:     true,
+			Version:     "1.0",
+			Source:      "import",
+		}
+
+		if err := s.Create(poc); err != nil {
+			result.Failed++
+			result.Errors = append(result.Errors, "Failed to save "+file.Name+": "+err.Error())
+			continue
+		}
+
+		result.Imported++
+	}
+
+	return result, nil
+}
+
+// GetByName 通过名称获取 POC
+func (s *POCService) GetByName(name string) (*models.POC, error) {
+	collection := database.GetCollection("pocs")
+	var poc models.POC
+	err := collection.FindOne(context.Background(), bson.M{"name": name}).Decode(&poc)
+	if err != nil {
+		return nil, err
+	}
+	return &poc, nil
 }
 
 func (s *POCService) Create(poc *models.POC) error {
