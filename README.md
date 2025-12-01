@@ -62,12 +62,18 @@
 
 ## 快速开始
 
-### 环境要求
+### 默认账号
+- 用户名：admin
+- 密码：admin123
+
+### 手动部署
+
+#### 环境要求
 - Go 1.21+
 - MongoDB 5.0+
 - Redis 6.0+（可选，用于任务队列）
 
-### 配置
+#### 配置
 
 编辑 `config/config.yaml`：
 
@@ -90,7 +96,7 @@ jwt:
   expire: 24h
 ```
 
-### 运行
+#### 运行
 
 ```bash
 # 编译
@@ -102,9 +108,47 @@ go build -o server .
 
 访问 http://localhost:8080
 
-### 默认账号
-- 用户名：admin
-- 密码：admin123
+
+### Docker 部署
+
+1、编辑 `config/config.yaml`配置文件：
+
+- 修改 JWT 密钥
+- 将 MongoDB 和 Redis 的连接地址从`localhost`分别替换为容器名`mongo`和`redis`
+- 如果 MongoDB(`27017`) 或 Redis(`6379`) 和其它服务端口冲突，可以在`docker-compose.yml`中进行自定义，在本文件同步修改即可
+
+```yaml
+jwt:
+  secret: "moon-gazing-tower-secret-key-change-in-production"
+  
+mongodb:
+  # uri: "mongodb://localhost:27017"
+  uri: mongodb://mongo:27017  # Docker
+  database: "moongazing"
+
+redis:
+  # host: "localhost"
+  host: "redis"               # Docker
+  port: 6379
+
+```
+
+2、按需将下方扫描工具放置在`Moon-Gazing-Tower/tools/linux/`目录
+
+```shell
+$ wget https://github.com/projectdiscovery/subfinder/releases/download/v2.10.1/subfinder_2.10.1_linux_amd64.zip
+$ mv subfinder /<path>/Moon-Gazing-Tower/tools/linux/
+
+```
+
+3、准备以下`Dockerfile`和`docker-compose.yml`文件，构建并启动：
+
+```shell
+$ docker compose up -d --build
+
+```
+
+4、浏览器访问 http://localhost:5003
 
 ## 目录结构
 
