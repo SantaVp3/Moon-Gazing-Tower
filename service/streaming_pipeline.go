@@ -35,6 +35,9 @@ type PipelineConfig struct {
 
 	// 目录扫描
 	DirScan bool `json:"dir_scan"`
+
+	// 敏感信息检测
+	SensitiveScan bool `json:"sensitive_scan"`
 }
 
 // DefaultPipelineConfig 默认流水线配置
@@ -52,6 +55,7 @@ func DefaultPipelineConfig() *PipelineConfig {
 		VulnScan:              false,
 		WebCrawler:            false,
 		DirScan:               false,
+		SensitiveScan:         false,
 	}
 }
 
@@ -72,6 +76,7 @@ type StreamingPipeline struct {
 	vulnScanModule    *VulnScanModule
 	crawlerModule     *CrawlerModule
 	dirScanModule     *DirScanModule
+	sensitiveModule   *SensitiveModule
 	
 	// 状态
 	running bool
@@ -127,7 +132,7 @@ func (p *StreamingPipeline) Start(targets []string) error {
 			p.mu.Unlock()
 		}()
 
-		// 启动入口模块
+		// 启动入口模块（模块会自动链式启动下一个模块）
 		var wg sync.WaitGroup
 		wg.Add(1)
 		go func() {
@@ -163,7 +168,7 @@ func (p *StreamingPipeline) Start(targets []string) error {
 }
 
 // buildModuleChain 构建模块链
-// 链式结构: SubdomainScan -> SubdomainSecurity -> PortScanPreparation -> PortScan -> Fingerprint -> VulnScan -> Crawler -> DirScan -> ResultCollector
+// 链式结构: SubdomainScan -> SubdomainSecurity -> PortScanPreparation -> PortScan -> Fingerprint -> VulnScan -> Crawler -> DirScan -> Sensitive -> ResultCollector
 func (p *StreamingPipeline) buildModuleChain() error {
 	var lastModule ModuleRunner
 
@@ -173,6 +178,13 @@ func (p *StreamingPipeline) buildModuleChain() error {
 	resultCollector := NewResultCollectorModule(p.ctx, p.resultChan)
 	resultCollector.SetInput(make(chan interface{}, 500))
 	lastModule = resultCollector
+
+	// 敏感信息检测模块
+	if p.config.SensitiveScan {
+		p.sensitiveModule = NewSensitiveModule(p.ctx, lastModule, 10)
+		p.sensitiveModule.SetInput(make(chan interface{}, 500))
+		lastModule = p.sensitiveModule
+	}
 
 	// 目录扫描模块
 	if p.config.DirScan {
@@ -308,7 +320,6 @@ func (m *ResultCollectorModule) ModuleRun() error {
 			case <-m.ctx.Done():
 				return nil
 			case m.outputChan <- data:
-				log.Printf("[%s] Collected result: %T", m.name, data)
 			}
 		}
 	}

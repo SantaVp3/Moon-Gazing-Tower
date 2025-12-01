@@ -57,29 +57,6 @@ func (h *ResultHandler) GetTaskResultStats(c *gin.Context) {
 	utils.Success(c, stats)
 }
 
-// GetDomainResults 获取根域名结果
-func (h *ResultHandler) GetDomainResults(c *gin.Context) {
-	taskID := c.Param("id")
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("size", "20"))
-	search := c.Query("search")
-
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 20
-	}
-
-	results, total, err := h.resultService.GetDomainResults(taskID, page, pageSize, search)
-	if err != nil {
-		utils.Error(c, 500, "获取结果失败: "+err.Error())
-		return
-	}
-
-	utils.SuccessWithPagination(c, results, total, page, pageSize)
-}
-
 // GetSubdomainResults 获取子域名结果
 func (h *ResultHandler) GetSubdomainResults(c *gin.Context) {
 	taskID := c.Param("id")

@@ -142,6 +142,9 @@ func (m *CrawlerModule) ModuleRun() error {
 				continue
 			}
 
+			// 先传递 AssetHttp 结果（确保 Web 服务数据被收集）
+			m.resultChan <- asset
+
 			// 只处理有效的HTTP资产
 			if asset.URL == "" {
 				continue
@@ -194,10 +197,11 @@ func (m *CrawlerModule) crawlWithKatana(target string, asset AssetHttp) {
 
 	for _, url := range result.URLs {
 		urlResult := UrlResult{
-			Input:  target,
-			Output: url.URL,
-			Source: "katana",
-			Method: url.Method,
+			Input:      target,
+			Output:     url.URL,
+			Source:     "katana",
+			Method:     url.Method,
+			StatusCode: url.StatusCode,
 		}
 
 		select {

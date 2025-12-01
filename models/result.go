@@ -7,11 +7,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// ResultType 扫描结果类型
+	// ResultType 扫描结果类型
 type ResultType string
 
 const (
-	ResultTypeDomain     ResultType = "domain"      // 根域名
 	ResultTypeSubdomain  ResultType = "subdomain"   // 子域名
 	ResultTypeTakeover   ResultType = "takeover"    // 子域名接管
 	ResultTypeApp        ResultType = "app"         // APP
@@ -38,36 +37,6 @@ type ScanResult struct {
 	Source      string             `json:"source" bson:"source"` // 来源：主动扫描/被动发现
 	CreatedAt   time.Time          `json:"created_at" bson:"created_at"`
 	UpdatedAt   time.Time          `json:"updated_at" bson:"updated_at"`
-}
-
-// DomainResult 根域名结果
-type DomainResult struct {
-	Domain      string    `json:"domain" bson:"domain"`
-	ICP         string    `json:"icp" bson:"icp"`           // ICP备案号
-	Company     string    `json:"company" bson:"company"`   // 公司名称
-	ICPType     string    `json:"icp_type" bson:"icp_type"` // 备案类型
-	Province    string    `json:"province" bson:"province"` // 省份
-	Registrar   string    `json:"registrar" bson:"registrar"` // 注册商
-	WhoisInfo   *WhoisInfo `json:"whois_info,omitempty" bson:"whois_info,omitempty"`
-	DNSRecords  []DNSRecord `json:"dns_records,omitempty" bson:"dns_records,omitempty"`
-}
-
-// WhoisInfo Whois信息
-type WhoisInfo struct {
-	Registrant    string    `json:"registrant" bson:"registrant"`
-	Email         string    `json:"email" bson:"email"`
-	NameServers   []string  `json:"name_servers" bson:"name_servers"`
-	CreatedDate   time.Time `json:"created_date" bson:"created_date"`
-	ExpiresDate   time.Time `json:"expires_date" bson:"expires_date"`
-	UpdatedDate   time.Time `json:"updated_date" bson:"updated_date"`
-}
-
-// DNSRecord DNS记录
-type DNSRecord struct {
-	Type  string `json:"type" bson:"type"`   // A, AAAA, CNAME, MX, TXT, NS
-	Name  string `json:"name" bson:"name"`
-	Value string `json:"value" bson:"value"`
-	TTL   int    `json:"ttl" bson:"ttl"`
 }
 
 // SubdomainResult 子域名结果

@@ -21,7 +21,6 @@ func (e *TaskExecutor) executeFingerprintScan(task *models.Task) {
 		return
 	}
 
-	e.createRootDomainRecords(task)
 
 	results := make([]models.ScanResult, 0)
 	fpScanner := scanner.NewFingerprintScanner(20)
@@ -67,7 +66,6 @@ func (e *TaskExecutor) executeVulnScan(task *models.Task) {
 		return
 	}
 
-	e.createRootDomainRecords(task)
 
 	results := make([]models.ScanResult, 0)
 	vulnScanner := scanner.NewVulnScanner(10)
@@ -115,7 +113,6 @@ func (e *TaskExecutor) executeContentScan(task *models.Task) {
 		return
 	}
 
-	e.createRootDomainRecords(task)
 
 	results := make([]models.ScanResult, 0)
 	contentScanner := scanner.NewContentScanner(20)
@@ -208,7 +205,6 @@ func (e *TaskExecutor) executeCrawlerScan(task *models.Task) {
 		return
 	}
 
-	e.createRootDomainRecords(task)
 
 	results := make([]models.ScanResult, 0)
 	

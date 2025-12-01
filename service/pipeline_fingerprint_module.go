@@ -106,9 +106,11 @@ func (m *FingerprintModule) ModuleRun() error {
 				continue
 			}
 
+			// 先传递端口结果（确保端口数据被收集）
+			m.resultChan <- portAlive
+
 			// 跳过空端口（仅域名记录）
 			if portAlive.Port == "" {
-				m.resultChan <- portAlive
 				continue
 			}
 

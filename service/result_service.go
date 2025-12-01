@@ -57,10 +57,6 @@ func (s *ResultService) CreateResultWithDedup(result *models.ScanResult) error {
 		if subdomain, ok := result.Data["subdomain"].(string); ok && subdomain != "" {
 			filter["data.subdomain"] = subdomain
 		}
-	case models.ResultTypeDomain:
-		if domain, ok := result.Data["domain"].(string); ok && domain != "" {
-			filter["data.domain"] = domain
-		}
 	case models.ResultTypePort:
 		if ip, ok := result.Data["ip"].(string); ok && ip != "" {
 			filter["data.ip"] = ip
@@ -371,72 +367,6 @@ func (s *ResultService) BatchDeleteResults(ids []string) error {
 
 	_, err := s.collection.DeleteMany(ctx, bson.M{"_id": bson.M{"$in": objIDs}})
 	return err
-}
-
-// GetDomainResults 获取根域名结果 (带解析)
-func (s *ResultService) GetDomainResults(taskID string, page, pageSize int, search string) ([]map[string]interface{}, int64, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	objID, err := primitive.ObjectIDFromHex(taskID)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	filter := bson.M{
-		"task_id": objID,
-		"type":    models.ResultTypeDomain,
-	}
-	if search != "" {
-		filter["$or"] = []bson.M{
-			{"data.domain": bson.M{"$regex": search, "$options": "i"}},
-			{"data.company": bson.M{"$regex": search, "$options": "i"}},
-			{"data.icp": bson.M{"$regex": search, "$options": "i"}},
-		}
-	}
-
-	total, err := s.collection.CountDocuments(ctx, filter)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	skip := int64((page - 1) * pageSize)
-	opts := options.Find().
-		SetSkip(skip).
-		SetLimit(int64(pageSize)).
-		SetSort(bson.D{{Key: "created_at", Value: -1}})
-
-	cursor, err := s.collection.Find(ctx, filter, opts)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer cursor.Close(ctx)
-
-	var results []map[string]interface{}
-	for cursor.Next(ctx) {
-		var result models.ScanResult
-		if err := cursor.Decode(&result); err != nil {
-			continue
-		}
-
-		item := map[string]interface{}{
-			"id":         result.ID.Hex(),
-			"task_id":    result.TaskID.Hex(),
-			"type":       result.Type,
-			"tags":       result.Tags,
-			"project":    result.Project,
-			"created_at": result.CreatedAt,
-		}
-
-		// 解析 data 字段 (Data 已经是 bson.M 类型)
-		for k, v := range result.Data {
-			item[k] = v
-		}
-
-		results = append(results, item)
-	}
-
-	return results, total, nil
 }
 
 // GetSubdomainResults 获取子域名结果 (带解析)

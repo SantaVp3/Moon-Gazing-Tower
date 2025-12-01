@@ -77,11 +77,27 @@ type AssetHttp struct {
 // UrlResult URL扫描结果
 // 由URL扫描模块输出
 type UrlResult struct {
-	Input    string `json:"input"`     // 输入URL
-	Output   string `json:"output"`    // 发现的URL
-	Source   string `json:"source"`    // 来源: katana, wayback, rad
-	Method   string `json:"method"`    // HTTP方法
-	ResultId string `json:"result_id"` // 结果ID (用于去重)
+	Input       string `json:"input"`        // 输入URL
+	Output      string `json:"output"`       // 发现的URL
+	Source      string `json:"source"`       // 来源: katana, wayback, rad
+	Method      string `json:"method"`       // HTTP方法
+	StatusCode  int    `json:"status_code"`  // HTTP状态码
+	ContentType string `json:"content_type"` // 内容类型
+	Length      int64  `json:"length"`       // 响应长度
+	ResultId    string `json:"result_id"`    // 结果ID (用于去重)
+}
+
+// SensitiveInfoResult 敏感信息检测结果
+type SensitiveInfoResult struct {
+	Target     string                  `json:"target"`     // 目标URL
+	URL        string                  `json:"url"`        // 发现位置
+	Type       string                  `json:"type"`       // 敏感信息类型: api_key, password, token, email, phone, id_card, etc
+	Pattern    string                  `json:"pattern"`    // 匹配的模式名称
+	Matches    []string                `json:"matches"`    // 匹配到的内容
+	Location   string                  `json:"location"`   // 位置: body, header, js, url
+	Severity   string                  `json:"severity"`   // 严重程度: critical, high, medium, low, info
+	Confidence int                     `json:"confidence"` // 置信度 0-100
+	Source     string                  `json:"source"`     // 来源
 }
 
 // SubTakeResult 子域名接管检测结果

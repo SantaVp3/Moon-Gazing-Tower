@@ -97,8 +97,6 @@ func (m *PortScanPreparationModule) ModuleRun() error {
 				continue
 			}
 
-			log.Printf("[%s] Received domain for CDN check: %s", m.name, domainResolve.Domain)
-
 			allWg.Add(1)
 			go func(dr DomainResolve) {
 				defer allWg.Done()

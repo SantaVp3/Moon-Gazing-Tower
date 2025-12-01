@@ -295,7 +295,6 @@ func (m *SubdomainSecurityModule) ModuleRun() error {
 				continue
 			}
 
-			log.Printf("[%s] Received subdomain for security check: %s", m.name, subResult.Domain)
 			allWg.Add(1)
 			go func(sr SubdomainResult) {
 				defer allWg.Done()
@@ -307,6 +306,13 @@ func (m *SubdomainSecurityModule) ModuleRun() error {
 
 // checkSubdomain 检查子域名安全
 func (m *SubdomainSecurityModule) checkSubdomain(sr SubdomainResult) {
+	// 【重要】先传递原始的 SubdomainResult，确保它被收集到
+	select {
+	case <-m.ctx.Done():
+		return
+	case m.resultChan <- sr:
+	}
+
 	// 解析 DNS 获取更多信息
 	ctx, cancel := context.WithTimeout(m.ctx, 30*time.Second)
 	defer cancel()

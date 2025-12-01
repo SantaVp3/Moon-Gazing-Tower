@@ -109,6 +109,7 @@ func (k *KatanaScanner) Crawl(ctx context.Context, target string) (*KatanaResult
 		"-timeout", fmt.Sprintf("%d", k.Timeout),
 		"-rl", fmt.Sprintf("%d", k.RateLimit),
 		"-silent",
+		"-jsonl", // 使用 JSON Lines 格式输出，包含状态码等信息
 		"-o", outputPath,
 	}
 

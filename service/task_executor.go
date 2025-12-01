@@ -74,6 +74,29 @@ func (e *TaskExecutor) worker(id int, taskType string) {
 	workerID := fmt.Sprintf("worker-%d-%s", id, taskType)
 	log.Printf("[%s] Worker started, listening for %s tasks", workerID, taskType)
 
+	// 仅在第一个 full worker 上定期打印队列状态
+	if id == 0 && taskType == "full" {
+		go func() {
+			ticker := time.NewTicker(10 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-e.stopCh:
+					return
+				case <-ticker.C:
+					ctx := context.Background()
+					rdb := database.GetRedis()
+					queueLen, err := rdb.LLen(ctx, "task:queue:full").Result()
+					if err != nil {
+						log.Printf("[TaskExecutor] Redis LLen error: %v", err)
+					} else {
+						log.Printf("[TaskExecutor] Queue task:queue:full length: %d", queueLen)
+					}
+				}
+			}
+		}()
+	}
+
 	for {
 		select {
 		case <-e.stopCh:
@@ -106,21 +129,35 @@ func (e *TaskExecutor) dequeueRunningTask(taskType string) (*models.Task, error)
 	rdb := database.GetRedis()
 
 	queueKey := "task:queue:" + taskType
+	
+	// 检查队列长度
+	queueLen, _ := rdb.LLen(ctx, queueKey).Result()
+	if queueLen > 0 {
+		log.Printf("[TaskExecutor] Queue %s has %d tasks", queueKey, queueLen)
+	}
+	
 	result, err := rdb.LPop(ctx, queueKey).Result()
 	if err == redis.Nil {
 		return nil, nil
 	}
 	if err != nil {
+		log.Printf("[TaskExecutor] LPop error for %s: %v", queueKey, err)
 		return nil, err
 	}
+
+	log.Printf("[TaskExecutor] Dequeued task ID: %s from %s", result, queueKey)
 
 	task, err := e.taskService.GetTaskByID(result)
 	if err != nil {
+		log.Printf("[TaskExecutor] Failed to get task %s: %v", result, err)
 		return nil, err
 	}
 
+	log.Printf("[TaskExecutor] Task %s status: %s", task.ID.Hex(), task.Status)
+
 	// 接受 Pending 或 Running 状态的任务
 	if task.Status != models.TaskStatusRunning && task.Status != models.TaskStatusPending {
+		log.Printf("[TaskExecutor] Task %s skipped, status: %s", task.ID.Hex(), task.Status)
 		return nil, nil
 	}
 
@@ -161,6 +198,7 @@ func (e *TaskExecutor) processTask(task *models.Task) {
 			VulnScan:               true,
 			WebCrawler:             true,
 			DirScan:                false,
+			SensitiveScan:          true,
 		})
 
 	case models.TaskTypeSubdomain:
@@ -265,10 +303,11 @@ func (e *TaskExecutor) executeStreamingPipeline(task *models.Task, config *Pipel
 			scanResult = &models.ScanResult{
 				TaskID:      task.ID,
 				WorkspaceID: task.WorkspaceID,
-				Type:        models.ResultTypeDomain,
+				Type:        models.ResultTypeSubdomain, // 修复：子域名应该用 Subdomain 类型
 				Source:      r.Source,
 				Data: bson.M{
-					"domain":      r.Domain,
+					"subdomain":   r.Domain,      // 子域名完整名称
+					"domain":      r.RootDomain,  // 根域名
 					"root_domain": r.RootDomain,
 					"ips":         r.IPs,
 					"cnames":      r.CNAMEs,
@@ -337,16 +376,48 @@ func (e *TaskExecutor) executeStreamingPipeline(task *models.Task, config *Pipel
 
 		case UrlResult:
 			urlCount++
+			// 根据 Source 区分结果类型
+			var resultType models.ResultType
+			switch r.Source {
+			case "dirscan":
+				resultType = models.ResultTypeDirScan
+			case "katana", "rad":
+				resultType = models.ResultTypeCrawler
+			default:
+				resultType = models.ResultTypeURL
+			}
 			scanResult = &models.ScanResult{
 				TaskID:      task.ID,
 				WorkspaceID: task.WorkspaceID,
-				Type:        models.ResultTypeURL,
+				Type:        resultType,
 				Source:      r.Source,
 				Data: bson.M{
-					"url":    r.Output,
-					"input":  r.Input,
-					"method": r.Method,
-					"source": r.Source,
+					"url":          r.Output,
+					"input":        r.Input,
+					"method":       r.Method,
+					"source":       r.Source,
+					"status_code":  r.StatusCode,
+					"content_type": r.ContentType,
+					"length":       r.Length,
+				},
+				CreatedAt: time.Now(),
+			}
+
+		case SensitiveInfoResult:
+			scanResult = &models.ScanResult{
+				TaskID:      task.ID,
+				WorkspaceID: task.WorkspaceID,
+				Type:        models.ResultTypeSensitive,
+				Source:      r.Source,
+				Data: bson.M{
+					"target":     r.Target,
+					"url":        r.URL,
+					"type":       r.Type,
+					"pattern":    r.Pattern,
+					"matches":    r.Matches,
+					"location":   r.Location,
+					"severity":   r.Severity,
+					"confidence": r.Confidence,
 				},
 				CreatedAt: time.Now(),
 			}
@@ -376,31 +447,6 @@ func (e *TaskExecutor) updateProgress(task *models.Task, progress int) {
 	e.taskService.UpdateTask(task.ID.Hex(), map[string]interface{}{
 		"progress": progress,
 	})
-}
-
-// createRootDomainRecords 为目标创建根域名记录（如果不是IP地址）
-func (e *TaskExecutor) createRootDomainRecords(task *models.Task) {
-	domainResults := make([]models.ScanResult, 0)
-	for _, target := range task.Targets {
-		if !isIPAddress(target) {
-			domainResult := models.ScanResult{
-				TaskID:      task.ID,
-				WorkspaceID: task.WorkspaceID,
-				Type:        models.ResultTypeDomain,
-				Source:      "user_input",
-				Data: bson.M{
-					"domain":      target,
-					"root_domain": target,
-				},
-				CreatedAt: time.Now(),
-			}
-			domainResults = append(domainResults, domainResult)
-		}
-	}
-	if len(domainResults) > 0 {
-		e.saveResults(task, domainResults)
-		log.Printf("[TaskExecutor] Created %d root domain records", len(domainResults))
-	}
 }
 
 // saveResults 保存扫描结果

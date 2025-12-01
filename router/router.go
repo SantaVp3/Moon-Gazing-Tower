@@ -111,7 +111,6 @@ func SetupRouter() *gin.Engine {
 				// Task Results routes
 				taskGroup.GET("/:id/results", resultHandler.GetTaskResults)
 				taskGroup.GET("/:id/results/stats", resultHandler.GetTaskResultStats)
-				taskGroup.GET("/:id/results/domains", resultHandler.GetDomainResults)
 				taskGroup.GET("/:id/results/subdomains", resultHandler.GetSubdomainResults)
 				taskGroup.GET("/:id/results/export", resultHandler.ExportResults)
 			}

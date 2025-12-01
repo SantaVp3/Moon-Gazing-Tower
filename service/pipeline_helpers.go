@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"moongazing/models"
-	"moongazing/scanner"
 	"moongazing/service/notify"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -137,36 +136,6 @@ func (p *ScanPipeline) failTask(errMsg string) {
 		"targets": p.task.Targets,
 	}
 	notify.GetGlobalManager().NotifyTaskComplete(p.task.Name, p.task.ID.Hex(), false, summary, stats)
-}
-
-// saveRootDomainResult 保存根域名结果
-func (p *ScanPipeline) saveRootDomainResult(domain string) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	// 提取根域名
-	rootDomain := scanner.ExtractRootDomain(domain)
-	if rootDomain == "" {
-		rootDomain = domain
-	}
-
-	result := models.ScanResult{
-		TaskID:      p.task.ID,
-		WorkspaceID: p.task.WorkspaceID,
-		Type:        models.ResultTypeDomain,
-		Source:      "pipeline",
-		Project:     p.task.Name,
-		Data: bson.M{
-			"domain":  rootDomain,
-			"icp":     "",
-			"company": "",
-		},
-		CreatedAt: time.Now(),
-	}
-
-	p.resultService.CreateResultWithDedup(&result)
-	p.totalResults++
-	log.Printf("[Pipeline] Saved root domain: %s", rootDomain)
 }
 
 // 辅助函数

@@ -119,8 +119,6 @@ func (m *PortScanModule) ModuleRun() error {
 				return nil
 			}
 
-			log.Printf("[%s] Received input data: %T, value: %+v", m.name, data, data)
-
 			// 处理不同类型的输入
 			var domainSkip DomainSkip
 			switch v := data.(type) {

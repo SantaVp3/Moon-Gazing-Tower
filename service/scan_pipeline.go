@@ -153,13 +153,6 @@ func (p *ScanPipeline) Run() error {
 	// 1. 目标解析
 	p.updateProgress(currentStep, totalSteps, "解析目标...")
 	targets := p.parseTargets()
-
-	// 保存根域名到数据库
-	for _, target := range targets {
-		if !isIPAddress(target) {
-			p.saveRootDomainResult(target)
-		}
-	}
 	currentStep++
 
 	// 2. 子域名扫描

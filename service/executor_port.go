@@ -22,7 +22,6 @@ func (e *TaskExecutor) executePortScan(task *models.Task) {
 	}
 
 	// 首先为每个非IP目标创建根域名记录
-	e.createRootDomainRecords(task)
 
 	results := make([]models.ScanResult, 0)
 	
