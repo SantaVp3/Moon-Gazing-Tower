@@ -196,6 +196,13 @@ func (p *ScanPipeline) Run() error {
 	// 1. 目标解析
 	p.updateProgress(currentStep, totalSteps, "解析目标...")
 	targets := p.parseTargets()
+	
+	// 保存根域名到数据库
+	for _, target := range targets {
+		if !isIPAddress(target) {
+			p.saveRootDomainResult(target)
+		}
+	}
 	currentStep++
 	
 	// 2. 子域名扫描
@@ -929,6 +936,36 @@ func (p *ScanPipeline) saveEnrichedSubdomainResult(subInfo SubdomainInfo, domain
 	
 	p.resultService.CreateResultWithDedup(&result)
 	p.totalResults++
+}
+
+// saveRootDomainResult 保存根域名结果
+func (p *ScanPipeline) saveRootDomainResult(domain string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	
+	// 提取根域名
+	rootDomain := scanner.ExtractRootDomain(domain)
+	if rootDomain == "" {
+		rootDomain = domain
+	}
+	
+	result := models.ScanResult{
+		TaskID:      p.task.ID,
+		WorkspaceID: p.task.WorkspaceID,
+		Type:        models.ResultTypeDomain,
+		Source:      "pipeline",
+		Project:     p.task.Name,
+		Data: bson.M{
+			"domain":  rootDomain,
+			"icp":     "",
+			"company": "",
+		},
+		CreatedAt: time.Now(),
+	}
+	
+	p.resultService.CreateResultWithDedup(&result)
+	p.totalResults++
+	log.Printf("[Pipeline] Saved root domain: %s", rootDomain)
 }
 
 func (p *ScanPipeline) savePortResult(port scanner.PortResult, host string) {

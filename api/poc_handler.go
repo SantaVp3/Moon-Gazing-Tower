@@ -64,11 +64,14 @@ func (h *POCHandler) ImportPOCsFromZip(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":  "POCs imported successfully",
-		"imported": result.Imported,
-		"failed":   result.Failed,
-		"skipped":  result.Skipped,
-		"errors":   result.Errors,
+		"code":    0,
+		"message": "POCs imported successfully",
+		"data": gin.H{
+			"imported": result.Imported,
+			"failed":   result.Failed,
+			"skipped":  result.Skipped,
+			"errors":   result.Errors,
+		},
 	})
 }
 
@@ -202,7 +205,15 @@ func (h *POCHandler) ListPOCs(c *gin.Context) {
 		return
 	}
 	
-	c.JSON(http.StatusOK, result)
+	// Return in standard paginated format
+	c.JSON(http.StatusOK, gin.H{
+		"code":    0,
+		"message": "success",
+		"data":    result.POCs,
+		"total":   result.Total,
+		"page":    params.Page,
+		"size":    params.PageSize,
+	})
 }
 
 // TogglePOCEnabled godoc

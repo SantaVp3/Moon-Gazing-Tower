@@ -11,12 +11,12 @@ jwt:
   issuer: "moon-gazing-tower"
 
 mongodb:
-  uri: "mongodb://localhost:27017"
+  uri: ""
   database: "moongazing"
   timeout: 10
 
 redis:
-  host: "localhost"
+  host: ""
   port: 34535
   password: ""
   db: 0
