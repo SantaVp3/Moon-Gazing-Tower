@@ -1,0 +1,52 @@
+services:
+  app:
+    image: moon-app
+    container_name: moongazing_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5003:8080"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./config:/app/config:ro
+      - ./tools:/app/tools:ro
+      - ./web:/app/web:ro
+    environment:
+      - CONFIG_PATH=/app/config/config.yaml
+    command: ["/app/server"]
+
+  mongo:
+    image: mongo:5.0
+    container_name: moongazing_mongo
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_DATABASE=moongazing
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:6-alpine
+    container_name: moongazing_redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+
+volumes:
+  mongo_data:
+  redis_data:
