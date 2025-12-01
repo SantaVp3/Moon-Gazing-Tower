@@ -39,6 +39,83 @@ func (s *ResultService) CreateResult(result *models.ScanResult) error {
 	return nil
 }
 
+// CreateResultWithDedup 创建扫描结果（带去重）
+// 根据 type 和 data 中的关键字段进行去重
+func (s *ResultService) CreateResultWithDedup(result *models.ScanResult) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// 构建去重过滤条件
+	filter := bson.M{
+		"task_id": result.TaskID,
+		"type":    result.Type,
+	}
+
+	// 根据不同类型添加特定的去重字段
+	switch result.Type {
+	case models.ResultTypeSubdomain:
+		if subdomain, ok := result.Data["subdomain"].(string); ok && subdomain != "" {
+			filter["data.subdomain"] = subdomain
+		}
+	case models.ResultTypeDomain:
+		if domain, ok := result.Data["domain"].(string); ok && domain != "" {
+			filter["data.domain"] = domain
+		}
+	case models.ResultTypePort:
+		if ip, ok := result.Data["ip"].(string); ok && ip != "" {
+			filter["data.ip"] = ip
+		}
+		if port, ok := result.Data["port"]; ok {
+			filter["data.port"] = port
+		}
+	case models.ResultTypeURL, models.ResultTypeCrawler:
+		if url, ok := result.Data["url"].(string); ok && url != "" {
+			filter["data.url"] = url
+		}
+	case models.ResultTypeDirScan:
+		if url, ok := result.Data["url"].(string); ok && url != "" {
+			filter["data.url"] = url
+		}
+	case models.ResultTypeVuln:
+		if vulnID, ok := result.Data["vuln_id"].(string); ok && vulnID != "" {
+			filter["data.vuln_id"] = vulnID
+		}
+		if target, ok := result.Data["target"].(string); ok && target != "" {
+			filter["data.target"] = target
+		}
+	case models.ResultTypeSensitive:
+		if url, ok := result.Data["url"].(string); ok && url != "" {
+			filter["data.url"] = url
+		}
+		if matchType, ok := result.Data["type"].(string); ok && matchType != "" {
+			filter["data.type"] = matchType
+		}
+	}
+
+	// 使用 Upsert：存在则更新，不存在则插入
+	result.UpdatedAt = time.Now()
+	
+	update := bson.M{
+		"$set": bson.M{
+			"data":       result.Data,
+			"source":     result.Source,
+			"tags":       result.Tags,
+			"project":    result.Project,
+			"updated_at": result.UpdatedAt,
+		},
+		"$setOnInsert": bson.M{
+			"task_id":      result.TaskID,
+			"workspace_id": result.WorkspaceID,
+			"type":         result.Type,
+			"created_at":   time.Now(),
+		},
+	}
+
+	opts := options.Update().SetUpsert(true)
+	_, err := s.collection.UpdateOne(ctx, filter, update, opts)
+	return err
+}
+
 // BatchCreateResults 批量创建扫描结果
 func (s *ResultService) BatchCreateResults(results []models.ScanResult) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -54,6 +131,23 @@ func (s *ResultService) BatchCreateResults(results []models.ScanResult) error {
 
 	_, err := s.collection.InsertMany(ctx, docs)
 	return err
+}
+
+// BatchCreateResultsWithDedup 批量创建扫描结果（带去重）
+func (s *ResultService) BatchCreateResultsWithDedup(results []models.ScanResult) (int, int, error) {
+	inserted := 0
+	skipped := 0
+	
+	for i := range results {
+		err := s.CreateResultWithDedup(&results[i])
+		if err != nil {
+			skipped++
+		} else {
+			inserted++
+		}
+	}
+	
+	return inserted, skipped, nil
 }
 
 // GetResultsByTask 获取任务的扫描结果

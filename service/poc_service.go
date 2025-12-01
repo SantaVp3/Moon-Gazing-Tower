@@ -111,9 +111,14 @@ func (s *POCService) ImportFromZip(reader io.ReaderAt, size int64) (*ImportResul
 			continue
 		}
 
-		// 检查是否已存在（按名称去重）
-		existing, _ := s.GetByName(template.Info.Name)
-		if existing != nil {
+		// 检查是否已存在（按 template ID 或名称去重）
+		existingByID, _ := s.GetByTemplateID(template.ID)
+		if existingByID != nil {
+			result.Skipped++
+			continue
+		}
+		existingByName, _ := s.GetByName(template.Info.Name)
+		if existingByName != nil {
 			result.Skipped++
 			continue
 		}
@@ -130,6 +135,7 @@ func (s *POCService) ImportFromZip(reader io.ReaderAt, size int64) (*ImportResul
 		// 创建 POC
 		poc := &models.POC{
 			Name:        template.Info.Name,
+			TemplateID:  template.ID,
 			Description: template.Info.Description,
 			Author:      template.Info.Author,
 			Severity:    models.VulnSeverity(strings.ToLower(template.Info.Severity)),
@@ -160,6 +166,17 @@ func (s *POCService) GetByName(name string) (*models.POC, error) {
 	collection := database.GetCollection("pocs")
 	var poc models.POC
 	err := collection.FindOne(context.Background(), bson.M{"name": name}).Decode(&poc)
+	if err != nil {
+		return nil, err
+	}
+	return &poc, nil
+}
+
+// GetByTemplateID 通过 Nuclei 模板 ID 获取 POC
+func (s *POCService) GetByTemplateID(templateID string) (*models.POC, error) {
+	collection := database.GetCollection("pocs")
+	var poc models.POC
+	err := collection.FindOne(context.Background(), bson.M{"template_id": templateID}).Decode(&poc)
 	if err != nil {
 		return nil, err
 	}

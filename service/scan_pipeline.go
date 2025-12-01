@@ -866,7 +866,7 @@ func (p *ScanPipeline) saveSubdomainResult(sub scanner.SubdomainResult, domain s
 		CreatedAt: time.Now(),
 	}
 	
-	p.resultService.CreateResult(&result)
+	p.resultService.CreateResultWithDedup(&result)
 	p.totalResults++
 }
 
@@ -889,7 +889,7 @@ func (p *ScanPipeline) saveUnverifiedSubdomainResult(subdomain, domain string) {
 		CreatedAt: time.Now(),
 	}
 	
-	p.resultService.CreateResult(&result)
+	p.resultService.CreateResultWithDedup(&result)
 	p.totalResults++
 }
 
@@ -927,7 +927,7 @@ func (p *ScanPipeline) saveEnrichedSubdomainResult(subInfo SubdomainInfo, domain
 		CreatedAt: time.Now(),
 	}
 	
-	p.resultService.CreateResult(&result)
+	p.resultService.CreateResultWithDedup(&result)
 	p.totalResults++
 }
 
@@ -941,6 +941,7 @@ func (p *ScanPipeline) savePortResult(port scanner.PortResult, host string) {
 		Type:        models.ResultTypePort,
 		Source:      "pipeline",
 		Data: bson.M{
+			"ip":      host,
 			"host":    host,
 			"port":    port.Port,
 			"service": port.Service,
@@ -951,7 +952,7 @@ func (p *ScanPipeline) savePortResult(port scanner.PortResult, host string) {
 		CreatedAt: time.Now(),
 	}
 	
-	p.resultService.CreateResult(&result)
+	p.resultService.CreateResultWithDedup(&result)
 	p.totalResults++
 }
 
@@ -974,7 +975,7 @@ func (p *ScanPipeline) saveFingerprintResult(fp scanner.Fingerprint, target stri
 		CreatedAt: time.Now(),
 	}
 	
-	p.resultService.CreateResult(&result)
+	p.resultService.CreateResultWithDedup(&result)
 	p.totalResults++
 }
 
@@ -996,7 +997,7 @@ func (p *ScanPipeline) saveURLResult(url scanner.KatanaCrawledURL, source string
 		CreatedAt: time.Now(),
 	}
 	
-	p.resultService.CreateResult(&result)
+	p.resultService.CreateResultWithDedup(&result)
 	p.totalResults++
 }
 
@@ -1020,7 +1021,7 @@ func (p *ScanPipeline) saveDirScanResult(entry scanner.DirEntry, target string) 
 		CreatedAt: time.Now(),
 	}
 	
-	p.resultService.CreateResult(&result)
+	p.resultService.CreateResultWithDedup(&result)
 	p.totalResults++
 }
 
@@ -1045,7 +1046,7 @@ func (p *ScanPipeline) saveVulnResult(vuln scanner.VulnResult, target string) {
 		CreatedAt: time.Now(),
 	}
 	
-	p.resultService.CreateResult(&result)
+	p.resultService.CreateResultWithDedup(&result)
 	p.totalResults++
 }
 
