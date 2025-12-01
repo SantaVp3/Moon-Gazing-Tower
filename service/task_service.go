@@ -244,7 +244,7 @@ func (s *TaskService) CancelTask(taskID string) error {
 	})
 }
 
-// RetryTask retries a failed or cancelled task
+// RetryTask retries a failed or cancelled task (继续从断点处扫描)
 func (s *TaskService) RetryTask(taskID string) error {
 	task, err := s.GetTaskByID(taskID)
 	if err != nil {
@@ -255,11 +255,57 @@ func (s *TaskService) RetryTask(taskID string) error {
 		return errors.New("只能重试失败或已取消的任务")
 	}
 	
+	// 保留已有的扫描进度，从断点继续
 	err = s.UpdateTask(taskID, map[string]interface{}{
 		"status":      models.TaskStatusPending,
 		"retry_count": task.RetryCount + 1,
 		"last_error":  "",
+		// 不重置 progress 和 result_stats，保留已有进度
 	})
+	if err != nil {
+		return err
+	}
+	
+	// Re-enqueue task
+	task.Status = models.TaskStatusPending
+	s.enqueueTask(task)
+	
+	return nil
+}
+
+// RescanTask 重新扫描已完成的任务（从头开始或继续未完成部分）
+func (s *TaskService) RescanTask(taskID string, fromScratch bool) error {
+	task, err := s.GetTaskByID(taskID)
+	if err != nil {
+		return err
+	}
+	
+	if task.Status != models.TaskStatusCompleted && task.Status != models.TaskStatusFailed && task.Status != models.TaskStatusCancelled {
+		return errors.New("只能重新扫描已完成、失败或已取消的任务")
+	}
+	
+	updates := map[string]interface{}{
+		"status":      models.TaskStatusPending,
+		"retry_count": task.RetryCount + 1,
+		"last_error":  "",
+	}
+	
+	if fromScratch {
+		// 从头开始扫描，重置所有进度
+		updates["progress"] = 0
+		updates["result_stats"] = models.TaskResultStats{
+			TotalTargets:     len(task.Targets),
+			ScannedTargets:   0,
+			DiscoveredAssets: 0,
+			DiscoveredVulns:  0,
+			DiscoveredPorts:  0,
+			LastScannedIndex: 0,
+			CompletedStages:  []string{},
+		}
+	}
+	// 如果不是从头开始，保留已有的进度信息，从断点继续
+	
+	err = s.UpdateTask(taskID, updates)
 	if err != nil {
 		return err
 	}

@@ -8,13 +8,14 @@ import (
 )
 
 type Config struct {
-	Server  ServerConfig  `mapstructure:"server"`
-	JWT     JWTConfig     `mapstructure:"jwt"`
-	MongoDB MongoDBConfig `mapstructure:"mongodb"`
-	Redis   RedisConfig   `mapstructure:"redis"`
-	Scanner ScannerConfig `mapstructure:"scanner"`
-	Log     LogConfig     `mapstructure:"log"`
-	Alert   AlertConfig   `mapstructure:"alert"`
+	Server     ServerConfig     `mapstructure:"server"`
+	JWT        JWTConfig        `mapstructure:"jwt"`
+	MongoDB    MongoDBConfig    `mapstructure:"mongodb"`
+	Redis      RedisConfig      `mapstructure:"redis"`
+	Scanner    ScannerConfig    `mapstructure:"scanner"`
+	Log        LogConfig        `mapstructure:"log"`
+	Alert      AlertConfig      `mapstructure:"alert"`
+	ThirdParty ThirdPartyConfig `mapstructure:"thirdparty"`
 }
 
 type ServerConfig struct {
@@ -60,6 +61,25 @@ type LogConfig struct {
 type AlertConfig struct {
 	Enabled bool     `mapstructure:"enabled"`
 	Types   []string `mapstructure:"types"`
+}
+
+type ThirdPartyConfig struct {
+	Fofa   FofaConfig   `mapstructure:"fofa"`
+	Hunter HunterConfig `mapstructure:"hunter"`
+	Quake  QuakeConfig  `mapstructure:"quake"`
+}
+
+type FofaConfig struct {
+	Email string `mapstructure:"email"`
+	Key   string `mapstructure:"key"`
+}
+
+type HunterConfig struct {
+	Key string `mapstructure:"key"`
+}
+
+type QuakeConfig struct {
+	Key string `mapstructure:"key"`
 }
 
 var (

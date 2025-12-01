@@ -8,6 +8,22 @@ import (
 	"time"
 )
 
+// 全局通知管理器实例
+var (
+	globalManager     *NotifyManager
+	globalManagerOnce sync.Once
+)
+
+// GetGlobalManager 获取全局通知管理器实例
+func GetGlobalManager() *NotifyManager {
+	globalManagerOnce.Do(func() {
+		globalManager = NewNotifyManager()
+		globalManager.Start()
+		log.Println("[Notify] Global notify manager initialized")
+	})
+	return globalManager
+}
+
 // NotifyManager 通知管理器
 type NotifyManager struct {
 	notifiers []Notifier
@@ -309,14 +325,14 @@ func (m *NotifyManager) NotifyVulnerability(vulnName, target, severity, details 
 }
 
 // NotifyTaskComplete 发送任务完成通知
-func (m *NotifyManager) NotifyTaskComplete(taskName string, success bool, summary string) {
+func (m *NotifyManager) NotifyTaskComplete(taskName string, taskID string, success bool, summary string, stats map[string]interface{}) {
 	level := NotifyLevelInfo
-	title := "任务完成: " + taskName
+	title := "✅ 扫描完成: " + taskName
 	if !success {
 		level = NotifyLevelWarning
-		title = "任务失败: " + taskName
+		title = "❌ 扫描失败: " + taskName
 	}
-	
+
 	msg := &NotifyMessage{
 		Level:     level,
 		Title:     title,
@@ -325,10 +341,12 @@ func (m *NotifyManager) NotifyTaskComplete(taskName string, success bool, summar
 		Timestamp: time.Now(),
 		Extra: map[string]interface{}{
 			"task_name": taskName,
+			"task_id":   taskID,
 			"success":   success,
+			"stats":     stats,
 		},
 	}
-	
+
 	m.SendAsync(msg)
 }
 

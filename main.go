@@ -57,6 +57,25 @@ func main() {
 		log.Printf("Warning: Failed to initialize admin user: %v", err)
 	}
 	
+	// Scan POC directory for auto-import
+	log.Println("Scanning POC directory...")
+	pocService := service.NewPOCService()
+	pocDir := filepath.Join(execDir, "..", "pocs")
+	if envPocDir := os.Getenv("POC_DIR"); envPocDir != "" {
+		pocDir = envPocDir
+	}
+	// If pocs directory not found at execDir, try current directory
+	if _, err := os.Stat(pocDir); os.IsNotExist(err) {
+		pocDir = "pocs"
+	}
+	// Create pocs directory if it doesn't exist
+	if _, err := os.Stat(pocDir); os.IsNotExist(err) {
+		if mkErr := os.MkdirAll(pocDir, 0755); mkErr == nil {
+			log.Printf("Created POC directory: %s", pocDir)
+		}
+	}
+	pocService.ScanPOCDirectory(pocDir)
+	
 	// Start task executor
 	log.Println("Starting task executor...")
 	taskExecutor := service.NewTaskExecutor(5) // 5 workers

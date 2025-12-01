@@ -16,8 +16,8 @@ type NotifyHandler struct {
 
 // NewNotifyHandler 创建通知处理器
 func NewNotifyHandler() *NotifyHandler {
-	manager := notify.NewNotifyManager()
-	manager.Start()
+	// 使用全局通知管理器
+	manager := notify.GetGlobalManager()
 	return &NotifyHandler{
 		manager: manager,
 	}

@@ -106,6 +106,7 @@ func SetupRouter() *gin.Engine {
 				taskGroup.POST("/:id/resume", taskHandler.ResumeTask)
 				taskGroup.POST("/:id/cancel", taskHandler.CancelTask)
 				taskGroup.POST("/:id/retry", taskHandler.RetryTask)
+				taskGroup.POST("/:id/rescan", taskHandler.RescanTask)
 				taskGroup.GET("/:id/logs", taskHandler.GetTaskLogs)
 				// Task Results routes
 				taskGroup.GET("/:id/results", resultHandler.GetTaskResults)

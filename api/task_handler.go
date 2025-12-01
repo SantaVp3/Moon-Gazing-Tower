@@ -220,6 +220,29 @@ func (h *TaskHandler) RetryTask(c *gin.Context) {
 	utils.SuccessWithMessage(c, "任务已重试", nil)
 }
 
+// RescanTask rescans a completed task
+// POST /api/tasks/:id/rescan
+func (h *TaskHandler) RescanTask(c *gin.Context) {
+	taskID := c.Param("id")
+	
+	// 默认继续扫描（不从头开始）
+	var req struct {
+		FromScratch bool `json:"from_scratch"`
+	}
+	c.ShouldBindJSON(&req)
+	
+	if err := h.taskService.RescanTask(taskID, req.FromScratch); err != nil {
+		utils.Error(c, utils.ErrCodeInternalError, err.Error())
+		return
+	}
+	
+	if req.FromScratch {
+		utils.SuccessWithMessage(c, "任务已重新开始扫描", nil)
+	} else {
+		utils.SuccessWithMessage(c, "任务已继续扫描", nil)
+	}
+}
+
 // GetTaskStats returns task statistics
 // GET /api/tasks/stats
 func (h *TaskHandler) GetTaskStats(c *gin.Context) {

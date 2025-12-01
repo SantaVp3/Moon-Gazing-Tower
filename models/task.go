@@ -89,6 +89,14 @@ type TaskConfig struct {
 	SubdomainDict string `json:"subdomain_dict,omitempty" bson:"subdomain_dict,omitempty"`
 	UsePassive    bool   `json:"use_passive,omitempty" bson:"use_passive,omitempty"`
 	
+	// Third-party API Config (for subdomain enumeration)
+	UseThirdParty bool     `json:"use_thirdparty,omitempty" bson:"use_thirdparty,omitempty"` // 是否使用第三方 API
+	ThirdPartySources []string `json:"thirdparty_sources,omitempty" bson:"thirdparty_sources,omitempty"` // fofa, hunter, quake, crtsh, securitytrails
+	FofaEmail     string   `json:"fofa_email,omitempty" bson:"fofa_email,omitempty"`
+	FofaKey       string   `json:"fofa_key,omitempty" bson:"fofa_key,omitempty"`
+	HunterKey     string   `json:"hunter_key,omitempty" bson:"hunter_key,omitempty"`
+	QuakeKey      string   `json:"quake_key,omitempty" bson:"quake_key,omitempty"`
+	
 	// Fingerprint Config
 	EnableFingerprint bool `json:"enable_fingerprint,omitempty" bson:"enable_fingerprint,omitempty"`
 	
@@ -126,6 +134,10 @@ type TaskResultStats struct {
 	DiscoveredAssets int `json:"discovered_assets" bson:"discovered_assets"`
 	DiscoveredVulns  int `json:"discovered_vulns" bson:"discovered_vulns"`
 	DiscoveredPorts  int `json:"discovered_ports" bson:"discovered_ports"`
+	// 用于断点续扫 - 记录已完成扫描的目标索引
+	LastScannedIndex int      `json:"last_scanned_index" bson:"last_scanned_index"`
+	// 记录已完成的扫描阶段（用于 full 类型任务）
+	CompletedStages  []string `json:"completed_stages,omitempty" bson:"completed_stages,omitempty"`
 }
 
 // TaskTemplate represents reusable task templates
