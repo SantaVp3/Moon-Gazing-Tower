@@ -301,6 +301,20 @@ func SetupRouter() *gin.Engine {
 				thirdPartyGroup.POST("/quake/search", thirdPartyHandler.QuakeSearch)
 			}
 
+			// ENScan 企业信息查询 (APP、小程序、公众号、ICP备案等)
+			enscanHandler := api.NewENScanHandler()
+			enscanGroup := protected.Group("/enscan")
+			{
+				enscanGroup.GET("/status", enscanHandler.GetStatus)
+				enscanGroup.POST("/query", enscanHandler.QueryCompany)
+				enscanGroup.GET("/apps", enscanHandler.QueryApps)
+				enscanGroup.GET("/wxapps", enscanHandler.QueryWxApps)
+				enscanGroup.GET("/wechats", enscanHandler.QueryWechats)
+				enscanGroup.GET("/icps", enscanHandler.QueryICPs)
+				enscanGroup.GET("/all", enscanHandler.QueryAll)
+				enscanGroup.POST("/batch", enscanHandler.BatchQuery)
+			}
+
 			// 通知管理
 			notifyHandler := api.NewNotifyHandler()
 			notifyGroup := protected.Group("/notify")

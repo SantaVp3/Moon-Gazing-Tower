@@ -11,6 +11,7 @@ import (
 	"moongazing/database"
 	"moongazing/models"
 	"moongazing/service/notify"
+	"moongazing/service/pipeline"
 
 	"github.com/go-redis/redis/v8"
 	"go.mongodb.org/mongo-driver/bson"
@@ -73,29 +74,6 @@ func (e *TaskExecutor) worker(id int, taskType string) {
 	defer e.wg.Done()
 	workerID := fmt.Sprintf("worker-%d-%s", id, taskType)
 	log.Printf("[%s] Worker started, listening for %s tasks", workerID, taskType)
-
-	// 仅在第一个 full worker 上定期打印队列状态
-	if id == 0 && taskType == "full" {
-		go func() {
-			ticker := time.NewTicker(10 * time.Second)
-			defer ticker.Stop()
-			for {
-				select {
-				case <-e.stopCh:
-					return
-				case <-ticker.C:
-					ctx := context.Background()
-					rdb := database.GetRedis()
-					queueLen, err := rdb.LLen(ctx, "task:queue:full").Result()
-					if err != nil {
-						log.Printf("[TaskExecutor] Redis LLen error: %v", err)
-					} else {
-						log.Printf("[TaskExecutor] Queue task:queue:full length: %d", queueLen)
-					}
-				}
-			}
-		}()
-	}
 
 	for {
 		select {
@@ -163,10 +141,13 @@ func (e *TaskExecutor) dequeueRunningTask(taskType string) (*models.Task, error)
 
 	// 如果任务是 Pending 状态，更新为 Running
 	if task.Status == models.TaskStatusPending {
-		e.taskService.UpdateTask(task.ID.Hex(), map[string]interface{}{
+		if err := e.taskService.UpdateTask(task.ID.Hex(), map[string]interface{}{
 			"status":     models.TaskStatusRunning,
 			"started_at": time.Now(),
-		})
+		}); err != nil {
+			log.Printf("[TaskExecutor] Failed to update task %s status: %v", task.ID.Hex(), err)
+			return nil, fmt.Errorf("failed to start task: %w", err)
+		}
 		task.Status = models.TaskStatusRunning
 		log.Printf("[TaskExecutor] Task %s started (was pending)", task.ID.Hex())
 	}
@@ -186,7 +167,7 @@ func (e *TaskExecutor) processTask(task *models.Task) {
 	// 使用 StreamingPipeline 处理所有扫描任务
 	switch task.Type {
 	case models.TaskTypeFull:
-		e.executeStreamingPipeline(task, &PipelineConfig{
+		e.executeStreamingPipeline(task, &pipeline.PipelineConfig{
 			SubdomainScan:          true,
 			SubdomainMaxEnumTime:   15,
 			SubdomainResolveIP:     true,
@@ -202,7 +183,7 @@ func (e *TaskExecutor) processTask(task *models.Task) {
 		})
 
 	case models.TaskTypeSubdomain:
-		e.executeStreamingPipeline(task, &PipelineConfig{
+		e.executeStreamingPipeline(task, &pipeline.PipelineConfig{
 			SubdomainScan:          true,
 			SubdomainMaxEnumTime:   10,
 			SubdomainResolveIP:     true,
@@ -211,7 +192,7 @@ func (e *TaskExecutor) processTask(task *models.Task) {
 		})
 
 	case models.TaskTypeTakeover:
-		e.executeStreamingPipeline(task, &PipelineConfig{
+		e.executeStreamingPipeline(task, &pipeline.PipelineConfig{
 			SubdomainScan:          true,
 			SubdomainMaxEnumTime:   10,
 			SubdomainResolveIP:     true,
@@ -220,7 +201,7 @@ func (e *TaskExecutor) processTask(task *models.Task) {
 		})
 
 	case models.TaskTypePortScan:
-		e.executeStreamingPipeline(task, &PipelineConfig{
+		e.executeStreamingPipeline(task, &pipeline.PipelineConfig{
 			SubdomainScan: false,
 			PortScan:      true,
 			PortScanMode:  "top1000",
@@ -229,7 +210,7 @@ func (e *TaskExecutor) processTask(task *models.Task) {
 		})
 
 	case models.TaskTypeFingerprint:
-		e.executeStreamingPipeline(task, &PipelineConfig{
+		e.executeStreamingPipeline(task, &pipeline.PipelineConfig{
 			SubdomainScan: false,
 			PortScan:      true,
 			PortScanMode:  "quick",
@@ -238,7 +219,7 @@ func (e *TaskExecutor) processTask(task *models.Task) {
 		})
 
 	case models.TaskTypeVulnScan:
-		e.executeStreamingPipeline(task, &PipelineConfig{
+		e.executeStreamingPipeline(task, &pipeline.PipelineConfig{
 			SubdomainScan: false,
 			PortScan:      true,
 			PortScanMode:  "quick",
@@ -248,7 +229,7 @@ func (e *TaskExecutor) processTask(task *models.Task) {
 		})
 
 	case models.TaskTypeDirScan:
-		e.executeStreamingPipeline(task, &PipelineConfig{
+		e.executeStreamingPipeline(task, &pipeline.PipelineConfig{
 			SubdomainScan: false,
 			PortScan:      true,
 			PortScanMode:  "quick",
@@ -258,7 +239,7 @@ func (e *TaskExecutor) processTask(task *models.Task) {
 		})
 
 	case models.TaskTypeCrawler:
-		e.executeStreamingPipeline(task, &PipelineConfig{
+		e.executeStreamingPipeline(task, &pipeline.PipelineConfig{
 			SubdomainScan: false,
 			PortScan:      true,
 			PortScanMode:  "quick",
@@ -273,17 +254,17 @@ func (e *TaskExecutor) processTask(task *models.Task) {
 }
 
 // executeStreamingPipeline 使用 StreamingPipeline 执行任务
-func (e *TaskExecutor) executeStreamingPipeline(task *models.Task, config *PipelineConfig) {
+func (e *TaskExecutor) executeStreamingPipeline(task *models.Task, config *pipeline.PipelineConfig) {
 	ctx, cancel := context.WithTimeout(context.Background(), 24*time.Hour)
 	defer cancel()
 
 	log.Printf("[TaskExecutor] Starting StreamingPipeline for task %s, type: %s", task.ID.Hex(), task.Type)
 
 	// 创建流水线
-	pipeline := NewStreamingPipeline(ctx, task, config)
+	scanPipe := pipeline.NewStreamingPipeline(ctx, task, config)
 
 	// 启动流水线
-	if err := pipeline.Start(task.Targets); err != nil {
+	if err := scanPipe.Start(task.Targets); err != nil {
 		e.failTask(task, fmt.Sprintf("流水线启动失败: %v", err))
 		return
 	}
@@ -292,13 +273,13 @@ func (e *TaskExecutor) executeStreamingPipeline(task *models.Task, config *Pipel
 	var resultCount int
 	var subdomainCount, portCount, vulnCount, urlCount int
 
-	for result := range pipeline.Results() {
+	for result := range scanPipe.Results() {
 		resultCount++
 
 		// 根据结果类型保存到数据库
 		var scanResult *models.ScanResult
 		switch r := result.(type) {
-		case SubdomainResult:
+		case pipeline.SubdomainResult:
 			subdomainCount++
 			scanResult = &models.ScanResult{
 				TaskID:      task.ID,
@@ -306,8 +287,8 @@ func (e *TaskExecutor) executeStreamingPipeline(task *models.Task, config *Pipel
 				Type:        models.ResultTypeSubdomain, // 修复：子域名应该用 Subdomain 类型
 				Source:      r.Source,
 				Data: bson.M{
-					"subdomain":   r.Domain,      // 子域名完整名称
-					"domain":      r.RootDomain,  // 根域名
+					"subdomain":   r.Host,        // 子域名完整名称
+					"domain":      r.Domain,      // 根域名
 					"root_domain": r.RootDomain,
 					"ips":         r.IPs,
 					"cnames":      r.CNAMEs,
@@ -315,7 +296,7 @@ func (e *TaskExecutor) executeStreamingPipeline(task *models.Task, config *Pipel
 				CreatedAt: time.Now(),
 			}
 
-		case PortAlive:
+		case pipeline.PortAlive:
 			if r.Port != "" {
 				portCount++
 				scanResult = &models.ScanResult{
@@ -333,7 +314,7 @@ func (e *TaskExecutor) executeStreamingPipeline(task *models.Task, config *Pipel
 				}
 			}
 
-		case AssetHttp:
+		case pipeline.AssetHttp:
 			scanResult = &models.ScanResult{
 				TaskID:      task.ID,
 				WorkspaceID: task.WorkspaceID,
@@ -353,7 +334,7 @@ func (e *TaskExecutor) executeStreamingPipeline(task *models.Task, config *Pipel
 				CreatedAt: time.Now(),
 			}
 
-		case VulnResult:
+		case pipeline.VulnResult:
 			vulnCount++
 			scanResult = &models.ScanResult{
 				TaskID:      task.ID,
@@ -374,7 +355,7 @@ func (e *TaskExecutor) executeStreamingPipeline(task *models.Task, config *Pipel
 				CreatedAt: time.Now(),
 			}
 
-		case UrlResult:
+		case pipeline.UrlResult:
 			urlCount++
 			// 根据 Source 区分结果类型
 			var resultType models.ResultType
@@ -403,7 +384,7 @@ func (e *TaskExecutor) executeStreamingPipeline(task *models.Task, config *Pipel
 				CreatedAt: time.Now(),
 			}
 
-		case SensitiveInfoResult:
+		case pipeline.SensitiveInfoResult:
 			scanResult = &models.ScanResult{
 				TaskID:      task.ID,
 				WorkspaceID: task.WorkspaceID,

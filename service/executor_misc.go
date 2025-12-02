@@ -6,7 +6,9 @@ import (
 	"time"
 
 	"moongazing/models"
-	"moongazing/scanner"
+	"moongazing/scanner/fingerprint"
+	"moongazing/scanner/vulnscan"
+	"moongazing/scanner/webscan"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -23,7 +25,7 @@ func (e *TaskExecutor) executeFingerprintScan(task *models.Task) {
 
 
 	results := make([]models.ScanResult, 0)
-	fpScanner := scanner.NewFingerprintScanner(20)
+	fpScanner := fingerprint.NewFingerprintScanner(20)
 
 	for i, target := range targets {
 		progress := int((float64(i) / float64(len(targets))) * 100)
@@ -68,7 +70,7 @@ func (e *TaskExecutor) executeVulnScan(task *models.Task) {
 
 
 	results := make([]models.ScanResult, 0)
-	vulnScanner := scanner.NewVulnScanner(10)
+	vulnScanner := vulnscan.NewVulnScanner(10)
 
 	for i, target := range targets {
 		progress := int((float64(i) / float64(len(targets))) * 100)
@@ -115,7 +117,7 @@ func (e *TaskExecutor) executeContentScan(task *models.Task) {
 
 
 	results := make([]models.ScanResult, 0)
-	contentScanner := scanner.NewContentScanner(20)
+	contentScanner := webscan.NewContentScanner(20)
 
 	for i, target := range targets {
 		progress := int((float64(i) / float64(len(targets))) * 100)
@@ -161,7 +163,7 @@ func (e *TaskExecutor) executeSensitiveScan(task *models.Task) {
 	}
 
 	results := make([]models.ScanResult, 0)
-	contentScanner := scanner.NewContentScanner(20)
+	contentScanner := webscan.NewContentScanner(20)
 
 	for i, target := range targets {
 		progress := int((float64(i) / float64(len(targets))) * 100)
@@ -208,8 +210,8 @@ func (e *TaskExecutor) executeCrawlerScan(task *models.Task) {
 
 	results := make([]models.ScanResult, 0)
 	
-	katanaScanner := scanner.NewKatanaScanner()
-	radScanner := scanner.NewRadScanner()
+	katanaScanner := webscan.NewKatanaScanner()
+	radScanner := webscan.NewRadScanner()
 	
 	useKatana := katanaScanner.IsAvailable()
 	useRad := radScanner.IsAvailable()

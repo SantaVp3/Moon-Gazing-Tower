@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"moongazing/scanner/nuclei"
+	"moongazing/scanner/vulnscan/nuclei"
 	"moongazing/utils"
 
 	"github.com/gin-gonic/gin"

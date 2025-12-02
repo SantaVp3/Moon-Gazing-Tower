@@ -7,7 +7,7 @@ import (
 
 	"moongazing/database"
 	"moongazing/models"
-	"moongazing/scanner"
+	"moongazing/scanner/vulnscan"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -22,7 +22,7 @@ func NewVulnService() *VulnService {
 
 // CreateVulnerability creates a new vulnerability
 func (s *VulnService) CreateVulnerability(vuln *models.Vulnerability) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	collection := database.GetCollection(models.CollectionVulnerabilities)
@@ -42,7 +42,7 @@ func (s *VulnService) CreateVulnerability(vuln *models.Vulnerability) error {
 
 // GetVulnByID retrieves vulnerability by ID
 func (s *VulnService) GetVulnByID(vulnID string) (*models.Vulnerability, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(vulnID)
@@ -63,7 +63,7 @@ func (s *VulnService) GetVulnByID(vulnID string) (*models.Vulnerability, error) 
 
 // ListVulnerabilities lists vulnerabilities with filtering and pagination
 func (s *VulnService) ListVulnerabilities(workspaceID string, severity string, status string, keyword string, page, pageSize int) ([]*models.Vulnerability, int64, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	collection := database.GetCollection(models.CollectionVulnerabilities)
@@ -122,7 +122,7 @@ func (s *VulnService) ListVulnerabilities(workspaceID string, severity string, s
 
 // UpdateVulnerability updates a vulnerability
 func (s *VulnService) UpdateVulnerability(vulnID string, updates map[string]interface{}) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(vulnID)
@@ -143,7 +143,7 @@ func (s *VulnService) UpdateVulnerability(vulnID string, updates map[string]inte
 
 // DeleteVulnerability deletes a vulnerability
 func (s *VulnService) DeleteVulnerability(vulnID string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(vulnID)
@@ -186,7 +186,7 @@ func (s *VulnService) MarkAsFalsePositive(vulnID string) error {
 
 // GetVulnStats returns vulnerability statistics
 func (s *VulnService) GetVulnStats(workspaceID string) (*models.ReportSummary, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	collection := database.GetCollection(models.CollectionVulnerabilities)
@@ -242,7 +242,7 @@ func (s *VulnService) GetVulnStats(workspaceID string) (*models.ReportSummary, e
 
 // CreatePOC creates a new POC
 func (s *VulnService) CreatePOC(poc *models.POC) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	collection := database.GetCollection(models.CollectionPOCs)
@@ -262,7 +262,7 @@ func (s *VulnService) CreatePOC(poc *models.POC) error {
 
 // GetPOCByID retrieves POC by ID
 func (s *VulnService) GetPOCByID(pocID string) (*models.POC, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(pocID)
@@ -283,7 +283,7 @@ func (s *VulnService) GetPOCByID(pocID string) (*models.POC, error) {
 
 // ListPOCs lists POCs with filtering and pagination
 func (s *VulnService) ListPOCs(pocType string, severity string, tags []string, keyword string, page, pageSize int) ([]*models.POC, int64, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	collection := database.GetCollection(models.CollectionPOCs)
@@ -337,7 +337,7 @@ func (s *VulnService) ListPOCs(pocType string, severity string, tags []string, k
 
 // UpdatePOC updates a POC
 func (s *VulnService) UpdatePOC(pocID string, updates map[string]interface{}) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(pocID)
@@ -358,7 +358,7 @@ func (s *VulnService) UpdatePOC(pocID string, updates map[string]interface{}) er
 
 // DeletePOC deletes a POC
 func (s *VulnService) DeletePOC(pocID string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(pocID)
@@ -385,7 +385,7 @@ func (s *VulnService) TogglePOC(pocID string, enabled bool) error {
 
 // CreateReport creates a vulnerability report
 func (s *VulnService) CreateReport(report *models.VulnReport) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	collection := database.GetCollection(models.CollectionVulnReports)
@@ -409,7 +409,7 @@ func (s *VulnService) CreateReport(report *models.VulnReport) error {
 
 // ListReports lists vulnerability reports
 func (s *VulnService) ListReports(workspaceID string, page, pageSize int) ([]*models.VulnReport, int64, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	collection := database.GetCollection(models.CollectionVulnReports)
@@ -443,7 +443,7 @@ func (s *VulnService) ListReports(workspaceID string, page, pageSize int) ([]*mo
 
 // GetReportByID gets a report by ID
 func (s *VulnService) GetReportByID(reportID string) (*models.VulnReport, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(reportID)
@@ -464,7 +464,7 @@ func (s *VulnService) GetReportByID(reportID string) (*models.VulnReport, error)
 
 // DeleteReport deletes a report
 func (s *VulnService) DeleteReport(reportID string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(reportID)
@@ -687,7 +687,7 @@ func (s *VulnService) VerifyVulnerability(vulnID string) (*models.Vulnerability,
 	verified := false
 	
 	// 使用 Nuclei CLI 扫描器重新验证
-	if scanner.GlobalNucleiScanner != nil && scanner.GlobalNucleiScanner.IsAvailable() {
+	if vulnscan.GlobalNucleiScanner != nil && vulnscan.GlobalNucleiScanner.IsAvailable() {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 		defer cancel()
 		
@@ -698,7 +698,7 @@ func (s *VulnService) VerifyVulnerability(vulnID string) (*models.Vulnerability,
 		}
 		
 		if templateID != "" && vuln.Target != "" {
-			result, err := scanner.GlobalNucleiScanner.VerifyVulnerability(ctx, vuln.Target, templateID)
+			result, err := vulnscan.GlobalNucleiScanner.VerifyVulnerability(ctx, vuln.Target, templateID)
 			if err == nil && result != nil {
 				verified = true
 			}
@@ -756,7 +756,7 @@ func (s *VulnService) BatchUpdateStatus(vulnIDs []string, status models.VulnStat
 
 // GetVulnsByTaskID 根据任务ID获取漏洞
 func (s *VulnService) GetVulnsByTaskID(taskID string, page, pageSize int) ([]*models.Vulnerability, int64, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(taskID)

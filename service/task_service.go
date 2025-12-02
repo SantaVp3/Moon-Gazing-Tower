@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -23,7 +24,7 @@ func NewTaskService() *TaskService {
 
 // CreateTask creates a new task
 func (s *TaskService) CreateTask(task *models.Task) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	collection := database.GetCollection(models.CollectionTasks)
@@ -36,7 +37,7 @@ func (s *TaskService) CreateTask(task *models.Task) error {
 	
 	_, err := collection.InsertOne(ctx, task)
 	if err != nil {
-		return errors.New("创建任务失败")
+		return fmt.Errorf("创建任务失败: %w", err)
 	}
 	
 	// Add to Redis task queue
@@ -47,12 +48,12 @@ func (s *TaskService) CreateTask(task *models.Task) error {
 
 // GetTaskByID retrieves task by ID
 func (s *TaskService) GetTaskByID(taskID string) (*models.Task, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(taskID)
 	if err != nil {
-		return nil, errors.New("无效的任务ID")
+		return nil, fmt.Errorf("无效的任务ID: %w", err)
 	}
 	
 	collection := database.GetCollection(models.CollectionTasks)
@@ -60,7 +61,7 @@ func (s *TaskService) GetTaskByID(taskID string) (*models.Task, error) {
 	var task models.Task
 	err = collection.FindOne(ctx, bson.M{"_id": objID}).Decode(&task)
 	if err != nil {
-		return nil, errors.New("任务不存在")
+		return nil, fmt.Errorf("任务不存在: %w", err)
 	}
 	
 	return &task, nil
@@ -68,7 +69,7 @@ func (s *TaskService) GetTaskByID(taskID string) (*models.Task, error) {
 
 // ListTasks lists tasks with filtering and pagination
 func (s *TaskService) ListTasks(workspaceID string, taskType string, status string, page, pageSize int) ([]*models.Task, int64, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	collection := database.GetCollection(models.CollectionTasks)
@@ -91,7 +92,7 @@ func (s *TaskService) ListTasks(workspaceID string, taskType string, status stri
 	// Get total count
 	total, err := collection.CountDocuments(ctx, filter)
 	if err != nil {
-		return nil, 0, errors.New("查询任务数量失败")
+		return nil, 0, fmt.Errorf("查询任务数量失败: %w", err)
 	}
 	
 	// Query with pagination
@@ -102,13 +103,13 @@ func (s *TaskService) ListTasks(workspaceID string, taskType string, status stri
 	
 	cursor, err := collection.Find(ctx, filter, opts)
 	if err != nil {
-		return nil, 0, errors.New("查询任务列表失败")
+		return nil, 0, fmt.Errorf("查询任务列表失败: %w", err)
 	}
 	defer cursor.Close(ctx)
 	
 	var tasks []*models.Task
 	if err = cursor.All(ctx, &tasks); err != nil {
-		return nil, 0, errors.New("解析任务数据失败")
+		return nil, 0, fmt.Errorf("解析任务数据失败: %w", err)
 	}
 	
 	return tasks, total, nil
@@ -116,12 +117,12 @@ func (s *TaskService) ListTasks(workspaceID string, taskType string, status stri
 
 // UpdateTask updates a task
 func (s *TaskService) UpdateTask(taskID string, updates map[string]interface{}) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(taskID)
 	if err != nil {
-		return errors.New("无效的任务ID")
+		return fmt.Errorf("无效的任务ID: %w", err)
 	}
 	
 	collection := database.GetCollection(models.CollectionTasks)
@@ -129,7 +130,7 @@ func (s *TaskService) UpdateTask(taskID string, updates map[string]interface{}) 
 	updates["updated_at"] = time.Now()
 	_, err = collection.UpdateOne(ctx, bson.M{"_id": objID}, bson.M{"$set": updates})
 	if err != nil {
-		return errors.New("更新任务失败")
+		return fmt.Errorf("更新任务失败: %w", err)
 	}
 	
 	return nil
@@ -137,12 +138,12 @@ func (s *TaskService) UpdateTask(taskID string, updates map[string]interface{}) 
 
 // DeleteTask deletes a task
 func (s *TaskService) DeleteTask(taskID string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(taskID)
 	if err != nil {
-		return errors.New("无效的任务ID")
+		return fmt.Errorf("无效的任务ID: %w", err)
 	}
 	
 	// Check if task is running
@@ -155,7 +156,7 @@ func (s *TaskService) DeleteTask(taskID string) error {
 	
 	_, err = collection.DeleteOne(ctx, bson.M{"_id": objID})
 	if err != nil {
-		return errors.New("删除任务失败")
+		return fmt.Errorf("删除任务失败: %w", err)
 	}
 	
 	return nil
@@ -342,7 +343,7 @@ func (s *TaskService) FailTask(taskID string, errorMsg string) error {
 
 // GetTaskStats returns task statistics
 func (s *TaskService) GetTaskStats(workspaceID string) (map[string]interface{}, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	collection := database.GetCollection(models.CollectionTasks)
@@ -447,7 +448,7 @@ func (s *TaskService) DequeueTask(taskType string) (*models.Task, error) {
 
 // CreateTaskTemplate creates a task template
 func (s *TaskService) CreateTaskTemplate(template *models.TaskTemplate) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	collection := database.GetCollection(models.CollectionTaskTemplates)
@@ -466,7 +467,7 @@ func (s *TaskService) CreateTaskTemplate(template *models.TaskTemplate) error {
 
 // ListTaskTemplates lists task templates
 func (s *TaskService) ListTaskTemplates(workspaceID string, isPublic *bool) ([]*models.TaskTemplate, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	collection := database.GetCollection(models.CollectionTaskTemplates)
@@ -499,7 +500,7 @@ func (s *TaskService) ListTaskTemplates(workspaceID string, isPublic *bool) ([]*
 
 // GetTaskTemplate gets a task template by ID
 func (s *TaskService) GetTaskTemplate(templateID string) (*models.TaskTemplate, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(templateID)
@@ -520,7 +521,7 @@ func (s *TaskService) GetTaskTemplate(templateID string) (*models.TaskTemplate, 
 
 // DeleteTaskTemplate deletes a task template
 func (s *TaskService) DeleteTaskTemplate(templateID string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(templateID)
@@ -540,7 +541,7 @@ func (s *TaskService) DeleteTaskTemplate(templateID string) error {
 
 // AddTaskLog adds a log entry for a task
 func (s *TaskService) AddTaskLog(taskID string, level string, message string, detail string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(taskID)
@@ -569,7 +570,7 @@ func (s *TaskService) AddTaskLog(taskID string, level string, message string, de
 
 // GetTaskLogs gets logs for a task
 func (s *TaskService) GetTaskLogs(taskID string, page, pageSize int) ([]*models.TaskLog, int64, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(taskID)

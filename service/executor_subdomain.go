@@ -7,8 +7,9 @@ import (
 
 	"moongazing/config"
 	"moongazing/models"
-	"moongazing/scanner"
-	"moongazing/scanner/thirdparty"
+	"moongazing/scanner/subdomain"
+	"moongazing/scanner/webscan"
+	"moongazing/scanner/subdomain/thirdparty"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -27,9 +28,9 @@ func (e *TaskExecutor) executeSubdomainScan(task *models.Task) {
 	results := make([]models.ScanResult, 0)
 	
 	// 初始化扫描器
-	subfinderScanner := scanner.NewSubfinderScanner()
-	domainScanner := scanner.NewDomainScanner(200)
-	httpxScanner := scanner.NewHttpxScanner(30)
+	subfinderScanner := subdomain.NewSubfinderScanner()
+	domainScanner := subdomain.NewDomainScanner(200)
+	httpxScanner := webscan.NewHttpxScanner(30)
 	
 	// 从配置文件读取第三方 API 密钥，自动创建管理器
 	thirdpartyManager := e.createThirdpartyManager()
@@ -120,7 +121,7 @@ func (e *TaskExecutor) executeSubdomainScan(task *models.Task) {
 }
 
 // collectSubdomains 收集子域名（被动枚举 + 第三方API）
-func (e *TaskExecutor) collectSubdomains(target string, subfinderScanner *scanner.SubfinderScanner, domainScanner *scanner.DomainScanner, thirdpartyManager *thirdparty.APIManager) map[string]bool {
+func (e *TaskExecutor) collectSubdomains(target string, subfinderScanner *subdomain.SubfinderScanner, domainScanner *subdomain.DomainScanner, thirdpartyManager *thirdparty.APIManager) map[string]bool {
 	subdomainSet := make(map[string]bool)
 	
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
@@ -202,7 +203,7 @@ func (e *TaskExecutor) executeTakeoverScan(task *models.Task) {
 	}
 
 	results := make([]models.ScanResult, 0)
-	takeoverScanner := scanner.NewTakeoverScanner(20)
+	takeoverScanner := subdomain.NewTakeoverScanner(20)
 	
 	// 收集所有要检测的子域名
 	allSubdomains := make([]string, 0)

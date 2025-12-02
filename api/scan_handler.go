@@ -6,37 +6,42 @@ import (
 	"strings"
 	"time"
 
-	"moongazing/scanner"
+	"moongazing/scanner/core"
+	"moongazing/scanner/fingerprint"
+	"moongazing/scanner/portscan"
+	"moongazing/scanner/subdomain"
+	"moongazing/scanner/vulnscan"
+	"moongazing/scanner/webscan"
 	"moongazing/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 type ScanHandler struct {
-	rustScanner        *scanner.RustScanScanner
-	csegmentScanner    *scanner.CSegmentScanner
-	domainScanner      *scanner.DomainScanner
-	cdnDetector        *scanner.CDNDetector
-	fingerprintScanner *scanner.FingerprintScanner
-	vulnScanner        *scanner.VulnScanner
-	contentScanner     *scanner.ContentScanner
-	weakPwdScanner     *scanner.WeakPasswordScanner
-	webCrawler         *scanner.WebCrawler
-	takeoverScanner    *scanner.TakeoverScanner
+	rustScanner        *portscan.RustScanScanner
+	csegmentScanner    *portscan.CSegmentScanner
+	domainScanner      *subdomain.DomainScanner
+	cdnDetector        *subdomain.CDNDetector
+	fingerprintScanner *fingerprint.FingerprintScanner
+	vulnScanner        *vulnscan.VulnScanner
+	contentScanner     *webscan.ContentScanner
+	weakPwdScanner     *vulnscan.WeakPasswordScanner
+	webCrawler         *webscan.WebCrawler
+	takeoverScanner    *subdomain.TakeoverScanner
 }
 
 func NewScanHandler() *ScanHandler {
 	return &ScanHandler{
-		rustScanner:        scanner.NewRustScanScanner(),
-		csegmentScanner:    scanner.NewCSegmentScanner(100),
-		domainScanner:      scanner.NewDomainScanner(100),
-		cdnDetector:        scanner.NewCDNDetector(),
-		fingerprintScanner: scanner.NewFingerprintScanner(50),
-		vulnScanner:        scanner.NewVulnScanner(20),
-		contentScanner:     scanner.NewContentScanner(30),
-		weakPwdScanner:     scanner.NewWeakPasswordScanner(5),
-		webCrawler:         scanner.NewWebCrawler(3, 100, 10),
-		takeoverScanner:    scanner.NewTakeoverScanner(30),
+		rustScanner:        portscan.NewRustScanScanner(),
+		csegmentScanner:    portscan.NewCSegmentScanner(100),
+		domainScanner:      subdomain.NewDomainScanner(100),
+		cdnDetector:        subdomain.NewCDNDetector(),
+		fingerprintScanner: fingerprint.NewFingerprintScanner(50),
+		vulnScanner:        vulnscan.NewVulnScanner(20),
+		contentScanner:     webscan.NewContentScanner(30),
+		weakPwdScanner:     vulnscan.NewWeakPasswordScanner(5),
+		webCrawler:         webscan.NewWebCrawler(3, 100, 10),
+		takeoverScanner:    subdomain.NewTakeoverScanner(30),
 	}
 }
 
@@ -107,7 +112,7 @@ func (h *ScanHandler) CustomPortScan(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	var result *scanner.ScanResult
+	var result *core.ScanResult
 	var err error
 
 	// Parse ports
@@ -247,7 +252,7 @@ func (h *ScanHandler) CSegmentScan(c *gin.Context) {
 		ports = parsePortString(req.Ports)
 	}
 
-	var result *scanner.CSegmentResult
+	var result *portscan.CSegmentResult
 	if len(ports) > 0 {
 		result = h.csegmentScanner.ScanCSegment(ctx, req.Target, ports, req.AliveOnly)
 	} else {
@@ -395,7 +400,7 @@ func (h *ScanHandler) CustomSubdomainScan(c *gin.Context) {
 		return
 	}
 
-	wordlist := scanner.ParseWordlist(req.Wordlist)
+	wordlist := subdomain.ParseWordlist(req.Wordlist)
 	if len(wordlist) == 0 {
 		utils.BadRequest(c, "字典不能为空")
 		return
@@ -557,7 +562,7 @@ func (h *ScanHandler) VulnScan(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	var templates []*scanner.POCTemplate
+	var templates []*vulnscan.POCTemplate
 	if req.Severity != "" {
 		templates = h.vulnScanner.FilterTemplatesBySeverity(req.Severity)
 	}
@@ -601,7 +606,7 @@ func (h *ScanHandler) VulnQuickScan(c *gin.Context) {
 func (h *ScanHandler) GetPOCList(c *gin.Context) {
 	severity := c.Query("severity")
 	
-	var templates []*scanner.POCTemplate
+	var templates []*vulnscan.POCTemplate
 	if severity != "" {
 		templates = h.vulnScanner.FilterTemplatesBySeverity(severity)
 	} else {
@@ -774,7 +779,7 @@ func (h *ScanHandler) CrawlerScan(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	crawler := scanner.NewWebCrawler(req.MaxDepth, req.MaxURLs, 10)
+	crawler := webscan.NewWebCrawler(req.MaxDepth, req.MaxURLs, 10)
 	result := crawler.Crawl(ctx, req.Target)
 	utils.Success(c, result)
 }
@@ -804,7 +809,7 @@ func (h *ScanHandler) WeakPwdScan(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	var result *scanner.BruteForceResult
+	var result *vulnscan.BruteForceResult
 	switch strings.ToLower(req.Service) {
 	case "ssh":
 		result = h.weakPwdScanner.BruteForceSSH(ctx, req.Target, req.Port)

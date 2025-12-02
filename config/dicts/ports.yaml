@@ -1,0 +1,198 @@
+# 端口配置文件
+# 可在不重新编译的情况下更新端口列表
+
+# 常用端口列表
+common_ports:
+  - 21    # FTP
+  - 22    # SSH
+  - 23    # Telnet
+  - 25    # SMTP
+  - 53    # DNS
+  - 80    # HTTP
+  - 110   # POP3
+  - 111   # RPC
+  - 135   # MSRPC
+  - 139   # NetBIOS
+  - 143   # IMAP
+  - 443   # HTTPS
+  - 445   # SMB
+  - 993   # IMAPS
+  - 995   # POP3S
+  - 1433  # MSSQL
+  - 1521  # Oracle
+  - 2049  # NFS
+  - 3306  # MySQL
+  - 3389  # RDP
+  - 5432  # PostgreSQL
+  - 5900  # VNC
+  - 6379  # Redis
+  - 8080  # HTTP Proxy
+  - 8443  # HTTPS Alt
+  - 9000  # Various
+  - 27017 # MongoDB
+
+# Top 端口（快速扫描使用）
+top_ports:
+  - 21
+  - 22
+  - 23
+  - 25
+  - 53
+  - 80
+  - 110
+  - 135
+  - 139
+  - 143
+  - 443
+  - 445
+  - 993
+  - 995
+  - 1433
+  - 1521
+  - 3306
+  - 3389
+  - 5432
+  - 5900
+  - 6379
+  - 8080
+  - 8443
+  - 27017
+
+# 端口到服务的映射
+port_service_map:
+  21: "ftp"
+  22: "ssh"
+  23: "telnet"
+  25: "smtp"
+  53: "dns"
+  80: "http"
+  110: "pop3"
+  111: "rpcbind"
+  135: "msrpc"
+  139: "netbios-ssn"
+  143: "imap"
+  443: "https"
+  445: "microsoft-ds"
+  993: "imaps"
+  995: "pop3s"
+  1433: "mssql"
+  1521: "oracle"
+  2049: "nfs"
+  3306: "mysql"
+  3389: "rdp"
+  5432: "postgresql"
+  5900: "vnc"
+  6379: "redis"
+  8080: "http-proxy"
+  8443: "https-alt"
+  9000: "cslistener"
+  27017: "mongodb"
+  # 扩展端口
+  465: "smtps"
+  587: "submission"
+  990: "ftps"
+  1080: "socks"
+  1723: "pptp"
+  2222: "ssh-alt"
+  2375: "docker"
+  2376: "docker-tls"
+  4443: "https-alt"
+  5000: "upnp"
+  5001: "synology"
+  5601: "kibana"
+  6443: "kubernetes"
+  7001: "weblogic"
+  7002: "weblogic-ssl"
+  8000: "http-alt"
+  8008: "http-alt"
+  8081: "http-alt"
+  8082: "http-alt"
+  8088: "http-alt"
+  8089: "splunk"
+  8090: "http-alt"
+  8161: "activemq"
+  8291: "mikrotik"
+  8444: "https-alt"
+  8800: "http-alt"
+  8888: "http-alt"
+  9001: "tor"
+  9090: "prometheus"
+  9091: "transmission"
+  9200: "elasticsearch"
+  9300: "elasticsearch"
+  9443: "https-alt"
+  10000: "webmin"
+  10250: "kubelet"
+  11211: "memcached"
+  15672: "rabbitmq"
+  50000: "jenkins"
+  50070: "hadoop"
+
+# HTTP 服务端口（用于判断是否进行 HTTP 探测）
+http_ports:
+  - 80
+  - 443
+  - 8080
+  - 8443
+  - 8000
+  - 8008
+  - 8081
+  - 8082
+  - 8088
+  - 8089
+  - 8090
+  - 8161
+  - 8443
+  - 8444
+  - 8800
+  - 8888
+  - 9000
+  - 9001
+  - 9090
+  - 9091
+  - 9200
+  - 9443
+  - 10000
+  - 15672
+  - 50000
+
+# 非 HTTP 服务端口（明确不是 HTTP 的端口）
+non_http_ports:
+  - 20    # FTP Data
+  - 21    # FTP
+  - 22    # SSH
+  - 23    # Telnet
+  - 25    # SMTP
+  - 53    # DNS
+  - 69    # TFTP
+  - 110   # POP3
+  - 111   # RPC
+  - 135   # MSRPC
+  - 139   # NetBIOS
+  - 143   # IMAP
+  - 161   # SNMP
+  - 162   # SNMP Trap
+  - 389   # LDAP
+  - 445   # SMB
+  - 465   # SMTPS
+  - 513   # rlogin
+  - 514   # syslog
+  - 587   # SMTP Submission
+  - 636   # LDAPS
+  - 873   # rsync
+  - 990   # FTPS
+  - 993   # IMAPS
+  - 995   # POP3S
+  - 1433  # MSSQL
+  - 1521  # Oracle
+  - 2049  # NFS
+  - 3306  # MySQL
+  - 3389  # RDP
+  - 5060  # SIP
+  - 5061  # SIP TLS
+  - 5432  # PostgreSQL
+  - 5900  # VNC
+  - 5901  # VNC
+  - 6379  # Redis
+  - 11211 # Memcached
+  - 27017 # MongoDB

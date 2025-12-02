@@ -21,7 +21,7 @@ func NewAssetService() *AssetService {
 
 // CreateAsset creates a new asset
 func (s *AssetService) CreateAsset(asset *models.Asset) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	collection := database.GetCollection(models.CollectionAssets)
@@ -40,7 +40,7 @@ func (s *AssetService) CreateAsset(asset *models.Asset) error {
 
 // GetAssetByID retrieves asset by ID
 func (s *AssetService) GetAssetByID(assetID string) (*models.Asset, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(assetID)
@@ -61,7 +61,7 @@ func (s *AssetService) GetAssetByID(assetID string) (*models.Asset, error) {
 
 // ListAssets lists assets with filtering and pagination
 func (s *AssetService) ListAssets(workspaceID string, assetType string, keyword string, tags []string, page, pageSize int) ([]*models.Asset, int64, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	collection := database.GetCollection(models.CollectionAssets)
@@ -116,7 +116,7 @@ func (s *AssetService) ListAssets(workspaceID string, assetType string, keyword 
 
 // UpdateAsset updates an asset
 func (s *AssetService) UpdateAsset(assetID string, updates map[string]interface{}) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(assetID)
@@ -137,7 +137,7 @@ func (s *AssetService) UpdateAsset(assetID string, updates map[string]interface{
 
 // DeleteAsset deletes an asset
 func (s *AssetService) DeleteAsset(assetID string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(assetID)
@@ -184,7 +184,7 @@ func (s *AssetService) BatchDeleteAssets(assetIDs []string) (int64, error) {
 
 // AddAssetTags adds tags to an asset
 func (s *AssetService) AddAssetTags(assetID string, tags []string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(assetID)
@@ -207,7 +207,7 @@ func (s *AssetService) AddAssetTags(assetID string, tags []string) error {
 
 // RemoveAssetTags removes tags from an asset
 func (s *AssetService) RemoveAssetTags(assetID string, tags []string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(assetID)
@@ -230,7 +230,7 @@ func (s *AssetService) RemoveAssetTags(assetID string, tags []string) error {
 
 // GetAssetStats returns asset statistics
 func (s *AssetService) GetAssetStats(workspaceID string) (map[string]interface{}, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	collection := database.GetCollection(models.CollectionAssets)
@@ -282,7 +282,7 @@ func (s *AssetService) GetAssetStats(workspaceID string) (map[string]interface{}
 
 // CreateAssetGroup creates a new asset group
 func (s *AssetService) CreateAssetGroup(group *models.AssetGroup) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	collection := database.GetCollection(models.CollectionAssetGroups)
@@ -301,7 +301,7 @@ func (s *AssetService) CreateAssetGroup(group *models.AssetGroup) error {
 
 // ListAssetGroups lists asset groups
 func (s *AssetService) ListAssetGroups(workspaceID string) ([]*models.AssetGroup, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	collection := database.GetCollection(models.CollectionAssetGroups)
@@ -328,7 +328,7 @@ func (s *AssetService) ListAssetGroups(workspaceID string) ([]*models.AssetGroup
 
 // DeleteAssetGroup deletes an asset group
 func (s *AssetService) DeleteAssetGroup(groupID string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(groupID)
@@ -348,7 +348,7 @@ func (s *AssetService) DeleteAssetGroup(groupID string) error {
 
 // CreateBlackWhiteList creates a blacklist or whitelist entry
 func (s *AssetService) CreateBlackWhiteList(item *models.BlackWhiteList) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	collection := database.GetCollection(models.CollectionBlackWhiteList)
@@ -366,7 +366,7 @@ func (s *AssetService) CreateBlackWhiteList(item *models.BlackWhiteList) error {
 
 // ListBlackWhiteList lists blacklist or whitelist entries
 func (s *AssetService) ListBlackWhiteList(workspaceID string, listType string, page, pageSize int) ([]*models.BlackWhiteList, int64, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	collection := database.GetCollection(models.CollectionBlackWhiteList)
@@ -403,7 +403,7 @@ func (s *AssetService) ListBlackWhiteList(workspaceID string, listType string, p
 
 // DeleteBlackWhiteList deletes a blacklist or whitelist entry
 func (s *AssetService) DeleteBlackWhiteList(itemID string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	objID, err := primitive.ObjectIDFromHex(itemID)
@@ -423,7 +423,7 @@ func (s *AssetService) DeleteBlackWhiteList(itemID string) error {
 
 // CheckBlackWhiteList checks if target is in blacklist or whitelist
 func (s *AssetService) CheckBlackWhiteList(workspaceID string, target string) (bool, bool) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 	
 	collection := database.GetCollection(models.CollectionBlackWhiteList)
@@ -455,7 +455,7 @@ func (s *AssetService) CheckBlackWhiteList(workspaceID string, target string) (b
 
 // UpdateLastScanTime updates the last scan time of an asset
 func (s *AssetService) UpdateLastScanTime(assetID string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 
 	objID, err := primitive.ObjectIDFromHex(assetID)
@@ -481,7 +481,7 @@ func (s *AssetService) UpdateLastScanTime(assetID string) error {
 
 // UpdateLastScanTimeByValue updates the last scan time by asset value (target)
 func (s *AssetService) UpdateLastScanTimeByValue(value string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 
 	collection := database.GetCollection(models.CollectionAssets)

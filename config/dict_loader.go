@@ -17,6 +17,8 @@ type DictConfig struct {
 	Fingerprints   *FingerprintConfig
 	CDN            *CDNConfig
 	Vuln           *VulnConfig
+	Ports          *PortsConfig
+	FaviconHashes  *FaviconHashConfig
 }
 
 // FingerprintConfig holds fingerprint rules
@@ -79,6 +81,21 @@ type SensitivePatternConfig struct {
 	Severity string `yaml:"severity"`
 }
 
+// PortsConfig holds port scanning configuration
+type PortsConfig struct {
+	CommonPorts    []int            `yaml:"common_ports"`
+	TopPorts       []int            `yaml:"top_ports"`
+	PortServiceMap map[int]string   `yaml:"port_service_map"`
+	HTTPPorts      []int            `yaml:"http_ports"`
+	NonHTTPPorts   []int            `yaml:"non_http_ports"`
+}
+
+// FaviconHashConfig holds favicon hash to product mapping
+type FaviconHashConfig struct {
+	FaviconHashes map[string]string `yaml:"favicon_hashes"`
+	FaviconMD5    map[string]string `yaml:"favicon_md5"`
+}
+
 var (
 	dictConfig     *DictConfig
 	dictConfigOnce sync.Once
@@ -119,6 +136,12 @@ func LoadDictConfig() *DictConfig {
 
 		// Load vuln config
 		dictConfig.Vuln = loadVulnConfig(filepath.Join(basePath, "vuln.yaml"))
+
+		// Load ports config
+		dictConfig.Ports = loadPortsConfig(filepath.Join(basePath, "ports.yaml"))
+
+		// Load favicon hashes
+		dictConfig.FaviconHashes = loadFaviconHashConfig(filepath.Join(basePath, "favicon_hashes.yaml"))
 	})
 
 	return dictConfig
@@ -184,6 +207,66 @@ func loadCDNConfig(filePath string) *CDNConfig {
 // loadVulnConfig loads vulnerability configuration from YAML
 func loadVulnConfig(filePath string) *VulnConfig {
 	config := &VulnConfig{}
+
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return config
+	}
+
+	yaml.Unmarshal(data, config)
+	return config
+}
+
+// loadPortsConfig loads port configuration from YAML
+func loadPortsConfig(filePath string) *PortsConfig {
+	config := &PortsConfig{
+		PortServiceMap: make(map[int]string),
+	}
+
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		// 返回默认配置
+		return getDefaultPortsConfig()
+	}
+
+	if err := yaml.Unmarshal(data, config); err != nil {
+		return getDefaultPortsConfig()
+	}
+
+	// 如果配置为空，使用默认值
+	if len(config.CommonPorts) == 0 {
+		return getDefaultPortsConfig()
+	}
+
+	return config
+}
+
+// getDefaultPortsConfig returns default port configuration
+func getDefaultPortsConfig() *PortsConfig {
+	return &PortsConfig{
+		CommonPorts: []int{21, 22, 23, 25, 53, 80, 110, 111, 135, 139, 143, 443, 445, 993, 995,
+			1433, 1521, 2049, 3306, 3389, 5432, 5900, 6379, 8080, 8443, 9000, 27017},
+		TopPorts: []int{21, 22, 23, 25, 53, 80, 110, 135, 139, 143, 443, 445, 993, 995,
+			1433, 1521, 3306, 3389, 5432, 5900, 6379, 8080, 8443, 27017},
+		PortServiceMap: map[int]string{
+			21: "ftp", 22: "ssh", 23: "telnet", 25: "smtp", 53: "dns", 80: "http",
+			110: "pop3", 111: "rpcbind", 135: "msrpc", 139: "netbios-ssn", 143: "imap",
+			443: "https", 445: "microsoft-ds", 993: "imaps", 995: "pop3s",
+			1433: "mssql", 1521: "oracle", 2049: "nfs", 3306: "mysql", 3389: "rdp",
+			5432: "postgresql", 5900: "vnc", 6379: "redis", 8080: "http-proxy",
+			8443: "https-alt", 9000: "cslistener", 27017: "mongodb",
+		},
+		HTTPPorts:    []int{80, 443, 8080, 8443, 8000, 8008, 8081, 8088, 8888, 9000, 9090},
+		NonHTTPPorts: []int{21, 22, 23, 25, 53, 110, 139, 143, 445, 993, 995, 1433, 1521, 3306, 3389, 5432, 5900, 6379, 27017},
+	}
+}
+
+// loadFaviconHashConfig loads favicon hash configuration from YAML
+func loadFaviconHashConfig(filePath string) *FaviconHashConfig {
+	config := &FaviconHashConfig{
+		FaviconHashes: make(map[string]string),
+		FaviconMD5:    make(map[string]string),
+	}
 
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -271,4 +354,97 @@ func GetBackupExtensions() []string {
 		return vulnConfig.BackupExtensions
 	}
 	return []string{".bak", ".backup", ".old", ".sql", ".zip", ".tar.gz"}
+}
+
+// GetPortsConfig returns port configuration
+func GetPortsConfig() *PortsConfig {
+	return GetDictConfig().Ports
+}
+
+// GetCommonPorts returns common port list
+func GetCommonPorts() []int {
+	portsConfig := GetPortsConfig()
+	if portsConfig != nil && len(portsConfig.CommonPorts) > 0 {
+		return portsConfig.CommonPorts
+	}
+	return getDefaultPortsConfig().CommonPorts
+}
+
+// GetTopPorts returns top port list
+func GetTopPorts() []int {
+	portsConfig := GetPortsConfig()
+	if portsConfig != nil && len(portsConfig.TopPorts) > 0 {
+		return portsConfig.TopPorts
+	}
+	return getDefaultPortsConfig().TopPorts
+}
+
+// GetPortServiceMap returns port to service name mapping
+func GetPortServiceMap() map[int]string {
+	portsConfig := GetPortsConfig()
+	if portsConfig != nil && len(portsConfig.PortServiceMap) > 0 {
+		return portsConfig.PortServiceMap
+	}
+	return getDefaultPortsConfig().PortServiceMap
+}
+
+// GetHTTPPorts returns ports that typically run HTTP services
+func GetHTTPPorts() []int {
+	portsConfig := GetPortsConfig()
+	if portsConfig != nil && len(portsConfig.HTTPPorts) > 0 {
+		return portsConfig.HTTPPorts
+	}
+	return getDefaultPortsConfig().HTTPPorts
+}
+
+// GetNonHTTPPorts returns ports that are definitely not HTTP
+func GetNonHTTPPorts() []int {
+	portsConfig := GetPortsConfig()
+	if portsConfig != nil && len(portsConfig.NonHTTPPorts) > 0 {
+		return portsConfig.NonHTTPPorts
+	}
+	return getDefaultPortsConfig().NonHTTPPorts
+}
+
+// IsHTTPPort checks if a port is likely to be HTTP
+func IsHTTPPort(port int) bool {
+	for _, p := range GetHTTPPorts() {
+		if p == port {
+			return true
+		}
+	}
+	return false
+}
+
+// IsNonHTTPPort checks if a port is definitely not HTTP
+func IsNonHTTPPort(port int) bool {
+	for _, p := range GetNonHTTPPorts() {
+		if p == port {
+			return true
+		}
+	}
+	return false
+}
+
+// GetFaviconHashConfig returns favicon hash configuration
+func GetFaviconHashConfig() *FaviconHashConfig {
+	return GetDictConfig().FaviconHashes
+}
+
+// GetFaviconHashes returns favicon hash to product mapping
+func GetFaviconHashes() map[string]string {
+	faviconConfig := GetFaviconHashConfig()
+	if faviconConfig != nil && len(faviconConfig.FaviconHashes) > 0 {
+		return faviconConfig.FaviconHashes
+	}
+	return nil
+}
+
+// GetFaviconMD5 returns favicon MD5 to product mapping
+func GetFaviconMD5() map[string]string {
+	faviconConfig := GetFaviconHashConfig()
+	if faviconConfig != nil && len(faviconConfig.FaviconMD5) > 0 {
+		return faviconConfig.FaviconMD5
+	}
+	return nil
 }

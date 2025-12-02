@@ -1,0 +1,15 @@
+{
+  "name": "moon-gazing-tower-docs",
+  "version": "1.0.0",
+  "description": "Documentation for Moon Gazing Tower",
+  "main": "index.js",
+  "scripts": {
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "vitepress": "^1.0.0",
+    "vue": "^3.0.0"
+  }
+}

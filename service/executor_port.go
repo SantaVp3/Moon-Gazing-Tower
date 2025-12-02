@@ -6,7 +6,8 @@ import (
 	"time"
 
 	"moongazing/models"
-	"moongazing/scanner"
+	"moongazing/scanner/core"
+	"moongazing/scanner/portscan"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -26,7 +27,7 @@ func (e *TaskExecutor) executePortScan(task *models.Task) {
 	results := make([]models.ScanResult, 0)
 	
 	// 使用 RustScan 进行端口扫描
-	rustConfig := &scanner.RustScanConfig{
+	rustConfig := &portscan.RustScanConfig{
 		Timeout:   task.Config.Timeout,
 		BatchSize: task.Config.Threads,
 		RateLimit: task.Config.PortScanRate,
@@ -38,7 +39,7 @@ func (e *TaskExecutor) executePortScan(task *models.Task) {
 		rustConfig.BatchSize = 4500
 	}
 	
-	rustScanner := scanner.NewRustScanScannerWithConfig(rustConfig)
+	rustScanner := portscan.NewRustScanScannerWithConfig(rustConfig)
 	if !rustScanner.IsAvailable() {
 		e.failTask(task, "RustScan 工具不可用，请先安装 RustScan")
 		return
@@ -93,7 +94,7 @@ func (e *TaskExecutor) executePortScan(task *models.Task) {
 }
 
 // runPortScanMode 根据模式运行端口扫描
-func (e *TaskExecutor) runPortScanMode(ctx context.Context, rustScanner *scanner.RustScanScanner, target, mode, customPorts string) (*scanner.ScanResult, error) {
+func (e *TaskExecutor) runPortScanMode(ctx context.Context, rustScanner *portscan.RustScanScanner, target, mode, customPorts string) (*core.ScanResult, error) {
 	if mode == "" {
 		mode = "quick"
 	}

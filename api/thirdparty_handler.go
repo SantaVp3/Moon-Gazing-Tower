@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"moongazing/scanner/thirdparty"
+	"moongazing/scanner/enscan"
+	"moongazing/scanner/subdomain/thirdparty"
 	"moongazing/utils"
 
 	"github.com/gin-gonic/gin"
@@ -415,5 +416,298 @@ func (h *ThirdPartyHandler) GetCertSubdomains(c *gin.Context) {
 		"total":      len(subdomains),
 		"subdomains": subdomains,
 		"source":     "crt.sh",
+	})
+}
+
+// ===================== ENScan 企业信息查询 =====================
+
+// ENScanHandler ENScan 处理器
+type ENScanHandler struct {
+	scanner *enscan.ENScanScanner
+}
+
+// NewENScanHandler 创建 ENScan 处理器
+func NewENScanHandler() *ENScanHandler {
+	return &ENScanHandler{
+		scanner: enscan.NewENScanScanner(),
+	}
+}
+
+// GetStatus 获取 ENScan 状态
+// GET /api/enscan/status
+func (h *ENScanHandler) GetStatus(c *gin.Context) {
+	utils.Success(c, gin.H{
+		"available": h.scanner.IsAvailable(),
+	})
+}
+
+// QueryCompany 查询公司信息
+// POST /api/enscan/query
+func (h *ENScanHandler) QueryCompany(c *gin.Context) {
+	var req struct {
+		Company     string   `json:"company" binding:"required"`
+		Fields      []string `json:"fields"`
+		Source      string   `json:"source"`
+		InvestRatio int      `json:"invest_ratio"`
+		Depth       int      `json:"depth"`
+		Branch      bool     `json:"branch"`
+		Timeout     int      `json:"timeout"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, "参数错误: "+err.Error())
+		return
+	}
+
+	if !h.scanner.IsAvailable() {
+		utils.InternalError(c, "ENScan 工具不可用，请先安装")
+		return
+	}
+
+	timeout := 120 * time.Second
+	if req.Timeout > 0 {
+		timeout = time.Duration(req.Timeout) * time.Second
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	opts := &enscan.ENScanQueryOptions{
+		Fields:      req.Fields,
+		Source:      req.Source,
+		InvestRatio: req.InvestRatio,
+		Depth:       req.Depth,
+		Branch:      req.Branch,
+	}
+
+	if len(opts.Fields) == 0 {
+		opts.Fields = []string{"app", "wx_app", "wechat", "icp"}
+	}
+	if opts.Source == "" {
+		opts.Source = "aqc"
+	}
+
+	result, err := h.scanner.QueryCompany(ctx, req.Company, opts)
+	if err != nil {
+		utils.InternalError(c, "查询失败: "+err.Error())
+		return
+	}
+
+	utils.Success(c, result)
+}
+
+// QueryApps 查询公司 APP 信息
+// GET /api/enscan/apps
+func (h *ENScanHandler) QueryApps(c *gin.Context) {
+	company := c.Query("company")
+	if company == "" {
+		utils.BadRequest(c, "company 参数必填")
+		return
+	}
+
+	if !h.scanner.IsAvailable() {
+		utils.InternalError(c, "ENScan 工具不可用")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	apps, err := h.scanner.QueryApps(ctx, company)
+	if err != nil {
+		utils.InternalError(c, "查询失败: "+err.Error())
+		return
+	}
+
+	utils.Success(c, gin.H{
+		"company": company,
+		"total":   len(apps),
+		"apps":    apps,
+	})
+}
+
+// QueryWxApps 查询公司微信小程序
+// GET /api/enscan/wxapps
+func (h *ENScanHandler) QueryWxApps(c *gin.Context) {
+	company := c.Query("company")
+	if company == "" {
+		utils.BadRequest(c, "company 参数必填")
+		return
+	}
+
+	if !h.scanner.IsAvailable() {
+		utils.InternalError(c, "ENScan 工具不可用")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	wxApps, err := h.scanner.QueryWxApps(ctx, company)
+	if err != nil {
+		utils.InternalError(c, "查询失败: "+err.Error())
+		return
+	}
+
+	utils.Success(c, gin.H{
+		"company": company,
+		"total":   len(wxApps),
+		"wx_apps": wxApps,
+	})
+}
+
+// QueryWechats 查询公司微信公众号
+// GET /api/enscan/wechats
+func (h *ENScanHandler) QueryWechats(c *gin.Context) {
+	company := c.Query("company")
+	if company == "" {
+		utils.BadRequest(c, "company 参数必填")
+		return
+	}
+
+	if !h.scanner.IsAvailable() {
+		utils.InternalError(c, "ENScan 工具不可用")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	wechats, err := h.scanner.QueryWechats(ctx, company)
+	if err != nil {
+		utils.InternalError(c, "查询失败: "+err.Error())
+		return
+	}
+
+	utils.Success(c, gin.H{
+		"company": company,
+		"total":   len(wechats),
+		"wechats": wechats,
+	})
+}
+
+// QueryICPs 查询公司 ICP 备案
+// GET /api/enscan/icps
+func (h *ENScanHandler) QueryICPs(c *gin.Context) {
+	company := c.Query("company")
+	if company == "" {
+		utils.BadRequest(c, "company 参数必填")
+		return
+	}
+
+	if !h.scanner.IsAvailable() {
+		utils.InternalError(c, "ENScan 工具不可用")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	icps, err := h.scanner.QueryICPs(ctx, company)
+	if err != nil {
+		utils.InternalError(c, "查询失败: "+err.Error())
+		return
+	}
+
+	utils.Success(c, gin.H{
+		"company": company,
+		"total":   len(icps),
+		"icps":    icps,
+	})
+}
+
+// QueryAll 查询公司所有信息
+// GET /api/enscan/all
+func (h *ENScanHandler) QueryAll(c *gin.Context) {
+	company := c.Query("company")
+	if company == "" {
+		utils.BadRequest(c, "company 参数必填")
+		return
+	}
+
+	if !h.scanner.IsAvailable() {
+		utils.InternalError(c, "ENScan 工具不可用")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	defer cancel()
+
+	result, err := h.scanner.QueryAll(ctx, company)
+	if err != nil {
+		utils.InternalError(c, "查询失败: "+err.Error())
+		return
+	}
+
+	utils.Success(c, result)
+}
+
+// BatchQuery 批量查询公司信息
+// POST /api/enscan/batch
+func (h *ENScanHandler) BatchQuery(c *gin.Context) {
+	var req struct {
+		Companies   []string `json:"companies" binding:"required"`
+		Fields      []string `json:"fields"`
+		Source      string   `json:"source"`
+		Timeout     int      `json:"timeout"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, "参数错误: "+err.Error())
+		return
+	}
+
+	if len(req.Companies) > 50 {
+		utils.BadRequest(c, "一次最多查询 50 个公司")
+		return
+	}
+
+	if !h.scanner.IsAvailable() {
+		utils.InternalError(c, "ENScan 工具不可用")
+		return
+	}
+
+	timeout := 300 * time.Second
+	if req.Timeout > 0 {
+		timeout = time.Duration(req.Timeout) * time.Second
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	opts := &enscan.ENScanQueryOptions{
+		Fields: req.Fields,
+		Source: req.Source,
+	}
+
+	if len(opts.Fields) == 0 {
+		opts.Fields = []string{"app", "wx_app", "icp"}
+	}
+	if opts.Source == "" {
+		opts.Source = "aqc"
+	}
+
+	results, err := h.scanner.BatchQuery(ctx, req.Companies, opts)
+	if err != nil {
+		utils.InternalError(c, "批量查询失败: "+err.Error())
+		return
+	}
+
+	// 统计
+	totalApps := 0
+	totalWxApps := 0
+	totalICPs := 0
+	for _, r := range results {
+		totalApps += len(r.Apps)
+		totalWxApps += len(r.WxApps)
+		totalICPs += len(r.ICPs)
+	}
+
+	utils.Success(c, gin.H{
+		"total":        len(results),
+		"total_apps":   totalApps,
+		"total_wxapps": totalWxApps,
+		"total_icps":   totalICPs,
+		"results":      results,
 	})
 }

@@ -24,7 +24,7 @@ func NewResultService() *ResultService {
 
 // CreateResult 创建扫描结果
 func (s *ResultService) CreateResult(result *models.ScanResult) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 
 	result.CreatedAt = time.Now()
@@ -42,7 +42,7 @@ func (s *ResultService) CreateResult(result *models.ScanResult) error {
 // CreateResultWithDedup 创建扫描结果（带去重）
 // 根据 type 和 data 中的关键字段进行去重
 func (s *ResultService) CreateResultWithDedup(result *models.ScanResult) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 
 	// 构建去重过滤条件
@@ -148,7 +148,7 @@ func (s *ResultService) BatchCreateResultsWithDedup(results []models.ScanResult)
 
 // GetResultsByTask 获取任务的扫描结果
 func (s *ResultService) GetResultsByTask(taskID string, resultType models.ResultType, page, pageSize int, search string, statusCode int) ([]models.ScanResult, int64, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 
 	objID, err := primitive.ObjectIDFromHex(taskID)
@@ -207,7 +207,7 @@ func (s *ResultService) GetResultsByTask(taskID string, resultType models.Result
 
 // GetResultStats 获取任务结果统计
 func (s *ResultService) GetResultStats(taskID string) (map[string]int64, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 
 	objID, err := primitive.ObjectIDFromHex(taskID)
@@ -246,7 +246,7 @@ func (s *ResultService) GetResultStats(taskID string) (map[string]int64, error) 
 
 // DeleteResultsByTask 删除任务的所有结果
 func (s *ResultService) DeleteResultsByTask(taskID string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 
 	objID, err := primitive.ObjectIDFromHex(taskID)
@@ -260,7 +260,7 @@ func (s *ResultService) DeleteResultsByTask(taskID string) error {
 
 // UpdateResultTags 更新结果标签
 func (s *ResultService) UpdateResultTags(id string, tags []string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 
 	objID, err := primitive.ObjectIDFromHex(id)
@@ -281,7 +281,7 @@ func (s *ResultService) UpdateResultTags(id string, tags []string) error {
 
 // AddResultTag 添加标签
 func (s *ResultService) AddResultTag(id string, tag string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 
 	objID, err := primitive.ObjectIDFromHex(id)
@@ -300,7 +300,7 @@ func (s *ResultService) AddResultTag(id string, tag string) error {
 
 // RemoveResultTag 移除标签
 func (s *ResultService) RemoveResultTag(id string, tag string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 
 	objID, err := primitive.ObjectIDFromHex(id)
@@ -349,7 +349,7 @@ func (s *ResultService) ExportResults(taskID string, resultType models.ResultTyp
 
 // BatchDeleteResults 批量删除结果
 func (s *ResultService) BatchDeleteResults(ids []string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 
 	objIDs := make([]primitive.ObjectID, 0, len(ids))
@@ -371,7 +371,7 @@ func (s *ResultService) BatchDeleteResults(ids []string) error {
 
 // GetSubdomainResults 获取子域名结果 (带解析)
 func (s *ResultService) GetSubdomainResults(taskID string, page, pageSize int, search string) ([]map[string]interface{}, int64, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := database.NewContext()
 	defer cancel()
 
 	objID, err := primitive.ObjectIDFromHex(taskID)
