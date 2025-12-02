@@ -15,20 +15,20 @@ func getToolsDir() string {
 		return filepath.Join(".", "tools")
 	}
 	execDir := filepath.Dir(execPath)
-	
+
 	// 尝试多个可能的路径
 	possiblePaths := []string{
-		filepath.Join(execDir, "tools"),           // 与可执行文件同级的 tools
-		filepath.Join(execDir, "..", "tools"),     // 上一级的 tools (开发模式)
-		filepath.Join(".", "tools"),               // 当前目录的 tools
+		filepath.Join(execDir, "tools"),       // 与可执行文件同级的 tools
+		filepath.Join(execDir, "..", "tools"), // 上一级的 tools (开发模式)
+		filepath.Join(".", "tools"),           // 当前目录的 tools
 	}
-	
+
 	for _, p := range possiblePaths {
 		if _, err := os.Stat(p); err == nil {
 			return p
 		}
 	}
-	
+
 	return filepath.Join(execDir, "tools")
 }
 
@@ -112,7 +112,7 @@ func (t *ToolsManager) ListAvailableTools() []string {
 func (t *ToolsManager) GetToolsInfo() map[string]bool {
 	info := make(map[string]bool)
 	toolNames := []string{"rustscan", "katana", "rad"}
-	
+
 	for _, name := range toolNames {
 		info[name] = t.IsToolAvailable(name)
 	}

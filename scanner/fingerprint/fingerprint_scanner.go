@@ -28,26 +28,26 @@ import (
 
 // FingerprintResult represents fingerprint detection result
 type FingerprintResult struct {
-	Target      string            `json:"target"`
-	URL         string            `json:"url,omitempty"`
-	StatusCode  int               `json:"status_code,omitempty"`
-	Title       string            `json:"title,omitempty"`
-	Server      string            `json:"server,omitempty"`
-	PoweredBy   string            `json:"powered_by,omitempty"`
-	Headers     map[string]string `json:"headers,omitempty"`
-	IconHash    string            `json:"icon_hash,omitempty"`
-	IconMD5     string            `json:"icon_md5,omitempty"`
-	BodyHash    string            `json:"body_hash,omitempty"`
-	BodyLength  int               `json:"body_length,omitempty"`
-	Fingerprints []Fingerprint    `json:"fingerprints"`
-	Technologies []string         `json:"technologies,omitempty"`
-	CMS         string            `json:"cms,omitempty"`
-	Framework   string            `json:"framework,omitempty"`
-	WebServer   string            `json:"web_server,omitempty"`
-	OS          string            `json:"os,omitempty"`
-	Language    string            `json:"language,omitempty"`
-	JSLibraries []string          `json:"js_libraries,omitempty"`
-	ScanTime    time.Duration     `json:"scan_time_ms"`
+	Target       string            `json:"target"`
+	URL          string            `json:"url,omitempty"`
+	StatusCode   int               `json:"status_code,omitempty"`
+	Title        string            `json:"title,omitempty"`
+	Server       string            `json:"server,omitempty"`
+	PoweredBy    string            `json:"powered_by,omitempty"`
+	Headers      map[string]string `json:"headers,omitempty"`
+	IconHash     string            `json:"icon_hash,omitempty"`
+	IconMD5      string            `json:"icon_md5,omitempty"`
+	BodyHash     string            `json:"body_hash,omitempty"`
+	BodyLength   int               `json:"body_length,omitempty"`
+	Fingerprints []Fingerprint     `json:"fingerprints"`
+	Technologies []string          `json:"technologies,omitempty"`
+	CMS          string            `json:"cms,omitempty"`
+	Framework    string            `json:"framework,omitempty"`
+	WebServer    string            `json:"web_server,omitempty"`
+	OS           string            `json:"os,omitempty"`
+	Language     string            `json:"language,omitempty"`
+	JSLibraries  []string          `json:"js_libraries,omitempty"`
+	ScanTime     time.Duration     `json:"scan_time_ms"`
 }
 
 // Fingerprint represents a single fingerprint match
@@ -61,13 +61,13 @@ type Fingerprint struct {
 
 // PortFingerprint represents service fingerprint on a port
 type PortFingerprint struct {
-	Port        int      `json:"port"`
-	Service     string   `json:"service"`
-	Version     string   `json:"version,omitempty"`
-	Product     string   `json:"product,omitempty"`
-	Info        string   `json:"info,omitempty"`
-	Banner      string   `json:"banner,omitempty"`
-	SSL         bool     `json:"ssl"`
+	Port        int       `json:"port"`
+	Service     string    `json:"service"`
+	Version     string    `json:"version,omitempty"`
+	Product     string    `json:"product,omitempty"`
+	Info        string    `json:"info,omitempty"`
+	Banner      string    `json:"banner,omitempty"`
+	SSL         bool      `json:"ssl"`
 	Certificate *CertInfo `json:"certificate,omitempty"`
 }
 
@@ -88,7 +88,6 @@ type FingerprintScanner struct {
 	Concurrency int
 	VeoEngine   *Engine // veo-style DSL engine
 }
-
 
 // NewFingerprintScanner creates a new fingerprint scanner
 func NewFingerprintScanner(concurrency int) *FingerprintScanner {
@@ -122,7 +121,7 @@ func NewFingerprintScanner(concurrency int) *FingerprintScanner {
 
 	// Initialize veo-style fingerprint engine
 	scanner.VeoEngine = NewEngine(DefaultEngineConfig())
-	
+
 	// Load veo fingerprint rules
 	veoRulesPath := getVeoFingerprintRulesPath()
 	if veoRulesPath != "" {
@@ -148,7 +147,7 @@ func getVeoFingerprintRulesPath() string {
 	// Get executable directory
 	if exe, err := os.Executable(); err == nil {
 		dir := filepath.Dir(exe)
-		paths = append(paths, 
+		paths = append(paths,
 			filepath.Join(dir, "config/dicts/veo_fingerprints.yaml"),
 			filepath.Join(dir, "../config/dicts/veo_fingerprints.yaml"),
 		)
@@ -156,7 +155,7 @@ func getVeoFingerprintRulesPath() string {
 
 	// Get working directory
 	if wd, err := os.Getwd(); err == nil {
-		paths = append(paths, 
+		paths = append(paths,
 			filepath.Join(wd, "config/dicts/veo_fingerprints.yaml"),
 			filepath.Join(wd, "backend/config/dicts/veo_fingerprints.yaml"),
 		)
@@ -339,24 +338,24 @@ func extractJSLibraries(html string) []string {
 	seen := make(map[string]bool)
 
 	patterns := map[string]*regexp.Regexp{
-		"jQuery":      regexp.MustCompile(`(?i)jquery[.-]?([\d.]+)?\.?(min\.)?js`),
-		"Vue.js":      regexp.MustCompile(`(?i)vue[.-]?([\d.]+)?\.?(min\.)?js`),
-		"React":       regexp.MustCompile(`(?i)react[.-]?([\d.]+)?\.?(min\.)?js`),
-		"Angular":     regexp.MustCompile(`(?i)angular[.-]?([\d.]+)?\.?(min\.)?js`),
-		"Bootstrap":   regexp.MustCompile(`(?i)bootstrap[.-]?([\d.]+)?\.?(min\.)?js`),
-		"Lodash":      regexp.MustCompile(`(?i)lodash[.-]?([\d.]+)?\.?(min\.)?js`),
-		"Underscore":  regexp.MustCompile(`(?i)underscore[.-]?([\d.]+)?\.?(min\.)?js`),
-		"Moment.js":   regexp.MustCompile(`(?i)moment[.-]?([\d.]+)?\.?(min\.)?js`),
-		"D3.js":       regexp.MustCompile(`(?i)d3[.-]?([\d.]+)?\.?(min\.)?js`),
-		"Chart.js":    regexp.MustCompile(`(?i)chart[.-]?([\d.]+)?\.?(min\.)?js`),
-		"Three.js":    regexp.MustCompile(`(?i)three[.-]?([\d.]+)?\.?(min\.)?js`),
-		"Axios":       regexp.MustCompile(`(?i)axios[.-]?([\d.]+)?\.?(min\.)?js`),
-		"Layui":       regexp.MustCompile(`(?i)layui[.-]?([\d.]+)?\.?(min\.)?js`),
-		"ElementUI":   regexp.MustCompile(`(?i)element-ui[.-]?([\d.]+)?\.?(min\.)?js`),
-		"Ant Design":  regexp.MustCompile(`(?i)antd[.-]?([\d.]+)?\.?(min\.)?js`),
-		"ECharts":     regexp.MustCompile(`(?i)echarts[.-]?([\d.]+)?\.?(min\.)?js`),
-		"Swiper":      regexp.MustCompile(`(?i)swiper[.-]?([\d.]+)?\.?(min\.)?js`),
-		"Zepto":       regexp.MustCompile(`(?i)zepto[.-]?([\d.]+)?\.?(min\.)?js`),
+		"jQuery":     regexp.MustCompile(`(?i)jquery[.-]?([\d.]+)?\.?(min\.)?js`),
+		"Vue.js":     regexp.MustCompile(`(?i)vue[.-]?([\d.]+)?\.?(min\.)?js`),
+		"React":      regexp.MustCompile(`(?i)react[.-]?([\d.]+)?\.?(min\.)?js`),
+		"Angular":    regexp.MustCompile(`(?i)angular[.-]?([\d.]+)?\.?(min\.)?js`),
+		"Bootstrap":  regexp.MustCompile(`(?i)bootstrap[.-]?([\d.]+)?\.?(min\.)?js`),
+		"Lodash":     regexp.MustCompile(`(?i)lodash[.-]?([\d.]+)?\.?(min\.)?js`),
+		"Underscore": regexp.MustCompile(`(?i)underscore[.-]?([\d.]+)?\.?(min\.)?js`),
+		"Moment.js":  regexp.MustCompile(`(?i)moment[.-]?([\d.]+)?\.?(min\.)?js`),
+		"D3.js":      regexp.MustCompile(`(?i)d3[.-]?([\d.]+)?\.?(min\.)?js`),
+		"Chart.js":   regexp.MustCompile(`(?i)chart[.-]?([\d.]+)?\.?(min\.)?js`),
+		"Three.js":   regexp.MustCompile(`(?i)three[.-]?([\d.]+)?\.?(min\.)?js`),
+		"Axios":      regexp.MustCompile(`(?i)axios[.-]?([\d.]+)?\.?(min\.)?js`),
+		"Layui":      regexp.MustCompile(`(?i)layui[.-]?([\d.]+)?\.?(min\.)?js`),
+		"ElementUI":  regexp.MustCompile(`(?i)element-ui[.-]?([\d.]+)?\.?(min\.)?js`),
+		"Ant Design": regexp.MustCompile(`(?i)antd[.-]?([\d.]+)?\.?(min\.)?js`),
+		"ECharts":    regexp.MustCompile(`(?i)echarts[.-]?([\d.]+)?\.?(min\.)?js`),
+		"Swiper":     regexp.MustCompile(`(?i)swiper[.-]?([\d.]+)?\.?(min\.)?js`),
+		"Zepto":      regexp.MustCompile(`(?i)zepto[.-]?([\d.]+)?\.?(min\.)?js`),
 	}
 
 	for name, pattern := range patterns {

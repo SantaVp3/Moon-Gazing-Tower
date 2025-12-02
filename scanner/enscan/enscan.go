@@ -47,19 +47,19 @@ type ENScanConfig struct {
 
 // ENScanResult ENScan 查询结果
 type ENScanResult struct {
-	Company     string             `json:"company"`      // 公司名称
-	PID         string             `json:"pid"`          // 公司PID
-	Apps        []AppInfo          `json:"apps"`         // APP信息
-	WxApps      []WxAppInfo        `json:"wx_apps"`      // 微信小程序
-	Wechats     []WechatInfo       `json:"wechats"`      // 微信公众号
-	ICPs        []ICPInfo          `json:"icps"`         // ICP备案
-	Weibos      []WeiboInfo        `json:"weibos"`       // 微博
-	Copyrights  []CopyrightInfo    `json:"copyrights"`   // 软件著作权
-	Jobs        []JobInfo          `json:"jobs"`         // 招聘信息
-	Investments []InvestmentInfo   `json:"investments"`  // 对外投资
-	Branches    []BranchInfo       `json:"branches"`     // 分支机构
-	Source      string             `json:"source"`       // 数据来源
-	QueryTime   time.Time          `json:"query_time"`   // 查询时间
+	Company     string           `json:"company"`     // 公司名称
+	PID         string           `json:"pid"`         // 公司PID
+	Apps        []AppInfo        `json:"apps"`        // APP信息
+	WxApps      []WxAppInfo      `json:"wx_apps"`     // 微信小程序
+	Wechats     []WechatInfo     `json:"wechats"`     // 微信公众号
+	ICPs        []ICPInfo        `json:"icps"`        // ICP备案
+	Weibos      []WeiboInfo      `json:"weibos"`      // 微博
+	Copyrights  []CopyrightInfo  `json:"copyrights"`  // 软件著作权
+	Jobs        []JobInfo        `json:"jobs"`        // 招聘信息
+	Investments []InvestmentInfo `json:"investments"` // 对外投资
+	Branches    []BranchInfo     `json:"branches"`    // 分支机构
+	Source      string           `json:"source"`      // 数据来源
+	QueryTime   time.Time        `json:"query_time"`  // 查询时间
 }
 
 // AppInfo APP信息
@@ -88,12 +88,12 @@ type WxAppInfo struct {
 
 // WechatInfo 微信公众号信息
 type WechatInfo struct {
-	Name        string `json:"name"`         // 公众号名称
-	WechatID    string `json:"wechat_id"`    // 微信号
-	Logo        string `json:"logo"`         // 头像
-	Description string `json:"description"`  // 简介
-	QRCode      string `json:"qr_code"`      // 二维码
-	Verified    bool   `json:"verified"`     // 是否认证
+	Name        string `json:"name"`        // 公众号名称
+	WechatID    string `json:"wechat_id"`   // 微信号
+	Logo        string `json:"logo"`        // 头像
+	Description string `json:"description"` // 简介
+	QRCode      string `json:"qr_code"`     // 二维码
+	Verified    bool   `json:"verified"`    // 是否认证
 }
 
 // ICPInfo ICP备案信息
@@ -118,24 +118,24 @@ type WeiboInfo struct {
 
 // CopyrightInfo 软件著作权信息
 type CopyrightInfo struct {
-	Name          string `json:"name"`           // 软件名称
-	ShortName     string `json:"short_name"`     // 简称
-	Version       string `json:"version"`        // 版本号
-	RegisterNo    string `json:"register_no"`    // 登记号
-	Category      string `json:"category"`       // 分类
-	RegisterDate  string `json:"register_date"`  // 登记日期
-	PublishDate   string `json:"publish_date"`   // 首次发表日期
+	Name         string `json:"name"`          // 软件名称
+	ShortName    string `json:"short_name"`    // 简称
+	Version      string `json:"version"`       // 版本号
+	RegisterNo   string `json:"register_no"`   // 登记号
+	Category     string `json:"category"`      // 分类
+	RegisterDate string `json:"register_date"` // 登记日期
+	PublishDate  string `json:"publish_date"`  // 首次发表日期
 }
 
 // JobInfo 招聘信息
 type JobInfo struct {
-	Title      string `json:"title"`       // 职位名称
-	Location   string `json:"location"`    // 工作地点
-	Salary     string `json:"salary"`      // 薪资
-	Experience string `json:"experience"`  // 经验要求
-	Education  string `json:"education"`   // 学历要求
-	Source     string `json:"source"`      // 来源平台
-	URL        string `json:"url"`         // 链接
+	Title      string `json:"title"`      // 职位名称
+	Location   string `json:"location"`   // 工作地点
+	Salary     string `json:"salary"`     // 薪资
+	Experience string `json:"experience"` // 经验要求
+	Education  string `json:"education"`  // 学历要求
+	Source     string `json:"source"`     // 来源平台
+	URL        string `json:"url"`        // 链接
 }
 
 // InvestmentInfo 对外投资信息
@@ -161,7 +161,7 @@ func NewENScanScanner() *ENScanScanner {
 		apiURL:      "http://127.0.0.1:31000",
 		concurrency: 5,
 	}
-	
+
 	// 使用 ToolsManager 查找工具
 	tm := core.NewToolsManager()
 	scanner.execPath = tm.GetToolPath("enscan")
@@ -169,7 +169,7 @@ func NewENScanScanner() *ENScanScanner {
 		scanner.configPath = filepath.Join(filepath.Dir(scanner.execPath), "config.yaml")
 		log.Printf("[ENScan] Found executable at: %s", scanner.execPath)
 	}
-	
+
 	return scanner
 }
 
@@ -179,7 +179,7 @@ func (s *ENScanScanner) findExecutable() {
 	if s.execPath != "" {
 		return
 	}
-	
+
 	tm := core.NewToolsManager()
 	s.execPath = tm.GetToolPath("enscan")
 	if s.execPath != "" {
@@ -342,7 +342,7 @@ func (s *ENScanScanner) queryViaAPI(ctx context.Context, companyName string, opt
 	// 构建请求 URL
 	params := url.Values{}
 	params.Set("name", companyName)
-	
+
 	if opts.Source != "" {
 		params.Set("type", opts.Source)
 	}
@@ -360,7 +360,7 @@ func (s *ENScanScanner) queryViaAPI(ctx context.Context, companyName string, opt
 	}
 
 	reqURL := fmt.Sprintf("%s/api/info?%s", s.apiURL, params.Encode())
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", reqURL, nil)
 	if err != nil {
 		return nil, err
@@ -389,7 +389,7 @@ func (s *ENScanScanner) queryViaCLI(ctx context.Context, companyName string, opt
 
 	// 构建命令参数
 	args := []string{"-n", companyName, "-is-show"}
-	
+
 	if opts.Source != "" {
 		args = append(args, "-type", opts.Source)
 	}
@@ -520,7 +520,7 @@ func (s *ENScanScanner) parseCLIOutput(companyName string, output []byte, source
 	// ENScan CLI 输出的解析逻辑
 	// 由于 CLI 输出格式可能不是 JSON，这里做基本解析
 	lines := strings.Split(string(output), "\n")
-	
+
 	var currentSection string
 	for _, line := range lines {
 		line = strings.TrimSpace(line)

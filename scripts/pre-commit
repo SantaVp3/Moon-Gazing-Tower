@@ -1,0 +1,37 @@
+#!/bin/bash
+# Pre-commit hook - Prevent committing broken code
+
+set -e
+
+echo "Running pre-commit checks..."
+
+# Format check
+echo "→ Checking code format..."
+if ! gofmt -l . | grep -v "^$" | grep -v vendor; then
+    echo "✗ Code not formatted. Run 'make fmt' to fix."
+    exit 1
+fi
+
+# Go mod tidy check
+echo "→ Checking go.mod..."
+go mod tidy
+if ! git diff --exit-code go.mod go.sum; then
+    echo "✗ go.mod/go.sum not tidy. Changes made, please review and commit."
+    exit 1
+fi
+
+# Lint check
+echo "→ Running linters..."
+if ! golangci-lint run ./...; then
+    echo "✗ Linting failed. Fix issues above."
+    exit 1
+fi
+
+# Tests
+echo "→ Running tests..."
+if ! go test ./...; then
+    echo "✗ Tests failed. Fix before committing."
+    exit 1
+fi
+
+echo "✓ All pre-commit checks passed"

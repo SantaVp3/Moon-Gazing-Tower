@@ -89,17 +89,17 @@ func (h *POCHandler) CreatePOC(c *gin.Context) {
 		utils.BadRequest(c, "Invalid request body")
 		return
 	}
-	
+
 	if poc.Name == "" {
 		utils.BadRequest(c, "POC name is required")
 		return
 	}
-	
+
 	if err := h.pocService.Create(&poc); err != nil {
 		utils.InternalError(c, "Failed to create POC")
 		return
 	}
-	
+
 	c.JSON(http.StatusCreated, poc)
 }
 
@@ -112,13 +112,13 @@ func (h *POCHandler) CreatePOC(c *gin.Context) {
 // @Router /api/pocs/{id} [get]
 func (h *POCHandler) GetPOC(c *gin.Context) {
 	id := c.Param("id")
-	
+
 	poc, err := h.pocService.GetByID(id)
 	if err != nil {
 		utils.NotFound(c, "POC not found")
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, poc)
 }
 
@@ -133,22 +133,22 @@ func (h *POCHandler) GetPOC(c *gin.Context) {
 // @Router /api/pocs/{id} [put]
 func (h *POCHandler) UpdatePOC(c *gin.Context) {
 	id := c.Param("id")
-	
+
 	var update map[string]interface{}
 	if err := c.ShouldBindJSON(&update); err != nil {
 		utils.BadRequest(c, "Invalid request body")
 		return
 	}
-	
+
 	// Remove fields that shouldn't be updated directly
 	delete(update, "_id")
 	delete(update, "created_at")
-	
+
 	if err := h.pocService.Update(id, bson.M(update)); err != nil {
 		utils.InternalError(c, "Failed to update POC")
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{"message": "POC updated successfully"})
 }
 
@@ -161,12 +161,12 @@ func (h *POCHandler) UpdatePOC(c *gin.Context) {
 // @Router /api/pocs/{id} [delete]
 func (h *POCHandler) DeletePOC(c *gin.Context) {
 	id := c.Param("id")
-	
+
 	if err := h.pocService.Delete(id); err != nil {
 		utils.InternalError(c, "Failed to delete POC")
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{"message": "POC deleted successfully"})
 }
 
@@ -185,7 +185,7 @@ func (h *POCHandler) DeletePOC(c *gin.Context) {
 func (h *POCHandler) ListPOCs(c *gin.Context) {
 	page, _ := strconv.ParseInt(c.DefaultQuery("page", "1"), 10, 64)
 	pageSize, _ := strconv.ParseInt(c.DefaultQuery("page_size", "20"), 10, 64)
-	
+
 	params := service.POCListParams{
 		Page:     page,
 		PageSize: pageSize,
@@ -193,18 +193,18 @@ func (h *POCHandler) ListPOCs(c *gin.Context) {
 		Severity: c.Query("severity"),
 		Search:   c.Query("search"),
 	}
-	
+
 	if enabledStr := c.Query("enabled"); enabledStr != "" {
 		enabled := enabledStr == "true"
 		params.Enabled = &enabled
 	}
-	
+
 	result, err := h.pocService.List(params)
 	if err != nil {
 		utils.InternalError(c, "Failed to list POCs")
 		return
 	}
-	
+
 	// Return in standard paginated format
 	c.JSON(http.StatusOK, gin.H{
 		"code":    0,
@@ -227,7 +227,7 @@ func (h *POCHandler) ListPOCs(c *gin.Context) {
 // @Router /api/pocs/{id}/toggle [post]
 func (h *POCHandler) TogglePOCEnabled(c *gin.Context) {
 	id := c.Param("id")
-	
+
 	var req struct {
 		Enabled bool `json:"enabled"`
 	}
@@ -235,12 +235,12 @@ func (h *POCHandler) TogglePOCEnabled(c *gin.Context) {
 		utils.BadRequest(c, "Invalid request body")
 		return
 	}
-	
+
 	if err := h.pocService.ToggleEnabled(id, req.Enabled); err != nil {
 		utils.InternalError(c, "Failed to toggle POC status")
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{"message": "POC status updated successfully"})
 }
 
@@ -256,7 +256,7 @@ func (h *POCHandler) GetPOCStatistics(c *gin.Context) {
 		utils.InternalError(c, "Failed to get POC statistics")
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, stats)
 }
 
@@ -276,14 +276,14 @@ func (h *POCHandler) BatchDeletePOCs(c *gin.Context) {
 		utils.BadRequest(c, "Invalid request body")
 		return
 	}
-	
+
 	if len(req.IDs) == 0 {
 		utils.BadRequest(c, "No POC IDs provided")
 		return
 	}
-	
+
 	deleted, failed := h.pocService.BatchDelete(req.IDs)
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"code":    0,
 		"message": "Batch delete completed",
@@ -306,7 +306,7 @@ func (h *POCHandler) ClearAllPOCs(c *gin.Context) {
 		utils.InternalError(c, "Failed to clear POCs: "+err.Error())
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"code":    0,
 		"message": "All POCs cleared",

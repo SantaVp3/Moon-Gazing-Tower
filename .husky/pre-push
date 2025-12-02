@@ -1,0 +1,32 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Pre-push validation for Moon-Gazing-Tower
+echo "🌙 Running pre-push validation..."
+
+# Check if make is available
+if command -v make >/dev/null 2>&1; then
+    make pre-push
+else
+    # Fallback for Windows without make
+    echo "→ Checking code format..."
+    if [ -n "$(gofmt -l . | grep -v vendor)" ]; then
+        echo "✗ Code not formatted. Run 'gofmt -w .'"
+        exit 1
+    fi
+
+    echo "→ Checking go.mod..."
+    go mod tidy
+    if ! git diff --exit-code go.mod go.sum; then
+        echo "✗ go.mod/go.sum not tidy"
+        exit 1
+    fi
+
+    echo "→ Running linters..."
+    golangci-lint run ./...
+
+    echo "→ Running tests..."
+    go test -race ./...
+fi
+
+echo "✓ Pre-push validation passed"

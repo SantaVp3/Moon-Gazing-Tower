@@ -19,15 +19,15 @@ func OperationLogMiddleware() gin.HandlerFunc {
 			c.Next()
 			return
 		}
-		
+
 		startTime := time.Now()
-		
+
 		c.Next()
-		
+
 		// Get user info from context
 		userID, _ := c.Get("user_id")
 		username, _ := c.Get("username")
-		
+
 		// Create operation log
 		log := models.OperationLog{
 			Action:    c.Request.Method,
@@ -38,7 +38,7 @@ func OperationLogMiddleware() gin.HandlerFunc {
 			Status:    getStatusFromCode(c.Writer.Status()),
 			CreatedAt: startTime,
 		}
-		
+
 		if userID != nil {
 			objID, _ := primitive.ObjectIDFromHex(userID.(string))
 			log.UserID = objID
@@ -46,7 +46,7 @@ func OperationLogMiddleware() gin.HandlerFunc {
 		if username != nil {
 			log.Username = username.(string)
 		}
-		
+
 		// Save log asynchronously
 		go saveOperationLog(log)
 	}
@@ -55,23 +55,23 @@ func OperationLogMiddleware() gin.HandlerFunc {
 func saveOperationLog(log models.OperationLog) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	collection := database.GetCollection(models.CollectionOperationLog)
 	_, _ = collection.InsertOne(ctx, log)
 }
 
 func getModuleFromPath(path string) string {
 	modules := map[string]string{
-		"/api/auth":    "认证",
-		"/api/user":    "用户管理",
-		"/api/asset":   "资产管理",
-		"/api/task":    "任务管理",
-		"/api/vuln":    "漏洞管理",
-		"/api/node":    "节点管理",
-		"/api/plugin":  "插件管理",
-		"/api/system":  "系统设置",
+		"/api/auth":   "认证",
+		"/api/user":   "用户管理",
+		"/api/asset":  "资产管理",
+		"/api/task":   "任务管理",
+		"/api/vuln":   "漏洞管理",
+		"/api/node":   "节点管理",
+		"/api/plugin": "插件管理",
+		"/api/system": "系统设置",
 	}
-	
+
 	for prefix, module := range modules {
 		if len(path) >= len(prefix) && path[:len(prefix)] == prefix {
 			return module

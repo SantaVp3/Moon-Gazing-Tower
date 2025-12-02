@@ -107,13 +107,13 @@ func (e *TaskExecutor) dequeueRunningTask(taskType string) (*models.Task, error)
 	rdb := database.GetRedis()
 
 	queueKey := "task:queue:" + taskType
-	
+
 	// 检查队列长度
 	queueLen, _ := rdb.LLen(ctx, queueKey).Result()
 	if queueLen > 0 {
 		log.Printf("[TaskExecutor] Queue %s has %d tasks", queueKey, queueLen)
 	}
-	
+
 	result, err := rdb.LPop(ctx, queueKey).Result()
 	if err == redis.Nil {
 		return nil, nil
@@ -287,8 +287,8 @@ func (e *TaskExecutor) executeStreamingPipeline(task *models.Task, config *pipel
 				Type:        models.ResultTypeSubdomain, // 修复：子域名应该用 Subdomain 类型
 				Source:      r.Source,
 				Data: bson.M{
-					"subdomain":   r.Host,        // 子域名完整名称
-					"domain":      r.Domain,      // 根域名
+					"subdomain":   r.Host,   // 子域名完整名称
+					"domain":      r.Domain, // 根域名
 					"root_domain": r.RootDomain,
 					"ips":         r.IPs,
 					"cnames":      r.CNAMEs,

@@ -25,7 +25,7 @@ func (e *TaskExecutor) executePortScan(task *models.Task) {
 	// 首先为每个非IP目标创建根域名记录
 
 	results := make([]models.ScanResult, 0)
-	
+
 	// 使用 RustScan 进行端口扫描
 	rustConfig := &portscan.RustScanConfig{
 		Timeout:   task.Config.Timeout,
@@ -38,13 +38,13 @@ func (e *TaskExecutor) executePortScan(task *models.Task) {
 	if rustConfig.BatchSize <= 0 {
 		rustConfig.BatchSize = 4500
 	}
-	
+
 	rustScanner := portscan.NewRustScanScannerWithConfig(rustConfig)
 	if !rustScanner.IsAvailable() {
 		e.failTask(task, "RustScan 工具不可用，请先安装 RustScan")
 		return
 	}
-	
+
 	log.Printf("[TaskExecutor] Using RustScan for port scanning, config: timeout=%ds, batch=%d",
 		rustConfig.Timeout, rustConfig.BatchSize)
 
@@ -53,15 +53,15 @@ func (e *TaskExecutor) executePortScan(task *models.Task) {
 		e.updateProgress(task, progress)
 
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-		
+
 		scanResult, err := e.runPortScanMode(ctx, rustScanner, target, task.Config.PortScanMode, task.Config.PortRange)
 		cancel()
-		
+
 		if err != nil {
 			log.Printf("[TaskExecutor] RustScan error on %s: %v", target, err)
 			continue
 		}
-		
+
 		if scanResult == nil {
 			continue
 		}
@@ -98,7 +98,7 @@ func (e *TaskExecutor) runPortScanMode(ctx context.Context, rustScanner *portsca
 	if mode == "" {
 		mode = "quick"
 	}
-	
+
 	switch mode {
 	case "full":
 		log.Printf("[TaskExecutor] Running full port scan (1-65535) on %s", target)

@@ -15,29 +15,29 @@ import (
 // RadScanner 使用 rad 进行浏览器爬虫（基于 Chrome）
 type RadScanner struct {
 	BinPath          string
-	Timeout          int    // 超时时间(秒)
-	MaxDepth         int    // 最大深度
-	Concurrency      int    // 并发数
+	Timeout          int // 超时时间(秒)
+	MaxDepth         int // 最大深度
+	Concurrency      int // 并发数
 	TempDir          string
-	ExecutionTimeout int    // 执行超时时间（分钟）
+	ExecutionTimeout int // 执行超时时间（分钟）
 }
 
 // RadResult rad 爬虫结果
 type RadResult struct {
-	Target    string       `json:"target"`
-	URLs      []RadURL     `json:"urls"`
-	StartTime time.Time    `json:"start_time"`
-	EndTime   time.Time    `json:"end_time"`
-	Duration  string       `json:"duration"`
-	Total     int          `json:"total"`
+	Target    string    `json:"target"`
+	URLs      []RadURL  `json:"urls"`
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
+	Duration  string    `json:"duration"`
+	Total     int       `json:"total"`
 }
 
 // RadURL rad 发现的 URL
 type RadURL struct {
-	URL        string `json:"url"`
-	Method     string `json:"method,omitempty"`
-	Source     string `json:"source,omitempty"`
-	ParentURL  string `json:"parent_url,omitempty"`
+	URL       string `json:"url"`
+	Method    string `json:"method,omitempty"`
+	Source    string `json:"source,omitempty"`
+	ParentURL string `json:"parent_url,omitempty"`
 }
 
 // RadJSONOutput rad JSON 输出格式

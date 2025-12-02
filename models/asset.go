@@ -10,11 +10,11 @@ import (
 type AssetType string
 
 const (
-	AssetTypeIP         AssetType = "ip"
-	AssetTypeDomain     AssetType = "domain"
-	AssetTypeSubdomain  AssetType = "subdomain"
-	AssetTypeURL        AssetType = "url"
-	AssetTypeAPP        AssetType = "app"
+	AssetTypeIP          AssetType = "ip"
+	AssetTypeDomain      AssetType = "domain"
+	AssetTypeSubdomain   AssetType = "subdomain"
+	AssetTypeURL         AssetType = "url"
+	AssetTypeAPP         AssetType = "app"
 	AssetTypeMiniProgram AssetType = "miniprogram"
 )
 
@@ -28,19 +28,19 @@ type Asset struct {
 	Status      int                `json:"status" bson:"status"` // 1: active, 0: inactive
 	Tags        []string           `json:"tags" bson:"tags"`
 	GroupID     primitive.ObjectID `json:"group_id" bson:"group_id"`
-	
+
 	// IP specific
 	IPInfo *IPInfo `json:"ip_info,omitempty" bson:"ip_info,omitempty"`
-	
+
 	// Domain specific
 	DomainInfo *DomainInfo `json:"domain_info,omitempty" bson:"domain_info,omitempty"`
-	
+
 	// Web specific
 	WebInfo *WebInfo `json:"web_info,omitempty" bson:"web_info,omitempty"`
-	
+
 	// APP specific
 	APPInfo *APPInfo `json:"app_info,omitempty" bson:"app_info,omitempty"`
-	
+
 	Source       string     `json:"source" bson:"source"` // manual, scan, import
 	LastScanTime *time.Time `json:"last_scan_time,omitempty" bson:"last_scan_time,omitempty"`
 	CreatedAt    time.Time  `json:"created_at" bson:"created_at"`
@@ -49,16 +49,16 @@ type Asset struct {
 
 // IPInfo contains IP-specific information
 type IPInfo struct {
-	IP       string   `json:"ip" bson:"ip"`
-	Ports    []Port   `json:"ports" bson:"ports"`
-	OS       string   `json:"os" bson:"os"`
-	ISP      string   `json:"isp" bson:"isp"`
-	Country  string   `json:"country" bson:"country"`
-	Region   string   `json:"region" bson:"region"`
-	City     string   `json:"city" bson:"city"`
-	IsCDN    bool     `json:"is_cdn" bson:"is_cdn"`
-	CDNName  string   `json:"cdn_name" bson:"cdn_name"`
-	IsCloud  bool     `json:"is_cloud" bson:"is_cloud"`
+	IP            string `json:"ip" bson:"ip"`
+	Ports         []Port `json:"ports" bson:"ports"`
+	OS            string `json:"os" bson:"os"`
+	ISP           string `json:"isp" bson:"isp"`
+	Country       string `json:"country" bson:"country"`
+	Region        string `json:"region" bson:"region"`
+	City          string `json:"city" bson:"city"`
+	IsCDN         bool   `json:"is_cdn" bson:"is_cdn"`
+	CDNName       string `json:"cdn_name" bson:"cdn_name"`
+	IsCloud       bool   `json:"is_cloud" bson:"is_cloud"`
 	CloudProvider string `json:"cloud_provider" bson:"cloud_provider"`
 }
 
@@ -109,12 +109,12 @@ type Fingerprint struct {
 
 // SSLInfo contains SSL/TLS certificate information
 type SSLInfo struct {
-	Issuer     string    `json:"issuer" bson:"issuer"`
-	Subject    string    `json:"subject" bson:"subject"`
-	NotBefore  time.Time `json:"not_before" bson:"not_before"`
-	NotAfter   time.Time `json:"not_after" bson:"not_after"`
-	SANs       []string  `json:"sans" bson:"sans"`
-	IsValid    bool      `json:"is_valid" bson:"is_valid"`
+	Issuer    string    `json:"issuer" bson:"issuer"`
+	Subject   string    `json:"subject" bson:"subject"`
+	NotBefore time.Time `json:"not_before" bson:"not_before"`
+	NotAfter  time.Time `json:"not_after" bson:"not_after"`
+	SANs      []string  `json:"sans" bson:"sans"`
+	IsValid   bool      `json:"is_valid" bson:"is_valid"`
 }
 
 // APPInfo contains APP-specific information
@@ -143,7 +143,7 @@ type AssetGroup struct {
 type BlackWhiteList struct {
 	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	WorkspaceID primitive.ObjectID `json:"workspace_id" bson:"workspace_id"`
-	Type        string             `json:"type" bson:"type"` // black, white
+	Type        string             `json:"type" bson:"type"`         // black, white
 	Category    string             `json:"category" bson:"category"` // ip, domain, url
 	Value       string             `json:"value" bson:"value"`
 	Reason      string             `json:"reason" bson:"reason"`

@@ -7,22 +7,22 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-	// ResultType 扫描结果类型
+// ResultType 扫描结果类型
 type ResultType string
 
 const (
-	ResultTypeSubdomain  ResultType = "subdomain"   // 子域名
-	ResultTypeTakeover   ResultType = "takeover"    // 子域名接管
-	ResultTypeApp        ResultType = "app"         // APP
-	ResultTypeMiniApp    ResultType = "miniapp"     // 小程序
-	ResultTypeURL        ResultType = "url"         // URL
-	ResultTypeCrawler    ResultType = "crawler"     // 爬虫
-	ResultTypeSensitive  ResultType = "sensitive"   // 敏感信息
-	ResultTypeDirScan    ResultType = "dirscan"     // 目录扫描
-	ResultTypeVuln       ResultType = "vuln"        // 漏洞
-	ResultTypeMonitor    ResultType = "monitor"     // 页面监控
-	ResultTypePort       ResultType = "port"        // 端口
-	ResultTypeService    ResultType = "service"     // 服务
+	ResultTypeSubdomain ResultType = "subdomain" // 子域名
+	ResultTypeTakeover  ResultType = "takeover"  // 子域名接管
+	ResultTypeApp       ResultType = "app"       // APP
+	ResultTypeMiniApp   ResultType = "miniapp"   // 小程序
+	ResultTypeURL       ResultType = "url"       // URL
+	ResultTypeCrawler   ResultType = "crawler"   // 爬虫
+	ResultTypeSensitive ResultType = "sensitive" // 敏感信息
+	ResultTypeDirScan   ResultType = "dirscan"   // 目录扫描
+	ResultTypeVuln      ResultType = "vuln"      // 漏洞
+	ResultTypeMonitor   ResultType = "monitor"   // 页面监控
+	ResultTypePort      ResultType = "port"      // 端口
+	ResultTypeService   ResultType = "service"   // 服务
 )
 
 // ScanResult 扫描结果基础结构
@@ -57,9 +57,9 @@ type SubdomainResult struct {
 type TakeoverResult struct {
 	Subdomain   string `json:"subdomain" bson:"subdomain"`
 	CNAME       string `json:"cname" bson:"cname"`
-	Provider    string `json:"provider" bson:"provider"`       // 云服务商
+	Provider    string `json:"provider" bson:"provider"` // 云服务商
 	Vulnerable  bool   `json:"vulnerable" bson:"vulnerable"`
-	Severity    string `json:"severity" bson:"severity"`       // high, medium, low
+	Severity    string `json:"severity" bson:"severity"` // high, medium, low
 	Description string `json:"description" bson:"description"`
 	Evidence    string `json:"evidence" bson:"evidence"`
 }
@@ -78,12 +78,12 @@ type AppResult struct {
 
 // MiniAppResult 小程序结果
 type MiniAppResult struct {
-	Name       string `json:"name" bson:"name"`
-	AppID      string `json:"app_id" bson:"app_id"`
-	Platform   string `json:"platform" bson:"platform"` // wechat, alipay, baidu
-	Company    string `json:"company" bson:"company"`
-	Category   string `json:"category" bson:"category"`
-	QRCode     string `json:"qrcode" bson:"qrcode"`
+	Name     string `json:"name" bson:"name"`
+	AppID    string `json:"app_id" bson:"app_id"`
+	Platform string `json:"platform" bson:"platform"` // wechat, alipay, baidu
+	Company  string `json:"company" bson:"company"`
+	Category string `json:"category" bson:"category"`
+	QRCode   string `json:"qrcode" bson:"qrcode"`
 }
 
 // URLResult URL结果
@@ -114,19 +114,19 @@ type CrawlerResult struct {
 
 // FormInfo 表单信息
 type FormInfo struct {
-	Action  string   `json:"action" bson:"action"`
-	Method  string   `json:"method" bson:"method"`
-	Inputs  []string `json:"inputs" bson:"inputs"`
+	Action string   `json:"action" bson:"action"`
+	Method string   `json:"method" bson:"method"`
+	Inputs []string `json:"inputs" bson:"inputs"`
 }
 
 // SensitiveResult 敏感信息结果
 type SensitiveResult struct {
-	URL         string `json:"url" bson:"url"`
-	Type        string `json:"type" bson:"type"`     // email, phone, idcard, apikey, password, etc.
-	Value       string `json:"value" bson:"value"`
-	Context     string `json:"context" bson:"context"` // 上下文
-	Location    string `json:"location" bson:"location"` // body, header, js, etc.
-	Severity    string `json:"severity" bson:"severity"`
+	URL      string `json:"url" bson:"url"`
+	Type     string `json:"type" bson:"type"` // email, phone, idcard, apikey, password, etc.
+	Value    string `json:"value" bson:"value"`
+	Context  string `json:"context" bson:"context"`   // 上下文
+	Location string `json:"location" bson:"location"` // body, header, js, etc.
+	Severity string `json:"severity" bson:"severity"`
 }
 
 // DirScanResult 目录扫描结果
@@ -143,14 +143,14 @@ type DirScanResult struct {
 
 // MonitorResult 页面监控结果
 type MonitorResult struct {
-	URL         string    `json:"url" bson:"url"`
-	Title       string    `json:"title" bson:"title"`
-	Hash        string    `json:"hash" bson:"hash"`         // 内容hash
-	Screenshot  string    `json:"screenshot" bson:"screenshot"` // 截图路径
-	StatusCode  int       `json:"status_code" bson:"status_code"`
-	Changed     bool      `json:"changed" bson:"changed"`
-	ChangeType  string    `json:"change_type" bson:"change_type"` // content, title, status
-	LastCheck   time.Time `json:"last_check" bson:"last_check"`
+	URL        string    `json:"url" bson:"url"`
+	Title      string    `json:"title" bson:"title"`
+	Hash       string    `json:"hash" bson:"hash"`             // 内容hash
+	Screenshot string    `json:"screenshot" bson:"screenshot"` // 截图路径
+	StatusCode int       `json:"status_code" bson:"status_code"`
+	Changed    bool      `json:"changed" bson:"changed"`
+	ChangeType string    `json:"change_type" bson:"change_type"` // content, title, status
+	LastCheck  time.Time `json:"last_check" bson:"last_check"`
 }
 
 // PortResult 端口扫描结果

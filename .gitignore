@@ -12,6 +12,8 @@ server
 
 # Output of the go coverage tool
 *.out
+coverage.out
+coverage.html
 
 # Dependency directories
 vendor/
@@ -36,3 +38,12 @@ logs/
 # Temp files
 tmp/
 temp/
+
+# Node.js (for Husky)
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Claude Code
+.claude/

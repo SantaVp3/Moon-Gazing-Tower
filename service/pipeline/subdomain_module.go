@@ -358,18 +358,18 @@ func (m *DomainVerifyModule) checkSubdomain(sr SubdomainResult) {
 		// 发送接管检测结果
 		takeoverRes := TakeoverResult{
 			Domain:       takeoverResult.Domain,
-				CNAME:        takeoverResult.CNAME,
-				Service:      takeoverResult.Service,
-				Vulnerable:   takeoverResult.Vulnerable,
-				Fingerprints: takeoverResult.Fingerprints,
-				Reason:       takeoverResult.Reason,
-			}
-			select {
-			case <-m.ctx.Done():
-				return
-			case m.resultChan <- takeoverRes:
-			}
+			CNAME:        takeoverResult.CNAME,
+			Service:      takeoverResult.Service,
+			Vulnerable:   takeoverResult.Vulnerable,
+			Fingerprints: takeoverResult.Fingerprints,
+			Reason:       takeoverResult.Reason,
 		}
+		select {
+		case <-m.ctx.Done():
+			return
+		case m.resultChan <- takeoverRes:
+		}
+	}
 	// }
 
 	select {

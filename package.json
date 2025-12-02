@@ -1,0 +1,25 @@
+{
+  "name": "moon-gazing-tower",
+  "version": "1.0.0",
+  "description": "Modern automated security scanning platform",
+  "private": true,
+  "scripts": {
+    "prepare": "husky",
+    "pre-push": "make pre-push"
+  },
+  "devDependencies": {
+    "husky": "^9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SantaVp3/Moon-Gazing-Tower"
+  },
+  "keywords": [
+    "security",
+    "scanner",
+    "vulnerability",
+    "automation"
+  ],
+  "author": "SantaVp3",
+  "license": "MIT"
+}

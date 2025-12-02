@@ -23,7 +23,6 @@ func (e *TaskExecutor) executeFingerprintScan(task *models.Task) {
 		return
 	}
 
-
 	results := make([]models.ScanResult, 0)
 	fpScanner := fingerprint.NewFingerprintScanner(20)
 
@@ -67,7 +66,6 @@ func (e *TaskExecutor) executeVulnScan(task *models.Task) {
 		e.failTask(task, "没有目标")
 		return
 	}
-
 
 	results := make([]models.ScanResult, 0)
 	vulnScanner := vulnscan.NewVulnScanner(10)
@@ -114,7 +112,6 @@ func (e *TaskExecutor) executeContentScan(task *models.Task) {
 		e.failTask(task, "没有目标")
 		return
 	}
-
 
 	results := make([]models.ScanResult, 0)
 	contentScanner := webscan.NewContentScanner(20)
@@ -207,15 +204,14 @@ func (e *TaskExecutor) executeCrawlerScan(task *models.Task) {
 		return
 	}
 
-
 	results := make([]models.ScanResult, 0)
-	
+
 	katanaScanner := webscan.NewKatanaScanner()
 	radScanner := webscan.NewRadScanner()
-	
+
 	useKatana := katanaScanner.IsAvailable()
 	useRad := radScanner.IsAvailable()
-	
+
 	if useKatana {
 		log.Printf("[TaskExecutor] Using Katana for web crawling")
 	}

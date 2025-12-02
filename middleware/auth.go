@@ -17,7 +17,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		
+
 		// Check Bearer token format
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || parts[0] != "Bearer" {
@@ -25,7 +25,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		
+
 		tokenString := parts[1]
 		claims, err := utils.ParseToken(tokenString)
 		if err != nil {
@@ -33,12 +33,12 @@ func AuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		
+
 		// Set user info to context
 		c.Set("user_id", claims.UserID)
 		c.Set("username", claims.Username)
 		c.Set("role", claims.Role)
-		
+
 		c.Next()
 	}
 }
@@ -65,7 +65,7 @@ func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		
+
 		roleStr := role.(string)
 		for _, allowedRole := range allowedRoles {
 			if roleStr == allowedRole {
@@ -73,7 +73,7 @@ func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
 				return
 			}
 		}
-		
+
 		utils.Forbidden(c, "权限不足")
 		c.Abort()
 	}

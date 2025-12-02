@@ -442,7 +442,7 @@ func (h *ScanHandler) CDNDetect(c *gin.Context) {
 	defer cancel()
 
 	result := h.cdnDetector.DetectCDN(ctx, req.Domain)
-	
+
 	// Try to find real IP if CDN detected
 	if result.IsCDN {
 		result.RealIPs = h.cdnDetector.TryFindRealIP(ctx, req.Domain)
@@ -605,7 +605,7 @@ func (h *ScanHandler) VulnQuickScan(c *gin.Context) {
 // GET /api/scan/vuln/pocs
 func (h *ScanHandler) GetPOCList(c *gin.Context) {
 	severity := c.Query("severity")
-	
+
 	var templates []*vulnscan.POCTemplate
 	if severity != "" {
 		templates = h.vulnScanner.FilterTemplatesBySeverity(severity)
@@ -910,18 +910,18 @@ func (h *ScanHandler) TakeoverBatchScan(c *gin.Context) {
 // GET /api/scan/takeover/fingerprints
 func (h *ScanHandler) GetTakeoverFingerprints(c *gin.Context) {
 	fps := h.takeoverScanner.GetFingerprints()
-	
+
 	// 简化输出
 	simplified := make([]map[string]interface{}, len(fps))
 	for i, fp := range fps {
 		simplified[i] = map[string]interface{}{
-			"service":     fp.Service,
-			"cnames":      fp.CNames,
-			"vulnerable":  fp.Vulnerable,
-			"nxdomain":    fp.NXDomain,
-			"http_check":  fp.HTTPCheck,
+			"service":    fp.Service,
+			"cnames":     fp.CNames,
+			"vulnerable": fp.Vulnerable,
+			"nxdomain":   fp.NXDomain,
+			"http_check": fp.HTTPCheck,
 		}
 	}
-	
+
 	utils.Success(c, simplified)
 }

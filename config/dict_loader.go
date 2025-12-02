@@ -12,13 +12,13 @@ import (
 
 // DictConfig holds all dictionary configurations
 type DictConfig struct {
-	Subdomains     []string
-	Directories    []string
-	Fingerprints   *FingerprintConfig
-	CDN            *CDNConfig
-	Vuln           *VulnConfig
-	Ports          *PortsConfig
-	FaviconHashes  *FaviconHashConfig
+	Subdomains    []string
+	Directories   []string
+	Fingerprints  *FingerprintConfig
+	CDN           *CDNConfig
+	Vuln          *VulnConfig
+	Ports         *PortsConfig
+	FaviconHashes *FaviconHashConfig
 }
 
 // FingerprintConfig holds fingerprint rules
@@ -41,17 +41,17 @@ type FingerprintRuleConfig struct {
 
 // CDNConfig holds CDN detection configuration
 type CDNConfig struct {
-	CNAMEPatterns  map[string]string              `yaml:"cname_patterns"`
-	HeaderPatterns map[string]string              `yaml:"header_patterns"`
-	IPRanges       map[string][]string            `yaml:"ip_ranges"`
+	CNAMEPatterns  map[string]string   `yaml:"cname_patterns"`
+	HeaderPatterns map[string]string   `yaml:"header_patterns"`
+	IPRanges       map[string][]string `yaml:"ip_ranges"`
 }
 
 // VulnConfig holds vulnerability scanning configuration
 type VulnConfig struct {
-	SensitivePaths    []SensitivePathConfig   `yaml:"sensitive_paths"`
-	WeakPasswords     WeakPasswordConfig      `yaml:"weak_passwords"`
+	SensitivePaths    []SensitivePathConfig    `yaml:"sensitive_paths"`
+	WeakPasswords     WeakPasswordConfig       `yaml:"weak_passwords"`
 	SensitivePatterns []SensitivePatternConfig `yaml:"sensitive_patterns"`
-	BackupExtensions  []string                `yaml:"backup_extensions"`
+	BackupExtensions  []string                 `yaml:"backup_extensions"`
 }
 
 // SensitivePathConfig represents a sensitive path
@@ -63,8 +63,8 @@ type SensitivePathConfig struct {
 
 // WeakPasswordConfig holds weak password lists
 type WeakPasswordConfig struct {
-	Common             []string               `yaml:"common"`
-	DefaultCredentials []CredentialConfig     `yaml:"default_credentials"`
+	Common             []string                      `yaml:"common"`
+	DefaultCredentials []CredentialConfig            `yaml:"default_credentials"`
 	Services           map[string][]CredentialConfig `yaml:"services"`
 }
 
@@ -83,11 +83,11 @@ type SensitivePatternConfig struct {
 
 // PortsConfig holds port scanning configuration
 type PortsConfig struct {
-	CommonPorts    []int            `yaml:"common_ports"`
-	TopPorts       []int            `yaml:"top_ports"`
-	PortServiceMap map[int]string   `yaml:"port_service_map"`
-	HTTPPorts      []int            `yaml:"http_ports"`
-	NonHTTPPorts   []int            `yaml:"non_http_ports"`
+	CommonPorts    []int          `yaml:"common_ports"`
+	TopPorts       []int          `yaml:"top_ports"`
+	PortServiceMap map[int]string `yaml:"port_service_map"`
+	HTTPPorts      []int          `yaml:"http_ports"`
+	NonHTTPPorts   []int          `yaml:"non_http_ports"`
 }
 
 // FaviconHashConfig holds favicon hash to product mapping

@@ -21,13 +21,13 @@ func NewQueueHandler(config *queue.QueueConfig) (*QueueHandler, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 注册内置任务处理器
 	registerBuiltinHandlers(taskQueue)
-	
+
 	// 启动工作者
 	taskQueue.Start()
-	
+
 	return &QueueHandler{
 		taskQueue: taskQueue,
 	}, nil
@@ -40,37 +40,37 @@ func registerBuiltinHandlers(q *queue.TaskQueue) {
 		// 从 payload 获取参数
 		target, _ := task.Payload["target"].(string)
 		// ports, _ := task.Payload["ports"].(string)
-		
+
 		// 执行扫描 (这里是简化示例)
 		result := map[string]interface{}{
 			"target": target,
 			"status": "completed",
 		}
-		
+
 		return result, nil
 	})
-	
+
 	// 示例: 漏洞扫描任务
 	q.RegisterHandler("vuln_scan", func(ctx context.Context, task *queue.Task) (interface{}, error) {
 		target, _ := task.Payload["target"].(string)
-		
+
 		result := map[string]interface{}{
 			"target": target,
 			"status": "completed",
 		}
-		
+
 		return result, nil
 	})
-	
+
 	// 示例: 子域名枚举任务
 	q.RegisterHandler("subdomain_enum", func(ctx context.Context, task *queue.Task) (interface{}, error) {
 		domain, _ := task.Payload["domain"].(string)
-		
+
 		result := map[string]interface{}{
 			"domain": domain,
 			"status": "completed",
 		}
-		
+
 		return result, nil
 	})
 }
@@ -88,13 +88,13 @@ func (h *QueueHandler) GetTaskQueue() *queue.TaskQueue {
 // @Router /api/queue/stats [get]
 func (h *QueueHandler) GetStats(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	stats, err := h.taskQueue.GetStats(ctx)
 	if err != nil {
 		utils.InternalError(c, "获取统计失败: "+err.Error())
 		return
 	}
-	
+
 	utils.Success(c, stats)
 }
 
@@ -112,16 +112,16 @@ func (h *QueueHandler) EnqueueTask(c *gin.Context) {
 		Priority int                    `json:"priority"`
 		Delay    int                    `json:"delay"` // 延迟秒数
 	}
-	
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.BadRequest(c, "参数错误: "+err.Error())
 		return
 	}
-	
+
 	ctx := c.Request.Context()
 	var task *queue.Task
 	var err error
-	
+
 	if req.Delay > 0 {
 		task, err = h.taskQueue.Schedule(ctx, req.Type, req.Payload, time.Duration(req.Delay)*time.Second)
 	} else if req.Priority != 0 {
@@ -129,12 +129,12 @@ func (h *QueueHandler) EnqueueTask(c *gin.Context) {
 	} else {
 		task, err = h.taskQueue.Enqueue(ctx, req.Type, req.Payload)
 	}
-	
+
 	if err != nil {
 		utils.InternalError(c, "添加任务失败: "+err.Error())
 		return
 	}
-	
+
 	utils.SuccessWithMessage(c, "任务已添加", map[string]interface{}{
 		"task_id": task.ID,
 		"type":    task.Type,
@@ -151,14 +151,14 @@ func (h *QueueHandler) EnqueueTask(c *gin.Context) {
 // @Router /api/queue/tasks/{id}/result [get]
 func (h *QueueHandler) GetTaskResult(c *gin.Context) {
 	taskID := c.Param("id")
-	
+
 	ctx := c.Request.Context()
 	result, err := h.taskQueue.GetResult(ctx, taskID)
 	if err != nil {
 		utils.NotFound(c, "任务结果不存在或已过期")
 		return
 	}
-	
+
 	utils.Success(c, result)
 }
 
@@ -171,14 +171,14 @@ func (h *QueueHandler) GetTaskResult(c *gin.Context) {
 // @Router /api/queue/tasks/pending [get]
 func (h *QueueHandler) GetPendingTasks(c *gin.Context) {
 	limit, _ := strconv.ParseInt(c.DefaultQuery("limit", "100"), 10, 64)
-	
+
 	ctx := c.Request.Context()
 	tasks, err := h.taskQueue.GetPendingTasks(ctx, limit)
 	if err != nil {
 		utils.InternalError(c, "获取任务失败: "+err.Error())
 		return
 	}
-	
+
 	utils.Success(c, tasks)
 }
 
@@ -195,7 +195,7 @@ func (h *QueueHandler) GetProcessingTasks(c *gin.Context) {
 		utils.InternalError(c, "获取任务失败: "+err.Error())
 		return
 	}
-	
+
 	utils.Success(c, tasks)
 }
 
@@ -208,14 +208,14 @@ func (h *QueueHandler) GetProcessingTasks(c *gin.Context) {
 // @Router /api/queue/tasks/deadletter [get]
 func (h *QueueHandler) GetDeadLetterTasks(c *gin.Context) {
 	limit, _ := strconv.ParseInt(c.DefaultQuery("limit", "100"), 10, 64)
-	
+
 	ctx := c.Request.Context()
 	tasks, err := h.taskQueue.GetDeadLetterTasks(ctx, limit)
 	if err != nil {
 		utils.InternalError(c, "获取任务失败: "+err.Error())
 		return
 	}
-	
+
 	utils.Success(c, tasks)
 }
 
@@ -228,13 +228,13 @@ func (h *QueueHandler) GetDeadLetterTasks(c *gin.Context) {
 // @Router /api/queue/tasks/deadletter/{id}/retry [post]
 func (h *QueueHandler) RetryDeadLetterTask(c *gin.Context) {
 	taskID := c.Param("id")
-	
+
 	ctx := c.Request.Context()
 	if err := h.taskQueue.RetryDeadLetter(ctx, taskID); err != nil {
 		utils.NotFound(c, err.Error())
 		return
 	}
-	
+
 	utils.SuccessWithMessage(c, "任务已重新入队", nil)
 }
 
@@ -250,7 +250,7 @@ func (h *QueueHandler) ClearDeadLetter(c *gin.Context) {
 		utils.InternalError(c, "清空失败: "+err.Error())
 		return
 	}
-	
+
 	utils.SuccessWithMessage(c, "死信队列已清空", nil)
 }
 
@@ -276,8 +276,8 @@ func (h *QueueHandler) GetTaskTypes(c *gin.Context) {
 			"name":        "漏洞扫描",
 			"description": "对目标进行漏洞扫描",
 			"payload_schema": map[string]string{
-				"target":   "目标URL",
-				"poc_ids":  "POC ID列表 (可选)",
+				"target":  "目标URL",
+				"poc_ids": "POC ID列表 (可选)",
 			},
 		},
 		{

@@ -23,10 +23,10 @@ type SubfinderScanner struct {
 
 // SubfinderResult 子域名收集结果
 type SubfinderResult struct {
-	Domain     string   `json:"domain"`     // 收集到的子域名
-	Host       string   `json:"host"`       // 主域名
-	Source     string   `json:"source"`     // 数据来源
-	IPs        []string `json:"ips"`        // 解析的 IP（可选）
+	Domain     string   `json:"domain"`      // 收集到的子域名
+	Host       string   `json:"host"`        // 主域名
+	Source     string   `json:"source"`      // 数据来源
+	IPs        []string `json:"ips"`         // 解析的 IP（可选）
 	RecordType string   `json:"record_type"` // DNS 记录类型
 }
 
@@ -65,7 +65,7 @@ func (s *SubfinderScanner) Scan(ctx context.Context, domain string) (*SubfinderS
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 	subdomainChan := make(chan string, 1000)
-	
+
 	// 禁用 log 时间戳
 	log.SetFlags(0)
 

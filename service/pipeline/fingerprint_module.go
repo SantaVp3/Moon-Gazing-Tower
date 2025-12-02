@@ -148,7 +148,7 @@ func (m *FingerprintModule) scanFingerprint(pa PortAlive) {
 	// 构建 AssetHttp 结果
 	asset := AssetHttp{
 		Host:       pa.Host,
- 		IP:         pa.IP,
+		IP:         pa.IP,
 		Port:       pa.Port,
 		URL:        result.URL,
 		Title:      result.Title,

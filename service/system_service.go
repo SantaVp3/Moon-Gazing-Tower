@@ -86,12 +86,12 @@ func (s *SystemService) GetLiveTaskData(workspaceID string) (map[string]interfac
 	}
 
 	return map[string]interface{}{
-		"active_users":        0, // Would need user tracking
-		"today_users":         0, // Would need user tracking
-		"monthly_users":       0, // Would need user tracking
-		"monthly_spend":       0, // Would need spend tracking
-		"monthly_revenue":     0, // Would need revenue tracking
-		"monthly_transactions":0, // Would need transaction tracking
+		"active_users":         0, // Would need user tracking
+		"today_users":          0, // Would need user tracking
+		"monthly_users":        0, // Would need user tracking
+		"monthly_spend":        0, // Would need spend tracking
+		"monthly_revenue":      0, // Would need revenue tracking
+		"monthly_transactions": 0, // Would need transaction tracking
 		"tasks": map[string]interface{}{
 			"total":     totalTasks,
 			"running":   runningTasks,

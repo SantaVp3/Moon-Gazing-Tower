@@ -61,46 +61,46 @@ type Classification struct {
 // HTTPRequest HTTP 请求模板
 type HTTPRequest struct {
 	// 请求定义
-	Method           string              `yaml:"method,omitempty" json:"method,omitempty"`
-	Path             []string            `yaml:"path,omitempty" json:"path,omitempty"`
-	Raw              []string            `yaml:"raw,omitempty" json:"raw,omitempty"`
-	Body             string              `yaml:"body,omitempty" json:"body,omitempty"`
-	Headers          map[string]string   `yaml:"headers,omitempty" json:"headers,omitempty"`
-	
+	Method  string            `yaml:"method,omitempty" json:"method,omitempty"`
+	Path    []string          `yaml:"path,omitempty" json:"path,omitempty"`
+	Raw     []string          `yaml:"raw,omitempty" json:"raw,omitempty"`
+	Body    string            `yaml:"body,omitempty" json:"body,omitempty"`
+	Headers map[string]string `yaml:"headers,omitempty" json:"headers,omitempty"`
+
 	// 请求选项
-	Redirects        bool                `yaml:"redirects,omitempty" json:"redirects,omitempty"`
-	MaxRedirects     int                 `yaml:"max-redirects,omitempty" json:"max_redirects,omitempty"`
-	HostRedirects    bool                `yaml:"host-redirects,omitempty" json:"host_redirects,omitempty"`
-	Unsafe           bool                `yaml:"unsafe,omitempty" json:"unsafe,omitempty"`
-	ReadAll          bool                `yaml:"read-all,omitempty" json:"read_all,omitempty"`
-	
+	Redirects     bool `yaml:"redirects,omitempty" json:"redirects,omitempty"`
+	MaxRedirects  int  `yaml:"max-redirects,omitempty" json:"max_redirects,omitempty"`
+	HostRedirects bool `yaml:"host-redirects,omitempty" json:"host_redirects,omitempty"`
+	Unsafe        bool `yaml:"unsafe,omitempty" json:"unsafe,omitempty"`
+	ReadAll       bool `yaml:"read-all,omitempty" json:"read_all,omitempty"`
+
 	// 匹配器和提取器
-	Matchers         []Matcher           `yaml:"matchers,omitempty" json:"matchers,omitempty"`
-	MatchersCondition string             `yaml:"matchers-condition,omitempty" json:"matchers_condition,omitempty"`
-	Extractors       []Extractor         `yaml:"extractors,omitempty" json:"extractors,omitempty"`
-	
+	Matchers          []Matcher   `yaml:"matchers,omitempty" json:"matchers,omitempty"`
+	MatchersCondition string      `yaml:"matchers-condition,omitempty" json:"matchers_condition,omitempty"`
+	Extractors        []Extractor `yaml:"extractors,omitempty" json:"extractors,omitempty"`
+
 	// 攻击模式
-	Attack           string              `yaml:"attack,omitempty" json:"attack,omitempty"`
-	Payloads         map[string]interface{} `yaml:"payloads,omitempty" json:"payloads,omitempty"`
-	
+	Attack   string                 `yaml:"attack,omitempty" json:"attack,omitempty"`
+	Payloads map[string]interface{} `yaml:"payloads,omitempty" json:"payloads,omitempty"`
+
 	// 请求控制
-	StopAtFirstMatch bool                `yaml:"stop-at-first-match,omitempty" json:"stop_at_first_match,omitempty"`
-	SkipVariables    bool                `yaml:"skip-variables-check,omitempty" json:"skip_variables_check,omitempty"`
-	
+	StopAtFirstMatch bool `yaml:"stop-at-first-match,omitempty" json:"stop_at_first_match,omitempty"`
+	SkipVariables    bool `yaml:"skip-variables-check,omitempty" json:"skip_variables_check,omitempty"`
+
 	// 请求关联
-	CookieReuse      bool                `yaml:"cookie-reuse,omitempty" json:"cookie_reuse,omitempty"`
-	ReqCondition     bool                `yaml:"req-condition,omitempty" json:"req_condition,omitempty"`
+	CookieReuse  bool `yaml:"cookie-reuse,omitempty" json:"cookie_reuse,omitempty"`
+	ReqCondition bool `yaml:"req-condition,omitempty" json:"req_condition,omitempty"`
 }
 
 // DNSRequest DNS 请求模板
 type DNSRequest struct {
-	Name              string    `yaml:"name" json:"name"`
-	Type              string    `yaml:"type" json:"type"`
-	Class             string    `yaml:"class,omitempty" json:"class,omitempty"`
-	Recursion         bool      `yaml:"recursion,omitempty" json:"recursion,omitempty"`
-	Retries           int       `yaml:"retries,omitempty" json:"retries,omitempty"`
-	Matchers          []Matcher `yaml:"matchers,omitempty" json:"matchers,omitempty"`
-	MatchersCondition string    `yaml:"matchers-condition,omitempty" json:"matchers_condition,omitempty"`
+	Name              string      `yaml:"name" json:"name"`
+	Type              string      `yaml:"type" json:"type"`
+	Class             string      `yaml:"class,omitempty" json:"class,omitempty"`
+	Recursion         bool        `yaml:"recursion,omitempty" json:"recursion,omitempty"`
+	Retries           int         `yaml:"retries,omitempty" json:"retries,omitempty"`
+	Matchers          []Matcher   `yaml:"matchers,omitempty" json:"matchers,omitempty"`
+	MatchersCondition string      `yaml:"matchers-condition,omitempty" json:"matchers_condition,omitempty"`
 	Extractors        []Extractor `yaml:"extractors,omitempty" json:"extractors,omitempty"`
 }
 
@@ -137,9 +137,9 @@ type HeadlessStep struct {
 
 // WorkflowTemplate 工作流模板
 type WorkflowTemplate struct {
-	Template  string   `yaml:"template,omitempty" json:"template,omitempty"`
-	Tags      string   `yaml:"tags,omitempty" json:"tags,omitempty"`
-	Matchers  []string `yaml:"matchers,omitempty" json:"matchers,omitempty"`
+	Template     string        `yaml:"template,omitempty" json:"template,omitempty"`
+	Tags         string        `yaml:"tags,omitempty" json:"tags,omitempty"`
+	Matchers     []string      `yaml:"matchers,omitempty" json:"matchers,omitempty"`
 	Subtemplates []SubTemplate `yaml:"subtemplates,omitempty" json:"subtemplates,omitempty"`
 }
 
@@ -164,25 +164,25 @@ type Matcher struct {
 	Negative  bool     `yaml:"negative,omitempty" json:"negative,omitempty"`
 	Internal  bool     `yaml:"internal,omitempty" json:"internal,omitempty"`
 	Name      string   `yaml:"name,omitempty" json:"name,omitempty"`
-	
+
 	// 编译后的正则
 	CompiledRegex []*regexp.Regexp `yaml:"-" json:"-"`
 }
 
 // Extractor 提取器
 type Extractor struct {
-	Type     string   `yaml:"type" json:"type"`
-	Part     string   `yaml:"part,omitempty" json:"part,omitempty"`
-	Name     string   `yaml:"name,omitempty" json:"name,omitempty"`
-	Regex    []string `yaml:"regex,omitempty" json:"regex,omitempty"`
-	Group    int      `yaml:"group,omitempty" json:"group,omitempty"`
-	KVal     []string `yaml:"kval,omitempty" json:"kval,omitempty"`
-	JSON     []string `yaml:"json,omitempty" json:"json,omitempty"`
-	XPath    []string `yaml:"xpath,omitempty" json:"xpath,omitempty"`
-	Attribute string  `yaml:"attribute,omitempty" json:"attribute,omitempty"`
-	DSL      []string `yaml:"dsl,omitempty" json:"dsl,omitempty"`
-	Internal bool     `yaml:"internal,omitempty" json:"internal,omitempty"`
-	
+	Type      string   `yaml:"type" json:"type"`
+	Part      string   `yaml:"part,omitempty" json:"part,omitempty"`
+	Name      string   `yaml:"name,omitempty" json:"name,omitempty"`
+	Regex     []string `yaml:"regex,omitempty" json:"regex,omitempty"`
+	Group     int      `yaml:"group,omitempty" json:"group,omitempty"`
+	KVal      []string `yaml:"kval,omitempty" json:"kval,omitempty"`
+	JSON      []string `yaml:"json,omitempty" json:"json,omitempty"`
+	XPath     []string `yaml:"xpath,omitempty" json:"xpath,omitempty"`
+	Attribute string   `yaml:"attribute,omitempty" json:"attribute,omitempty"`
+	DSL       []string `yaml:"dsl,omitempty" json:"dsl,omitempty"`
+	Internal  bool     `yaml:"internal,omitempty" json:"internal,omitempty"`
+
 	// 编译后的正则
 	CompiledRegex []*regexp.Regexp `yaml:"-" json:"-"`
 }
@@ -200,12 +200,12 @@ type ScanResult struct {
 	Response      string                 `json:"response,omitempty"`
 	Timestamp     time.Time              `json:"timestamp"`
 	Error         string                 `json:"error,omitempty"`
-	
+
 	// 额外信息
-	CVEID         string                 `json:"cve_id,omitempty"`
-	Description   string                 `json:"description,omitempty"`
-	Reference     []string               `json:"reference,omitempty"`
-	Tags          string                 `json:"tags,omitempty"`
+	CVEID       string   `json:"cve_id,omitempty"`
+	Description string   `json:"description,omitempty"`
+	Reference   []string `json:"reference,omitempty"`
+	Tags        string   `json:"tags,omitempty"`
 }
 
 // ExecutorOptions 执行器选项

@@ -1,0 +1,55 @@
+# golangci-lint configuration
+# Based on production-ready Go template standards
+
+version: 2
+
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    # Code quality
+    - govet
+    - staticcheck
+    - errcheck
+    - ineffassign
+    - unused
+
+    # Complexity analysis
+    - gocyclo      # Cyclomatic complexity
+    - gocognit     # Cognitive complexity
+
+    # Code duplication
+    - dupl
+    - goconst
+
+linters-settings:
+  gocyclo:
+    min-complexity: 15  # Max cyclomatic complexity
+
+  gocognit:
+    min-complexity: 20  # Max cognitive complexity
+
+  dupl:
+    threshold: 100
+
+  goconst:
+    min-occurrences: 3
+
+issues:
+  exclude-use-default: true
+  max-issues-per-linter: 50
+  max-same-issues: 3
+
+  # Exclude duplication and constants checks in test files
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - dupl
+        - goconst
+    # Allow unchecked errors for certain common cases
+    - linters:
+        - errcheck
+      text: "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*Flush|.*Seek|.*Write|.*Shutdown)."

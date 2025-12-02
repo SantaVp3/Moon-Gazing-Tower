@@ -89,15 +89,15 @@ type UrlResult struct {
 
 // SensitiveInfoResult 敏感信息检测结果
 type SensitiveInfoResult struct {
-	Target     string                  `json:"target"`     // 目标URL
-	URL        string                  `json:"url"`        // 发现位置
-	Type       string                  `json:"type"`       // 敏感信息类型: api_key, password, token, email, phone, id_card, etc
-	Pattern    string                  `json:"pattern"`    // 匹配的模式名称
-	Matches    []string                `json:"matches"`    // 匹配到的内容
-	Location   string                  `json:"location"`   // 位置: body, header, js, url
-	Severity   string                  `json:"severity"`   // 严重程度: critical, high, medium, low, info
-	Confidence int                     `json:"confidence"` // 置信度 0-100
-	Source     string                  `json:"source"`     // 来源
+	Target     string   `json:"target"`     // 目标URL
+	URL        string   `json:"url"`        // 发现位置
+	Type       string   `json:"type"`       // 敏感信息类型: api_key, password, token, email, phone, id_card, etc
+	Pattern    string   `json:"pattern"`    // 匹配的模式名称
+	Matches    []string `json:"matches"`    // 匹配到的内容
+	Location   string   `json:"location"`   // 位置: body, header, js, url
+	Severity   string   `json:"severity"`   // 严重程度: critical, high, medium, low, info
+	Confidence int      `json:"confidence"` // 置信度 0-100
+	Source     string   `json:"source"`     // 来源
 }
 
 // SubTakeResult 子域名接管检测结果 (旧版，保留兼容)

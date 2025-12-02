@@ -15,12 +15,12 @@ import (
 
 // DirScanResult represents directory scan result
 type DirScanResult struct {
-	Target       string     `json:"target"`
-	TotalChecked int        `json:"total_checked"`
-	Found        int        `json:"found"`
-	StartTime    time.Time  `json:"start_time"`
-	EndTime      time.Time  `json:"end_time"`
-	Duration     string     `json:"duration"`
+	Target       string          `json:"target"`
+	TotalChecked int             `json:"total_checked"`
+	Found        int             `json:"found"`
+	StartTime    time.Time       `json:"start_time"`
+	EndTime      time.Time       `json:"end_time"`
+	Duration     string          `json:"duration"`
 	Results      []core.DirEntry `json:"results"`
 }
 

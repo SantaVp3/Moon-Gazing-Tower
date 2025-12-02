@@ -29,19 +29,19 @@ func NewDashboardHandler() *DashboardHandler {
 // GET /api/dashboard/stats
 func (h *DashboardHandler) GetDashboardStats(c *gin.Context) {
 	workspaceID := c.Query("workspace_id")
-	
+
 	// Get asset stats
 	assetStats, _ := h.assetService.GetAssetStats(workspaceID)
-	
+
 	// Get task stats
 	taskStats, _ := h.taskService.GetTaskStats(workspaceID)
-	
+
 	// Get vulnerability stats
 	vulnStats, _ := h.vulnService.GetVulnStats(workspaceID)
-	
+
 	// Get node stats
 	nodeStats, _ := h.nodeService.GetNodeStats()
-	
+
 	utils.Success(c, gin.H{
 		"assets":          assetStats,
 		"tasks":           taskStats,
@@ -55,13 +55,13 @@ func (h *DashboardHandler) GetDashboardStats(c *gin.Context) {
 func (h *DashboardHandler) GetRecentTasks(c *gin.Context) {
 	workspaceID := c.Query("workspace_id")
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-	
+
 	tasks, _, err := h.taskService.ListTasks(workspaceID, "", "", 1, limit)
 	if err != nil {
 		utils.Error(c, utils.ErrCodeDatabaseError, err.Error())
 		return
 	}
-	
+
 	utils.Success(c, tasks)
 }
 
@@ -70,13 +70,13 @@ func (h *DashboardHandler) GetRecentTasks(c *gin.Context) {
 func (h *DashboardHandler) GetRecentVulnerabilities(c *gin.Context) {
 	workspaceID := c.Query("workspace_id")
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-	
+
 	vulns, _, err := h.vulnService.ListVulnerabilities(workspaceID, "", "", "", 1, limit)
 	if err != nil {
 		utils.Error(c, utils.ErrCodeDatabaseError, err.Error())
 		return
 	}
-	
+
 	utils.Success(c, vulns)
 }
 
@@ -85,13 +85,13 @@ func (h *DashboardHandler) GetRecentVulnerabilities(c *gin.Context) {
 func (h *DashboardHandler) GetRecentAssets(c *gin.Context) {
 	workspaceID := c.Query("workspace_id")
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-	
+
 	assets, _, err := h.assetService.ListAssets(workspaceID, "", "", nil, 1, limit)
 	if err != nil {
 		utils.Error(c, utils.ErrCodeDatabaseError, err.Error())
 		return
 	}
-	
+
 	utils.Success(c, assets)
 }
 

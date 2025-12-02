@@ -10,11 +10,11 @@ import (
 
 // FilterConfig 过滤器配置
 type FilterConfig struct {
-	ValidStatusCodes     []int  // 有效状态码列表
-	InvalidPageThreshold int    // 无效页面阈值（主要筛选）
-	SecondaryThreshold   int    // 二次筛选阈值
-	EnableStatusFilter   bool   // 是否启用状态码过滤
-	FilterTolerance      int64  // 相似页面过滤容错阈值（字节）
+	ValidStatusCodes     []int // 有效状态码列表
+	InvalidPageThreshold int   // 无效页面阈值（主要筛选）
+	SecondaryThreshold   int   // 二次筛选阈值
+	EnableStatusFilter   bool  // 是否启用状态码过滤
+	FilterTolerance      int64 // 相似页面过滤容错阈值（字节）
 }
 
 // DefaultFilterConfig 获取默认过滤器配置
@@ -47,9 +47,9 @@ type FilterResult struct {
 
 // ResponseFilter 响应过滤器
 type ResponseFilter struct {
-	config      *FilterConfig
-	hashFilter  *HashFilter
-	mu          sync.RWMutex
+	config     *FilterConfig
+	hashFilter *HashFilter
+	mu         sync.RWMutex
 }
 
 // NewResponseFilter 创建响应过滤器

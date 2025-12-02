@@ -24,30 +24,30 @@ type CruiseTask struct {
 	Status      CruiseStatus       `json:"status" bson:"status"`
 
 	// 定时配置
-	CronExpr    string `json:"cron_expr" bson:"cron_expr"`       // Cron 表达式，如 "0 2 * * *" 每天凌晨2点
-	Timezone    string `json:"timezone" bson:"timezone"`         // 时区，如 "Asia/Shanghai"
-	
+	CronExpr string `json:"cron_expr" bson:"cron_expr"` // Cron 表达式，如 "0 2 * * *" 每天凌晨2点
+	Timezone string `json:"timezone" bson:"timezone"`   // 时区，如 "Asia/Shanghai"
+
 	// 扫描目标
-	Targets     []string `json:"targets" bson:"targets"`         // 目标列表
-	TargetType  string   `json:"target_type" bson:"target_type"` // ip, domain, url, cidr
-	
+	Targets    []string `json:"targets" bson:"targets"`         // 目标列表
+	TargetType string   `json:"target_type" bson:"target_type"` // ip, domain, url, cidr
+
 	// 扫描配置（复用 TaskConfig）
-	TaskType    TaskType   `json:"task_type" bson:"task_type"`     // 任务类型
-	Config      TaskConfig `json:"config" bson:"config"`           // 扫描配置
-	
+	TaskType TaskType   `json:"task_type" bson:"task_type"` // 任务类型
+	Config   TaskConfig `json:"config" bson:"config"`       // 扫描配置
+
 	// 通知配置
 	NotifyOnComplete bool     `json:"notify_on_complete" bson:"notify_on_complete"` // 完成后通知
 	NotifyOnVuln     bool     `json:"notify_on_vuln" bson:"notify_on_vuln"`         // 发现漏洞时通知
 	NotifyChannels   []string `json:"notify_channels" bson:"notify_channels"`       // 通知渠道
 
 	// 执行统计
-	LastRunAt     time.Time `json:"last_run_at,omitempty" bson:"last_run_at,omitempty"`
-	NextRunAt     time.Time `json:"next_run_at,omitempty" bson:"next_run_at,omitempty"`
-	RunCount      int       `json:"run_count" bson:"run_count"`             // 执行次数
-	SuccessCount  int       `json:"success_count" bson:"success_count"`     // 成功次数
-	FailCount     int       `json:"fail_count" bson:"fail_count"`           // 失败次数
-	LastTaskID    string    `json:"last_task_id,omitempty" bson:"last_task_id,omitempty"` // 最近一次任务ID
-	LastStatus    string    `json:"last_status,omitempty" bson:"last_status,omitempty"`   // 最近一次执行状态
+	LastRunAt    time.Time `json:"last_run_at,omitempty" bson:"last_run_at,omitempty"`
+	NextRunAt    time.Time `json:"next_run_at,omitempty" bson:"next_run_at,omitempty"`
+	RunCount     int       `json:"run_count" bson:"run_count"`                           // 执行次数
+	SuccessCount int       `json:"success_count" bson:"success_count"`                   // 成功次数
+	FailCount    int       `json:"fail_count" bson:"fail_count"`                         // 失败次数
+	LastTaskID   string    `json:"last_task_id,omitempty" bson:"last_task_id,omitempty"` // 最近一次任务ID
+	LastStatus   string    `json:"last_status,omitempty" bson:"last_status,omitempty"`   // 最近一次执行状态
 
 	// 元数据
 	CreatedBy primitive.ObjectID `json:"created_by" bson:"created_by"`
@@ -107,18 +107,18 @@ type CruiseLog struct {
 func GetCronDescription(cronExpr string) string {
 	// 常用 Cron 表达式映射
 	descriptions := map[string]string{
-		"0 * * * *":     "每小时执行",
-		"0 */2 * * *":   "每2小时执行",
-		"0 */6 * * *":   "每6小时执行",
-		"0 */12 * * *":  "每12小时执行",
-		"0 0 * * *":     "每天凌晨执行",
-		"0 2 * * *":     "每天凌晨2点执行",
-		"0 0 * * 0":     "每周日凌晨执行",
-		"0 0 * * 1":     "每周一凌晨执行",
-		"0 0 1 * *":     "每月1日凌晨执行",
-		"0 0 1,15 * *":  "每月1日和15日凌晨执行",
+		"0 * * * *":    "每小时执行",
+		"0 */2 * * *":  "每2小时执行",
+		"0 */6 * * *":  "每6小时执行",
+		"0 */12 * * *": "每12小时执行",
+		"0 0 * * *":    "每天凌晨执行",
+		"0 2 * * *":    "每天凌晨2点执行",
+		"0 0 * * 0":    "每周日凌晨执行",
+		"0 0 * * 1":    "每周一凌晨执行",
+		"0 0 1 * *":    "每月1日凌晨执行",
+		"0 0 1,15 * *": "每月1日和15日凌晨执行",
 	}
-	
+
 	if desc, ok := descriptions[cronExpr]; ok {
 		return desc
 	}

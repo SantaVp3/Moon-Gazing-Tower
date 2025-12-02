@@ -18,13 +18,13 @@ import (
 // RustScanScanner 使用 RustScan 进行高速端口扫描
 type RustScanScanner struct {
 	BinPath       string
-	Timeout       int    // 超时时间(毫秒)
-	BatchSize     int    // 批量大小 (并发数)
-	Ulimit        int    // 文件描述符限制
+	Timeout       int // 超时时间(毫秒)
+	BatchSize     int // 批量大小 (并发数)
+	Ulimit        int // 文件描述符限制
 	TempDir       string
-	VerifyPorts   bool   // 是否验证端口服务
-	VerifyTimeout int    // 验证超时时间(秒)
-	VerifyWorkers int    // 验证并发数
+	VerifyPorts   bool // 是否验证端口服务
+	VerifyTimeout int  // 验证超时时间(秒)
+	VerifyWorkers int  // 验证并发数
 }
 
 // RustScanConfig RustScan 扫描配置
@@ -41,9 +41,9 @@ func NewRustScanScanner() *RustScanScanner {
 
 	return &RustScanScanner{
 		BinPath:       binPath,
-		Timeout:       3000,  // 3秒超时 (毫秒) - 参考 ScopeSentry-Scan
-		BatchSize:     1500,  // 批量大小 - 参考 ScopeSentry-Scan
-		Ulimit:        5000,  // 文件描述符
+		Timeout:       3000, // 3秒超时 (毫秒) - 参考 ScopeSentry-Scan
+		BatchSize:     1500, // 批量大小 - 参考 ScopeSentry-Scan
+		Ulimit:        5000, // 文件描述符
 		TempDir:       os.TempDir(),
 		VerifyPorts:   false, // 默认关闭端口验证，RustScan 已经足够准确
 		VerifyTimeout: 5,     // 验证超时5秒（如果开启验证）
@@ -54,7 +54,7 @@ func NewRustScanScanner() *RustScanScanner {
 // NewRustScanScannerWithConfig 使用配置创建 RustScan 扫描器
 func NewRustScanScannerWithConfig(config *RustScanConfig) *RustScanScanner {
 	scanner := NewRustScanScanner()
-	
+
 	if config != nil {
 		// 超时时间：配置是秒，转换为毫秒
 		if config.Timeout > 0 {
@@ -65,7 +65,7 @@ func NewRustScanScannerWithConfig(config *RustScanConfig) *RustScanScanner {
 			scanner.BatchSize = config.BatchSize
 		}
 	}
-	
+
 	return scanner
 }
 
@@ -113,9 +113,9 @@ func (r *RustScanScanner) ScanPorts(ctx context.Context, target string, ports st
 		"-b", fmt.Sprintf("%d", r.BatchSize),
 		"-t", fmt.Sprintf("%d", r.Timeout),
 		"-a", target,
-		"--accessible",        // 便于解析的输出格式
+		"--accessible",           // 便于解析的输出格式
 		"--scan-order", "Random", // 随机扫描顺序，避免 IDS 检测
-		"--scripts", "None",   // 不运行额外脚本
+		"--scripts", "None", // 不运行额外脚本
 	}
 
 	if ports != "" {
@@ -312,13 +312,13 @@ func isPortRange(ports string) bool {
 	if !strings.Contains(ports, "-") {
 		return false
 	}
-	
+
 	// 分割检查是否是 "数字-数字" 格式
 	parts := strings.Split(ports, "-")
 	if len(parts) != 2 {
 		return false
 	}
-	
+
 	// 两边都必须是纯数字
 	for _, part := range parts {
 		part = strings.TrimSpace(part)
@@ -329,7 +329,7 @@ func isPortRange(ports string) bool {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -409,7 +409,7 @@ func (r *RustScanScanner) probeBanner(conn net.Conn, port int) string {
 	if core.IsHTTPPort(port) {
 		conn.SetWriteDeadline(time.Now().Add(2 * time.Second))
 		conn.Write([]byte("HEAD / HTTP/1.0\r\n\r\n"))
-		
+
 		conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 		n, err = conn.Read(buffer)
 		if err == nil && n > 0 {
@@ -424,7 +424,7 @@ func (r *RustScanScanner) probeBanner(conn net.Conn, port int) string {
 func (r *RustScanScanner) isConnectionValid(conn net.Conn, port int) bool {
 	// 尝试写入少量数据检查连接是否真正建立
 	conn.SetWriteDeadline(time.Now().Add(1 * time.Second))
-	
+
 	// 发送一个空行或简单探针
 	var probe []byte
 	switch {
@@ -449,7 +449,7 @@ func (r *RustScanScanner) isConnectionValid(conn net.Conn, port int) bool {
 	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 	buffer := make([]byte, 256)
 	n, _ := conn.Read(buffer)
-	
+
 	// 如果有任何响应数据，说明服务存在
 	return n > 0
 }

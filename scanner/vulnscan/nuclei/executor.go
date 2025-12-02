@@ -20,7 +20,7 @@ type Executor struct {
 	loader  *TemplateLoader
 	client  *http.Client
 	options *ExecutorOptions
-	
+
 	// 变量存储
 	variables map[string]interface{}
 	varMu     sync.RWMutex
@@ -31,7 +31,7 @@ func NewExecutor(loader *TemplateLoader, options *ExecutorOptions) *Executor {
 	if options == nil {
 		options = DefaultExecutorOptions()
 	}
-	
+
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -40,23 +40,23 @@ func NewExecutor(loader *TemplateLoader, options *ExecutorOptions) *Executor {
 		MaxIdleConnsPerHost: 10,
 		DisableKeepAlives:   options.DisableKeepAlive,
 	}
-	
+
 	if options.Proxy != "" {
 		proxyURL, _ := url.Parse(options.Proxy)
 		transport.Proxy = http.ProxyURL(proxyURL)
 	}
-	
+
 	client := &http.Client{
 		Transport: transport,
 		Timeout:   options.Timeout,
 	}
-	
+
 	if !options.FollowRedirects {
 		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		}
 	}
-	
+
 	return &Executor{
 		loader:    loader,
 		client:    client,
@@ -78,10 +78,10 @@ func (e *Executor) Execute(ctx context.Context, template *NucleiTemplate, target
 		Reference:    template.Info.Reference,
 		Tags:         template.Info.Tags,
 	}
-	
+
 	// 初始化变量
 	e.initVariables(template, target)
-	
+
 	// 执行 HTTP 请求
 	if len(template.HTTP) > 0 {
 		matched, err := e.executeHTTP(ctx, template, target, result)
@@ -91,9 +91,9 @@ func (e *Executor) Execute(ctx context.Context, template *NucleiTemplate, target
 		}
 		result.Matched = matched
 	}
-	
+
 	// TODO: 执行 DNS、TCP、Headless 请求
-	
+
 	return result, nil
 }
 
@@ -107,34 +107,34 @@ func (e *Executor) ExecuteAll(ctx context.Context, target string) ([]*ScanResult
 func (e *Executor) ExecuteTemplates(ctx context.Context, templates []*NucleiTemplate, target string) ([]*ScanResult, error) {
 	results := make([]*ScanResult, 0)
 	resultsMu := sync.Mutex{}
-	
+
 	// 使用 semaphore 控制并发
 	sem := make(chan struct{}, e.options.Concurrency)
 	var wg sync.WaitGroup
-	
+
 	for _, template := range templates {
 		select {
 		case <-ctx.Done():
 			return results, ctx.Err()
 		case sem <- struct{}{}:
 		}
-		
+
 		wg.Add(1)
 		go func(t *NucleiTemplate) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			
+
 			result, err := e.Execute(ctx, t, target)
 			if err != nil {
 				return
 			}
-			
+
 			resultsMu.Lock()
 			results = append(results, result)
 			resultsMu.Unlock()
 		}(template)
 	}
-	
+
 	wg.Wait()
 	return results, nil
 }
@@ -155,9 +155,9 @@ func (e *Executor) ExecuteBySeverity(ctx context.Context, target string, severit
 func (e *Executor) initVariables(template *NucleiTemplate, target string) {
 	e.varMu.Lock()
 	defer e.varMu.Unlock()
-	
+
 	e.variables = make(map[string]interface{})
-	
+
 	// 解析目标 URL
 	parsedURL, _ := url.Parse(target)
 	if parsedURL != nil {
@@ -169,7 +169,7 @@ func (e *Executor) initVariables(template *NucleiTemplate, target string) {
 		e.variables["Path"] = parsedURL.Path
 		e.variables["Scheme"] = parsedURL.Scheme
 	}
-	
+
 	// 复制模板变量
 	for k, v := range template.Variables {
 		e.variables[k] = v
@@ -196,12 +196,12 @@ func (e *Executor) executeSingleHTTP(ctx context.Context, httpReq *HTTPRequest, 
 	if len(httpReq.Raw) > 0 {
 		return e.executeRawHTTP(ctx, httpReq, target, result)
 	}
-	
+
 	// 处理路径请求
 	if len(httpReq.Path) > 0 {
 		return e.executePathHTTP(ctx, httpReq, target, result)
 	}
-	
+
 	return false, nil
 }
 
@@ -210,48 +210,48 @@ func (e *Executor) executeRawHTTP(ctx context.Context, httpReq *HTTPRequest, tar
 	for _, raw := range httpReq.Raw {
 		// 替换变量
 		raw = e.replaceVariables(raw)
-		
+
 		// 解析原始请求
 		req, err := e.parseRawRequest(ctx, raw, target)
 		if err != nil {
 			continue
 		}
-		
+
 		// 发送请求
 		resp, err := e.client.Do(req)
 		if err != nil {
 			continue
 		}
 		defer resp.Body.Close()
-		
+
 		// 读取响应
 		body, _ := io.ReadAll(resp.Body)
-		
+
 		// 检查匹配
 		matched := e.checkMatchers(httpReq.Matchers, httpReq.MatchersCondition, resp, body)
 		if matched {
 			result.MatchedAt = req.URL.String()
 			result.Request = raw
 			result.Response = string(body)
-			
+
 			// 提取数据
 			result.ExtractedData = e.extractData(httpReq.Extractors, resp, body)
-			
+
 			return true, nil
 		}
 	}
-	
+
 	return false, nil
 }
 
 // executePathHTTP 执行路径 HTTP 请求
 func (e *Executor) executePathHTTP(ctx context.Context, httpReq *HTTPRequest, target string, result *ScanResult) (bool, error) {
 	baseURL, _ := url.Parse(target)
-	
+
 	for _, path := range httpReq.Path {
 		// 替换变量
 		path = e.replaceVariables(path)
-		
+
 		// 构建完整 URL
 		fullURL := target
 		if strings.HasPrefix(path, "/") {
@@ -261,61 +261,61 @@ func (e *Executor) executePathHTTP(ctx context.Context, httpReq *HTTPRequest, ta
 		} else {
 			fullURL = path
 		}
-		
+
 		// 创建请求
 		method := httpReq.Method
 		if method == "" {
 			method = "GET"
 		}
-		
+
 		var bodyReader io.Reader
 		if httpReq.Body != "" {
 			bodyReader = strings.NewReader(e.replaceVariables(httpReq.Body))
 		}
-		
+
 		req, err := http.NewRequestWithContext(ctx, method, fullURL, bodyReader)
 		if err != nil {
 			continue
 		}
-		
+
 		// 设置 Headers
 		for k, v := range httpReq.Headers {
 			req.Header.Set(k, e.replaceVariables(v))
 		}
-		
+
 		// 添加自定义 Headers
 		for k, v := range e.options.Headers {
 			req.Header.Set(k, v)
 		}
-		
+
 		// 发送请求
 		resp, err := e.client.Do(req)
 		if err != nil {
 			continue
 		}
 		defer resp.Body.Close()
-		
+
 		// 读取响应
 		body, _ := io.ReadAll(resp.Body)
-		
+
 		// 检查匹配
 		matched := e.checkMatchers(httpReq.Matchers, httpReq.MatchersCondition, resp, body)
 		if matched {
 			result.MatchedAt = fullURL
 			result.Response = string(body)
-			
+
 			// 提取数据
 			result.ExtractedData = e.extractData(httpReq.Extractors, resp, body)
-			
+
 			return true, nil
 		}
-		
+
 		// 如果设置了 stop-at-first-match
 		if httpReq.StopAtFirstMatch {
 			break
 		}
 	}
-	
+
 	return false, nil
 }
 
@@ -325,21 +325,21 @@ func (e *Executor) parseRawRequest(ctx context.Context, raw string, target strin
 	if len(lines) == 0 {
 		return nil, fmt.Errorf("empty raw request")
 	}
-	
+
 	// 解析请求行
 	requestLine := strings.TrimSpace(lines[0])
 	parts := strings.Fields(requestLine)
 	if len(parts) < 2 {
 		return nil, fmt.Errorf("invalid request line")
 	}
-	
+
 	method := parts[0]
 	path := parts[1]
-	
+
 	// 构建 URL
 	baseURL, _ := url.Parse(target)
 	fullURL := fmt.Sprintf("%s://%s%s", baseURL.Scheme, baseURL.Host, path)
-	
+
 	// 查找 body
 	var bodyStart int
 	for i, line := range lines {
@@ -348,42 +348,42 @@ func (e *Executor) parseRawRequest(ctx context.Context, raw string, target strin
 			break
 		}
 	}
-	
+
 	var body string
 	if bodyStart > 0 && bodyStart < len(lines) {
 		body = strings.Join(lines[bodyStart:], "\n")
 	}
-	
+
 	// 创建请求
 	var bodyReader io.Reader
 	if body != "" {
 		bodyReader = strings.NewReader(body)
 	}
-	
+
 	req, err := http.NewRequestWithContext(ctx, method, fullURL, bodyReader)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 解析 Headers
 	for i := 1; i < len(lines); i++ {
 		line := strings.TrimSpace(lines[i])
 		if line == "" {
 			break
 		}
-		
+
 		colonIdx := strings.Index(line, ":")
 		if colonIdx > 0 {
 			key := strings.TrimSpace(line[:colonIdx])
 			value := strings.TrimSpace(line[colonIdx+1:])
-			
+
 			// 跳过 Host header
 			if strings.ToLower(key) != "host" {
 				req.Header.Set(key, value)
 			}
 		}
 	}
-	
+
 	return req, nil
 }
 
@@ -392,24 +392,24 @@ func (e *Executor) checkMatchers(matchers []Matcher, condition string, resp *htt
 	if len(matchers) == 0 {
 		return false
 	}
-	
+
 	results := make([]bool, len(matchers))
-	
+
 	for i, matcher := range matchers {
 		// 跳过 internal 匹配器
 		if matcher.Internal {
 			results[i] = true
 			continue
 		}
-		
+
 		results[i] = e.checkMatcher(&matcher, resp, body)
-		
+
 		// 处理 negative
 		if matcher.Negative {
 			results[i] = !results[i]
 		}
 	}
-	
+
 	// 根据条件组合结果
 	if condition == "or" {
 		for _, r := range results {
@@ -419,7 +419,7 @@ func (e *Executor) checkMatchers(matchers []Matcher, condition string, resp *htt
 		}
 		return false
 	}
-	
+
 	// 默认 and
 	for _, r := range results {
 		if !r {
@@ -450,7 +450,7 @@ func (e *Executor) checkMatcher(matcher *Matcher, resp *http.Response, body []by
 		}
 		content = headers.String() + "\n" + string(body)
 	}
-	
+
 	switch matcher.Type {
 	case "status":
 		return e.matchStatus(matcher, resp.StatusCode)
@@ -465,7 +465,7 @@ func (e *Executor) checkMatcher(matcher *Matcher, resp *http.Response, body []by
 	case "dsl":
 		return e.matchDSL(matcher, resp, body)
 	}
-	
+
 	return false
 }
 
@@ -495,7 +495,7 @@ func (e *Executor) matchWords(matcher *Matcher, content string) bool {
 	if condition == "" {
 		condition = "and"
 	}
-	
+
 	if condition == "or" {
 		for _, word := range matcher.Words {
 			if strings.Contains(content, word) {
@@ -504,7 +504,7 @@ func (e *Executor) matchWords(matcher *Matcher, content string) bool {
 		}
 		return false
 	}
-	
+
 	// and 条件
 	for _, word := range matcher.Words {
 		if !strings.Contains(content, word) {
@@ -520,7 +520,7 @@ func (e *Executor) matchRegex(matcher *Matcher, content string) bool {
 	if condition == "" {
 		condition = "and"
 	}
-	
+
 	// 使用编译好的正则
 	if len(matcher.CompiledRegex) > 0 {
 		if condition == "or" {
@@ -531,7 +531,7 @@ func (e *Executor) matchRegex(matcher *Matcher, content string) bool {
 			}
 			return false
 		}
-		
+
 		// and 条件
 		for _, re := range matcher.CompiledRegex {
 			if !re.MatchString(content) {
@@ -540,7 +540,7 @@ func (e *Executor) matchRegex(matcher *Matcher, content string) bool {
 		}
 		return len(matcher.CompiledRegex) > 0
 	}
-	
+
 	// 如果没有编译，动态匹配
 	if condition == "or" {
 		for _, pattern := range matcher.Regex {
@@ -554,7 +554,7 @@ func (e *Executor) matchRegex(matcher *Matcher, content string) bool {
 		}
 		return false
 	}
-	
+
 	for _, pattern := range matcher.Regex {
 		re, err := regexp.Compile(pattern)
 		if err != nil {
@@ -595,11 +595,11 @@ func (e *Executor) matchDSL(matcher *Matcher, resp *http.Response, body []byte) 
 func (e *Executor) evaluateDSL(expr string, resp *http.Response, body []byte) bool {
 	// 简单 DSL 实现
 	// 支持: status_code == 200, contains(body, "xxx"), len(body) > 100
-	
+
 	// 替换变量
 	expr = strings.ReplaceAll(expr, "status_code", strconv.Itoa(resp.StatusCode))
 	expr = strings.ReplaceAll(expr, "content_length", strconv.Itoa(len(body)))
-	
+
 	// contains 函数
 	containsRe := regexp.MustCompile(`contains\s*\(\s*body\s*,\s*"([^"]+)"\s*\)`)
 	matches := containsRe.FindAllStringSubmatch(expr, -1)
@@ -609,7 +609,7 @@ func (e *Executor) evaluateDSL(expr string, resp *http.Response, body []byte) bo
 			expr = strings.Replace(expr, match[0], strconv.FormatBool(result), 1)
 		}
 	}
-	
+
 	// 简单数值比较
 	if strings.Contains(expr, "==") {
 		parts := strings.Split(expr, "==")
@@ -619,23 +619,23 @@ func (e *Executor) evaluateDSL(expr string, resp *http.Response, body []byte) bo
 			return left == right
 		}
 	}
-	
+
 	if strings.Contains(expr, "true") {
 		return true
 	}
-	
+
 	return false
 }
 
 // extractData 提取数据
 func (e *Executor) extractData(extractors []Extractor, resp *http.Response, body []byte) map[string]interface{} {
 	data := make(map[string]interface{})
-	
+
 	for _, extractor := range extractors {
 		if extractor.Internal {
 			continue
 		}
-		
+
 		var content string
 		switch extractor.Part {
 		case "header":
@@ -647,12 +647,12 @@ func (e *Executor) extractData(extractors []Extractor, resp *http.Response, body
 		default:
 			content = string(body)
 		}
-		
+
 		name := extractor.Name
 		if name == "" {
 			name = extractor.Type
 		}
-		
+
 		switch extractor.Type {
 		case "regex":
 			extracted := e.extractRegex(&extractor, content)
@@ -671,14 +671,14 @@ func (e *Executor) extractData(extractors []Extractor, resp *http.Response, body
 			}
 		}
 	}
-	
+
 	return data
 }
 
 // extractRegex 正则提取
 func (e *Executor) extractRegex(extractor *Extractor, content string) []string {
 	results := make([]string, 0)
-	
+
 	regexes := extractor.CompiledRegex
 	if len(regexes) == 0 {
 		// 动态编译
@@ -690,7 +690,7 @@ func (e *Executor) extractRegex(extractor *Extractor, content string) []string {
 			regexes = append(regexes, re)
 		}
 	}
-	
+
 	for _, re := range regexes {
 		matches := re.FindAllStringSubmatch(content, -1)
 		for _, match := range matches {
@@ -703,20 +703,20 @@ func (e *Executor) extractRegex(extractor *Extractor, content string) []string {
 			}
 		}
 	}
-	
+
 	return results
 }
 
 // extractKVal 键值提取
 func (e *Executor) extractKVal(extractor *Extractor, resp *http.Response) map[string]string {
 	results := make(map[string]string)
-	
+
 	for _, key := range extractor.KVal {
 		if values := resp.Header.Values(key); len(values) > 0 {
 			results[key] = strings.Join(values, ", ")
 		}
 	}
-	
+
 	return results
 }
 
@@ -730,12 +730,12 @@ func (e *Executor) extractJSON(extractor *Extractor, body []byte) interface{} {
 func (e *Executor) replaceVariables(s string) string {
 	e.varMu.RLock()
 	defer e.varMu.RUnlock()
-	
+
 	for k, v := range e.variables {
 		placeholder := "{{" + k + "}}"
 		s = strings.ReplaceAll(s, placeholder, fmt.Sprintf("%v", v))
 	}
-	
+
 	return s
 }
 
@@ -745,7 +745,7 @@ func hexDecode(s string) ([]byte, error) {
 	if len(s)%2 != 0 {
 		return nil, fmt.Errorf("invalid hex string")
 	}
-	
+
 	result := make([]byte, len(s)/2)
 	for i := 0; i < len(s); i += 2 {
 		b, err := strconv.ParseUint(s[i:i+2], 16, 8)
@@ -754,6 +754,6 @@ func hexDecode(s string) ([]byte, error) {
 		}
 		result[i/2] = byte(b)
 	}
-	
+
 	return result, nil
 }

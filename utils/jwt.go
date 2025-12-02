@@ -20,7 +20,7 @@ type Claims struct {
 // GenerateToken generates a new JWT token
 func GenerateToken(userID, username, role string) (string, error) {
 	cfg := config.GetConfig()
-	
+
 	claims := Claims{
 		UserID:   userID,
 		Username: username,
@@ -31,7 +31,7 @@ func GenerateToken(userID, username, role string) (string, error) {
 			Issuer:    cfg.JWT.Issuer,
 		},
 	}
-	
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(cfg.JWT.Secret))
 }
@@ -39,22 +39,22 @@ func GenerateToken(userID, username, role string) (string, error) {
 // ParseToken parses and validates a JWT token
 func ParseToken(tokenString string) (*Claims, error) {
 	cfg := config.GetConfig()
-	
+
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
 		}
 		return []byte(cfg.JWT.Secret), nil
 	})
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
 		return claims, nil
 	}
-	
+
 	return nil, errors.New("invalid token")
 }
 
@@ -64,11 +64,11 @@ func RefreshToken(tokenString string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	// Check if token is about to expire (within 30 minutes)
 	if time.Until(claims.ExpiresAt.Time) > 30*time.Minute {
 		return tokenString, nil // Token still valid, no need to refresh
 	}
-	
+
 	return GenerateToken(claims.UserID, claims.Username, claims.Role)
 }

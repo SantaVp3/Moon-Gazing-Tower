@@ -36,14 +36,14 @@ func (h *NotifyHandler) GetManager() *notify.NotifyManager {
 // @Router /api/notify/configs [get]
 func (h *NotifyHandler) GetConfigs(c *gin.Context) {
 	configs := h.manager.GetConfigs()
-	
+
 	// 隐藏敏感信息
 	for i := range configs {
 		configs[i].DingTalkSecret = maskSecret(configs[i].DingTalkSecret)
 		configs[i].FeishuSecret = maskSecret(configs[i].FeishuSecret)
 		configs[i].SMTPPassword = maskSecret(configs[i].SMTPPassword)
 	}
-	
+
 	c.JSON(http.StatusOK, utils.Response{
 		Code:    0,
 		Message: "success",
@@ -67,7 +67,7 @@ func (h *NotifyHandler) AddConfig(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	if config.Name == "" {
 		c.JSON(http.StatusBadRequest, utils.Response{
 			Code:    -1,
@@ -75,9 +75,9 @@ func (h *NotifyHandler) AddConfig(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	h.manager.AddConfig(config)
-	
+
 	c.JSON(http.StatusOK, utils.Response{
 		Code:    0,
 		Message: "Config added successfully",
@@ -100,9 +100,9 @@ func (h *NotifyHandler) UpdateConfig(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	h.manager.AddConfig(config)
-	
+
 	c.JSON(http.StatusOK, utils.Response{
 		Code:    0,
 		Message: "Config updated successfully",
@@ -120,7 +120,7 @@ func (h *NotifyHandler) UpdateConfig(c *gin.Context) {
 func (h *NotifyHandler) DeleteConfig(c *gin.Context) {
 	name := c.Query("name")
 	notifyType := c.Query("type")
-	
+
 	if name == "" || notifyType == "" {
 		c.JSON(http.StatusBadRequest, utils.Response{
 			Code:    -1,
@@ -128,9 +128,9 @@ func (h *NotifyHandler) DeleteConfig(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	h.manager.RemoveConfig(name, notify.NotifyType(notifyType))
-	
+
 	c.JSON(http.StatusOK, utils.Response{
 		Code:    0,
 		Message: "Config deleted successfully",
@@ -150,7 +150,7 @@ func (h *NotifyHandler) EnableConfig(c *gin.Context) {
 		Type    string `json:"type"`
 		Enabled bool   `json:"enabled"`
 	}
-	
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, utils.Response{
 			Code:    -1,
@@ -158,9 +158,9 @@ func (h *NotifyHandler) EnableConfig(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	h.manager.EnableConfig(req.Name, notify.NotifyType(req.Type), req.Enabled)
-	
+
 	c.JSON(http.StatusOK, utils.Response{
 		Code:    0,
 		Message: "Config updated successfully",
@@ -183,9 +183,9 @@ func (h *NotifyHandler) TestConfig(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	config.Enabled = true // 测试时强制启用
-	
+
 	if err := h.manager.TestNotifier(config); err != nil {
 		c.JSON(http.StatusOK, utils.Response{
 			Code:    -1,
@@ -193,7 +193,7 @@ func (h *NotifyHandler) TestConfig(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, utils.Response{
 		Code:    0,
 		Message: "Test notification sent successfully",
@@ -216,7 +216,7 @@ func (h *NotifyHandler) SendNotification(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	if msg.Title == "" {
 		c.JSON(http.StatusBadRequest, utils.Response{
 			Code:    -1,
@@ -224,15 +224,15 @@ func (h *NotifyHandler) SendNotification(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	if msg.Source == "" {
 		msg.Source = "manual"
 	}
-	
+
 	if msg.Level == "" {
 		msg.Level = notify.NotifyLevelInfo
 	}
-	
+
 	if err := h.manager.Send(c.Request.Context(), &msg); err != nil {
 		c.JSON(http.StatusOK, utils.Response{
 			Code:    -1,
@@ -240,7 +240,7 @@ func (h *NotifyHandler) SendNotification(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, utils.Response{
 		Code:    0,
 		Message: "Notification sent successfully",
@@ -257,9 +257,9 @@ func (h *NotifyHandler) SendNotification(c *gin.Context) {
 func (h *NotifyHandler) GetHistory(c *gin.Context) {
 	limitStr := c.DefaultQuery("limit", "100")
 	limit, _ := strconv.Atoi(limitStr)
-	
+
 	history := h.manager.GetHistory(limit)
-	
+
 	c.JSON(http.StatusOK, utils.Response{
 		Code:    0,
 		Message: "success",
@@ -325,7 +325,7 @@ func (h *NotifyHandler) GetSupportedTypes(c *gin.Context) {
 			},
 		},
 	}
-	
+
 	c.JSON(http.StatusOK, utils.Response{
 		Code:    0,
 		Message: "success",

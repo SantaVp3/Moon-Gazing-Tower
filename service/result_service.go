@@ -90,7 +90,7 @@ func (s *ResultService) CreateResultWithDedup(result *models.ScanResult) error {
 
 	// 使用 Upsert：存在则更新，不存在则插入
 	result.UpdatedAt = time.Now()
-	
+
 	update := bson.M{
 		"$set": bson.M{
 			"data":       result.Data,
@@ -133,7 +133,7 @@ func (s *ResultService) BatchCreateResults(results []models.ScanResult) error {
 func (s *ResultService) BatchCreateResultsWithDedup(results []models.ScanResult) (int, int, error) {
 	inserted := 0
 	skipped := 0
-	
+
 	for i := range results {
 		err := s.CreateResultWithDedup(&results[i])
 		if err != nil {
@@ -142,7 +142,7 @@ func (s *ResultService) BatchCreateResultsWithDedup(results []models.ScanResult)
 			inserted++
 		}
 	}
-	
+
 	return inserted, skipped, nil
 }
 
@@ -160,12 +160,12 @@ func (s *ResultService) GetResultsByTask(taskID string, resultType models.Result
 	if resultType != "" {
 		filter["type"] = resultType
 	}
-	
+
 	// 状态码筛选（主要用于目录扫描结果）
 	if statusCode > 0 {
 		filter["data.status"] = statusCode
 	}
-	
+
 	if search != "" {
 		// 根据不同类型搜索不同字段
 		filter["$or"] = []bson.M{

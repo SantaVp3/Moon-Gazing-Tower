@@ -20,16 +20,16 @@ import (
 
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
-	
+
 	// Middleware
 	r.Use(middleware.CORSMiddleware())
 	r.Use(middleware.OperationLogMiddleware())
-	
+
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
-	
+
 	// API routes
 	apiGroup := r.Group("/api")
 	{
@@ -40,7 +40,7 @@ func SetupRouter() *gin.Engine {
 			authGroup.POST("/login", authHandler.Login)
 			authGroup.POST("/refresh", authHandler.RefreshToken)
 		}
-		
+
 		// Protected routes
 		protected := apiGroup.Group("")
 		protected.Use(middleware.AuthMiddleware())
@@ -50,7 +50,7 @@ func SetupRouter() *gin.Engine {
 			protected.GET("/auth/profile", authHandler.GetProfile)
 			protected.PUT("/auth/profile", authHandler.UpdateProfile)
 			protected.PUT("/auth/password", authHandler.ChangePassword)
-			
+
 			// User routes
 			userHandler := api.NewUserHandler()
 			userGroup := protected.Group("/users")
@@ -63,7 +63,7 @@ func SetupRouter() *gin.Engine {
 				userGroup.PUT("/:id/status", middleware.AdminMiddleware(), userHandler.SetUserStatus)
 				userGroup.PUT("/:id/password", middleware.AdminMiddleware(), userHandler.ResetPassword)
 			}
-			
+
 			// Asset routes
 			assetHandler := api.NewAssetHandler()
 			assetGroup := protected.Group("/assets")
@@ -84,7 +84,7 @@ func SetupRouter() *gin.Engine {
 				assetGroup.POST("/:id/tags", assetHandler.AddAssetTags)
 				assetGroup.DELETE("/:id/tags", assetHandler.RemoveAssetTags)
 			}
-			
+
 			// Task routes
 			taskHandler := api.NewTaskHandler()
 			resultHandler := api.NewResultHandler()
@@ -114,7 +114,7 @@ func SetupRouter() *gin.Engine {
 				taskGroup.GET("/:id/results/subdomains", resultHandler.GetSubdomainResults)
 				taskGroup.GET("/:id/results/export", resultHandler.ExportResults)
 			}
-			
+
 			// Results routes (for tag management and batch operations)
 			resultGroup := protected.Group("/results")
 			{
@@ -123,14 +123,14 @@ func SetupRouter() *gin.Engine {
 				resultGroup.DELETE("/:id/tags", resultHandler.RemoveResultTag)
 				resultGroup.POST("/batch-delete", resultHandler.BatchDeleteResults)
 			}
-			
+
 			// Vulnerability routes
 			vulnHandler := api.NewVulnHandler()
 			vulnGroup := protected.Group("/vulnerabilities")
 			{
 				vulnGroup.GET("", vulnHandler.ListVulnerabilities)
 				vulnGroup.GET("/stats", vulnHandler.GetVulnStats)
-				vulnGroup.GET("/statistics", vulnHandler.GetVulnStatistics) // 详细统计
+				vulnGroup.GET("/statistics", vulnHandler.GetVulnStatistics)        // 详细统计
 				vulnGroup.POST("/batch-update", vulnHandler.BatchUpdateVulnStatus) // 批量更新
 				vulnGroup.GET("/:id", vulnHandler.GetVulnerability)
 				vulnGroup.POST("", vulnHandler.CreateVulnerability)
@@ -141,7 +141,7 @@ func SetupRouter() *gin.Engine {
 				vulnGroup.PUT("/:id/false-positive", vulnHandler.MarkVulnAsFalsePositive)
 				vulnGroup.POST("/:id/verify", vulnHandler.VerifyVulnerability) // 验证漏洞
 			}
-			
+
 			// POC routes
 			pocHandler := api.NewPOCHandler()
 			pocGroup := protected.Group("/pocs")
@@ -157,7 +157,7 @@ func SetupRouter() *gin.Engine {
 				pocGroup.DELETE("/:id", pocHandler.DeletePOC)
 				pocGroup.POST("/:id/toggle", pocHandler.TogglePOCEnabled)
 			}
-			
+
 			// Report routes
 			reportGroup := protected.Group("/reports")
 			{
@@ -166,7 +166,7 @@ func SetupRouter() *gin.Engine {
 				reportGroup.POST("", vulnHandler.CreateReport)
 				reportGroup.DELETE("/:id", vulnHandler.DeleteReport)
 			}
-			
+
 			// Node routes
 			nodeHandler := api.NewNodeHandler()
 			nodeGroup := protected.Group("/nodes")
@@ -180,7 +180,7 @@ func SetupRouter() *gin.Engine {
 				nodeGroup.POST("/:id/heartbeat", nodeHandler.Heartbeat)
 				nodeGroup.PUT("/:id/status", nodeHandler.SetNodeStatus)
 			}
-			
+
 			// Plugin routes
 			pluginHandler := api.NewPluginHandler()
 			pluginGroup := protected.Group("/plugins")
@@ -194,7 +194,7 @@ func SetupRouter() *gin.Engine {
 				pluginGroup.POST("/:id/install", pluginHandler.InstallPlugin)
 				pluginGroup.POST("/:id/uninstall", pluginHandler.UninstallPlugin)
 			}
-			
+
 			// Fingerprint routes
 			fingerprintGroup := protected.Group("/fingerprints")
 			{
@@ -202,7 +202,7 @@ func SetupRouter() *gin.Engine {
 				fingerprintGroup.POST("", pluginHandler.CreateFingerprintRule)
 				fingerprintGroup.DELETE("/:id", pluginHandler.DeleteFingerprintRule)
 			}
-			
+
 			// Dictionary routes
 			dictionaryGroup := protected.Group("/dictionaries")
 			{
@@ -210,7 +210,7 @@ func SetupRouter() *gin.Engine {
 				dictionaryGroup.POST("", pluginHandler.CreateDictionary)
 				dictionaryGroup.DELETE("/:id", pluginHandler.DeleteDictionary)
 			}
-			
+
 			// Dashboard routes
 			dashboardHandler := api.NewDashboardHandler()
 			dashboardGroup := protected.Group("/dashboard")
@@ -231,42 +231,42 @@ func SetupRouter() *gin.Engine {
 				scanGroup.POST("/port/quick", scanHandler.QuickPortScan)
 				scanGroup.POST("/port/custom", scanHandler.CustomPortScan)
 				scanGroup.GET("/port/single", scanHandler.SinglePortScan)
-				
+
 				// C段扫描
 				scanGroup.POST("/csegment", scanHandler.CSegmentScan)
 				scanGroup.POST("/csegment/quick", scanHandler.QuickCSegmentScan)
 				scanGroup.POST("/csegment/full", scanHandler.FullCSegmentScan)
-				
+
 				// 域名扫描
 				scanGroup.GET("/domain/info", scanHandler.DomainInfo)
 				scanGroup.POST("/subdomain/quick", scanHandler.QuickSubdomainScan)
 				scanGroup.POST("/subdomain/full", scanHandler.FullSubdomainScan)
 				scanGroup.POST("/subdomain/custom", scanHandler.CustomSubdomainScan)
-				
+
 				// CDN检测
 				scanGroup.POST("/cdn/detect", scanHandler.CDNDetect)
 				scanGroup.POST("/cdn/batch", scanHandler.CDNBatchDetect)
-				
+
 				// 指纹识别
 				scanGroup.POST("/fingerprint", scanHandler.FingerprintScan)
 				scanGroup.POST("/fingerprint/batch", scanHandler.FingerprintBatchScan)
-				
+
 				// 漏洞扫描
 				scanGroup.POST("/vuln", scanHandler.VulnScan)
 				scanGroup.POST("/vuln/quick", scanHandler.VulnQuickScan)
 				scanGroup.GET("/vuln/pocs", scanHandler.GetPOCList)
-				
+
 				// 目录扫描
 				scanGroup.POST("/dir", scanHandler.DirScan)
 				scanGroup.POST("/dir/quick", scanHandler.QuickDirScan)
-				
+
 				// 敏感信息扫描
 				scanGroup.POST("/sensitive", scanHandler.SensitiveScan)
 				scanGroup.POST("/sensitive/batch", scanHandler.SensitiveBatchScan)
-				
+
 				// 爬虫
 				scanGroup.POST("/crawler", scanHandler.CrawlerScan)
-				
+
 				// 弱口令扫描
 				scanGroup.POST("/weakpwd", scanHandler.WeakPwdScan)
 
@@ -429,10 +429,10 @@ func SetupRouter() *gin.Engine {
 			}
 		}
 	}
-	
+
 	// 配置静态文件服务
 	SetupStaticFiles(r)
-	
+
 	return r
 }
 
@@ -459,15 +459,15 @@ func SetupStaticFiles(r *gin.Engine) {
 		return
 	}
 	execDir := filepath.Dir(execPath)
-	
+
 	// 尝试多个可能的 web 目录路径
 	possiblePaths := []string{
 		filepath.Join(execDir, "web"),       // 可执行文件同目录
-		"web",                                // 当前工作目录
-		"./web",                              // 当前工作目录
+		"web",                               // 当前工作目录
+		"./web",                             // 当前工作目录
 		filepath.Join(execDir, "..", "web"), // 上级目录
 	}
-	
+
 	var webDir string
 	for _, path := range possiblePaths {
 		if _, err := os.Stat(filepath.Join(path, "index.html")); err == nil {
@@ -475,34 +475,34 @@ func SetupStaticFiles(r *gin.Engine) {
 			break
 		}
 	}
-	
+
 	if webDir == "" {
 		log.Printf("[Router] Web directory not found, static files will not be served")
 		return
 	}
-	
+
 	log.Printf("[Router] Serving static files from: %s", webDir)
-	
+
 	// 静态资源目录
 	assetsDir := filepath.Join(webDir, "assets")
 	if _, err := os.Stat(assetsDir); err == nil {
 		r.Static("/assets", assetsDir)
 	}
-	
+
 	// 其他静态文件（favicon, robots.txt 等）
 	r.StaticFile("/favicon.ico", filepath.Join(webDir, "favicon.ico"))
 	r.StaticFile("/robots.txt", filepath.Join(webDir, "robots.txt"))
-	
+
 	// SPA 路由处理 - 所有非 API 路由返回 index.html
 	r.NoRoute(func(c *gin.Context) {
 		path := c.Request.URL.Path
-		
+
 		// 如果是 API 路径，返回 404
 		if strings.HasPrefix(path, "/api") {
 			c.JSON(404, gin.H{"code": 404, "message": "API not found"})
 			return
 		}
-		
+
 		// 如果是静态资源路径且文件存在，直接返回
 		if strings.HasPrefix(path, "/assets") {
 			filePath := filepath.Join(webDir, path)
@@ -511,21 +511,21 @@ func SetupStaticFiles(r *gin.Engine) {
 				return
 			}
 		}
-		
+
 		// 检查请求的文件是否存在
 		filePath := filepath.Join(webDir, path)
 		if info, err := os.Stat(filePath); err == nil && !info.IsDir() {
 			c.File(filePath)
 			return
 		}
-		
+
 		// SPA 路由回退到 index.html
 		indexPath := filepath.Join(webDir, "index.html")
 		if _, err := os.Stat(indexPath); err == nil {
 			c.File(indexPath)
 			return
 		}
-		
+
 		c.JSON(404, gin.H{"code": 404, "message": "Not found"})
 	})
 }
@@ -537,16 +537,16 @@ func EmbedStaticFiles(r *gin.Engine, webFS fs.FS) {
 	if err == nil {
 		r.StaticFS("/assets", http.FS(assetsFS))
 	}
-	
+
 	// index.html 和 SPA 路由
 	r.NoRoute(func(c *gin.Context) {
 		path := c.Request.URL.Path
-		
+
 		if strings.HasPrefix(path, "/api") {
 			c.JSON(404, gin.H{"code": 404, "message": "API not found"})
 			return
 		}
-		
+
 		// 尝试读取请求的文件
 		if !strings.HasPrefix(path, "/assets") {
 			content, err := fs.ReadFile(webFS, "index.html")
@@ -555,7 +555,7 @@ func EmbedStaticFiles(r *gin.Engine, webFS fs.FS) {
 				return
 			}
 		}
-		
+
 		c.JSON(404, gin.H{"code": 404, "message": "Not found"})
 	})
 }

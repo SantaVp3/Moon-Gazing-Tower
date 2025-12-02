@@ -20,8 +20,8 @@ type ContentScanner struct {
 	UserAgent      string
 	Wordlist       []string
 	Extensions     []string
-	FollowRedirect bool            // 是否跟随重定向
-	MaxRedirects   int             // 最大重定向次数
+	FollowRedirect bool                 // 是否跟随重定向
+	MaxRedirects   int                  // 最大重定向次数
 	Filter         *core.ResponseFilter // 响应去重过滤器
 }
 

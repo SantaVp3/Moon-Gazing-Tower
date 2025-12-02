@@ -1,0 +1,2 @@
+# Pre-commit hook disabled - using pre-push instead
+# For stricter checks, enable pre-commit validation in scripts/pre-commit
