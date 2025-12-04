@@ -21,17 +21,17 @@ type NucleiHandler struct {
 // NewNucleiHandler 创建 Nuclei 处理器
 func NewNucleiHandler() *NucleiHandler {
 	loader := nuclei.NewTemplateLoader()
-	
+
 	// 添加默认模板目录
 	loader.AddTemplateDir("config/nuclei-templates")
-	
+
 	// 尝试加载模板
 	if err := loader.LoadAll(); err != nil {
 		// 忽略加载错误，可能目录不存在
 	}
-	
+
 	executor := nuclei.NewExecutor(loader, nuclei.DefaultExecutorOptions())
-	
+
 	return &NucleiHandler{
 		loader:   loader,
 		executor: executor,
@@ -53,9 +53,9 @@ func (h *NucleiHandler) GetTemplates(c *gin.Context) {
 	tags := c.Query("tags")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	size, _ := strconv.Atoi(c.DefaultQuery("size", "20"))
-	
+
 	var templates []*nuclei.NucleiTemplate
-	
+
 	if severity != "" {
 		templates = h.loader.GetTemplatesBySeverity(nuclei.Severity(severity))
 	} else if tags != "" {
@@ -63,12 +63,12 @@ func (h *NucleiHandler) GetTemplates(c *gin.Context) {
 	} else {
 		templates = h.loader.GetTemplates()
 	}
-	
+
 	// 分页
 	total := len(templates)
 	start := (page - 1) * size
 	end := start + size
-	
+
 	if start >= total {
 		templates = []*nuclei.NucleiTemplate{}
 	} else {
@@ -77,7 +77,7 @@ func (h *NucleiHandler) GetTemplates(c *gin.Context) {
 		}
 		templates = templates[start:end]
 	}
-	
+
 	// 简化输出
 	items := make([]map[string]interface{}, len(templates))
 	for i, t := range templates {
@@ -92,7 +92,7 @@ func (h *NucleiHandler) GetTemplates(c *gin.Context) {
 			"file_path":   t.FilePath,
 		}
 	}
-	
+
 	c.JSON(http.StatusOK, utils.Response{
 		Code:    0,
 		Message: "success",
@@ -114,13 +114,13 @@ func (h *NucleiHandler) GetTemplates(c *gin.Context) {
 // @Router /api/nuclei/templates/{id} [get]
 func (h *NucleiHandler) GetTemplate(c *gin.Context) {
 	id := c.Param("id")
-	
+
 	template, ok := h.loader.GetTemplate(id)
 	if !ok {
 		utils.NotFound(c, "Template not found")
 		return
 	}
-	
+
 	utils.Success(c, template)
 }
 
@@ -161,23 +161,23 @@ func (h *NucleiHandler) ScanTarget(c *gin.Context) {
 		Severity    string   `json:"severity,omitempty"`
 		Timeout     int      `json:"timeout,omitempty"` // seconds
 	}
-	
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.BadRequest(c, "参数错误: "+err.Error())
 		return
 	}
-	
+
 	timeout := 120 * time.Second
 	if req.Timeout > 0 {
 		timeout = time.Duration(req.Timeout) * time.Second
 	}
-	
+
 	ctx, cancel := context.WithTimeout(c.Request.Context(), timeout)
 	defer cancel()
-	
+
 	var results []*nuclei.ScanResult
 	var err error
-	
+
 	if len(req.TemplateIDs) > 0 {
 		// 指定模板扫描
 		templates := make([]*nuclei.NucleiTemplate, 0)
@@ -197,12 +197,12 @@ func (h *NucleiHandler) ScanTarget(c *gin.Context) {
 		// 全部扫描
 		results, err = h.executor.ExecuteAll(ctx, req.Target)
 	}
-	
+
 	if err != nil {
 		utils.InternalError(c, "扫描失败: "+err.Error())
 		return
 	}
-	
+
 	// 过滤只返回匹配的结果
 	matched := make([]*nuclei.ScanResult, 0)
 	for _, r := range results {
@@ -210,7 +210,7 @@ func (h *NucleiHandler) ScanTarget(c *gin.Context) {
 			matched = append(matched, r)
 		}
 	}
-	
+
 	utils.Success(c, map[string]interface{}{
 		"target":        req.Target,
 		"total_scanned": len(results),
@@ -230,20 +230,20 @@ func (h *NucleiHandler) UploadTemplate(c *gin.Context) {
 	var req struct {
 		Content string `json:"content" binding:"required"`
 	}
-	
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.BadRequest(c, "参数错误: "+err.Error())
 		return
 	}
-	
+
 	template, err := h.loader.Parse([]byte(req.Content), "uploaded")
 	if err != nil {
 		utils.BadRequest(c, "模板解析失败: "+err.Error())
 		return
 	}
-	
+
 	h.loader.AddTemplate(template)
-	
+
 	utils.SuccessWithMessage(c, "模板上传成功", map[string]interface{}{
 		"id":       template.ID,
 		"name":     template.Info.Name,
@@ -260,12 +260,12 @@ func (h *NucleiHandler) UploadTemplate(c *gin.Context) {
 // @Router /api/nuclei/templates/{id} [delete]
 func (h *NucleiHandler) DeleteTemplate(c *gin.Context) {
 	id := c.Param("id")
-	
+
 	if _, ok := h.loader.GetTemplate(id); !ok {
 		utils.NotFound(c, "Template not found")
 		return
 	}
-	
+
 	h.loader.RemoveTemplate(id)
 	utils.SuccessWithMessage(c, "删除成功", nil)
 }
@@ -278,12 +278,12 @@ func (h *NucleiHandler) DeleteTemplate(c *gin.Context) {
 // @Router /api/nuclei/reload [post]
 func (h *NucleiHandler) ReloadTemplates(c *gin.Context) {
 	h.loader.Clear()
-	
+
 	if err := h.loader.LoadAll(); err != nil {
 		utils.InternalError(c, "加载模板失败: "+err.Error())
 		return
 	}
-	
+
 	utils.SuccessWithMessage(c, "模板重新加载成功", map[string]interface{}{
 		"count": h.loader.Count(),
 	})
@@ -300,25 +300,25 @@ func (h *NucleiHandler) ValidateTemplate(c *gin.Context) {
 	var req struct {
 		Content string `json:"content" binding:"required"`
 	}
-	
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.BadRequest(c, "参数错误: "+err.Error())
 		return
 	}
-	
+
 	template, err := h.loader.Parse([]byte(req.Content), "validation")
 	if err != nil {
 		c.JSON(http.StatusOK, utils.Response{
 			Code:    0,
 			Message: "success",
 			Data: map[string]interface{}{
-				"valid":  false,
-				"error":  err.Error(),
+				"valid": false,
+				"error": err.Error(),
 			},
 		})
 		return
 	}
-	
+
 	utils.Success(c, map[string]interface{}{
 		"valid":    true,
 		"id":       template.ID,

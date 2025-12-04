@@ -20,11 +20,11 @@ type APIManager struct {
 
 // APIConfig 第三方 API 配置
 type APIConfig struct {
-	FofaEmail          string `json:"fofa_email" yaml:"fofa_email"`
-	FofaKey            string `json:"fofa_key" yaml:"fofa_key"`
-	HunterKey          string `json:"hunter_key" yaml:"hunter_key"`
-	QuakeKey           string `json:"quake_key" yaml:"quake_key"`
-	SecurityTrailsKey  string `json:"securitytrails_key" yaml:"securitytrails_key"`
+	FofaEmail         string `json:"fofa_email" yaml:"fofa_email"`
+	FofaKey           string `json:"fofa_key" yaml:"fofa_key"`
+	HunterKey         string `json:"hunter_key" yaml:"hunter_key"`
+	QuakeKey          string `json:"quake_key" yaml:"quake_key"`
+	SecurityTrailsKey string `json:"securitytrails_key" yaml:"securitytrails_key"`
 }
 
 // UnifiedAsset 统一资产格式
@@ -48,12 +48,12 @@ type UnifiedAsset struct {
 
 // SubdomainResult 子域名收集结果
 type SubdomainResult struct {
-	Domain       string         `json:"domain"`
-	TotalFound   int            `json:"total_found"`
-	Subdomains   []string       `json:"subdomains"`
-	Sources      map[string]int `json:"sources"` // 每个来源发现的数量
-	Assets       []UnifiedAsset `json:"assets,omitempty"`
-	Duration     string         `json:"duration"`
+	Domain     string         `json:"domain"`
+	TotalFound int            `json:"total_found"`
+	Subdomains []string       `json:"subdomains"`
+	Sources    map[string]int `json:"sources"` // 每个来源发现的数量
+	Assets     []UnifiedAsset `json:"assets,omitempty"`
+	Duration   string         `json:"duration"`
 }
 
 // NewAPIManager 创建 API 管理器
@@ -86,7 +86,7 @@ func (m *APIManager) UpdateConfig(config *APIConfig) {
 	if m.config == nil {
 		m.config = &APIConfig{}
 	}
-	
+
 	// 更新非空字段
 	if config.FofaEmail != "" {
 		m.config.FofaEmail = config.FofaEmail
@@ -103,7 +103,7 @@ func (m *APIManager) UpdateConfig(config *APIConfig) {
 	if config.SecurityTrailsKey != "" {
 		m.config.SecurityTrailsKey = config.SecurityTrailsKey
 	}
-	
+
 	// 重建客户端
 	if m.config.FofaEmail != "" && m.config.FofaKey != "" {
 		m.Fofa = NewFofaClient(m.config.FofaEmail, m.config.FofaKey)

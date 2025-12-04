@@ -1,0 +1,37 @@
+#!/bin/bash
+# Pre-commit hook - Block garbage code from being committed
+
+set -e
+
+echo "Running pre-commit checks..."
+
+# Format check
+echo "→ Checking code format..."
+if ! gofmt -l . | grep -v "^$"; then
+    echo "✗ Code is not formatted. Run 'make fmt' to fix."
+    exit 1
+fi
+
+# Go mod tidy check
+echo "→ Checking go.mod..."
+go mod tidy
+if ! git diff --exit-code go.mod go.sum; then
+    echo "✗ go.mod/go.sum is not tidy. Changes have been made, please review and commit."
+    exit 1
+fi
+
+# Lint check
+echo "→ Running linting..."
+if ! golangci-lint run ./...; then
+    echo "✗ Linting failed. Fix the issues above."
+    exit 1
+fi
+
+# Tests
+echo "→ Running tests..."
+if ! go test ./...; then
+    echo "✗ Tests failed. Fix before committing."
+    exit 1
+fi
+
+echo "✓ All checks passed"

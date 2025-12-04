@@ -86,7 +86,7 @@ func IsValidCIDR(cidr string) bool {
 // ParsePortRange parses port range string like "1-1000" or "80,443,8080"
 func ParsePortRange(portRange string) []int {
 	var ports []int
-	
+
 	// Handle comma-separated ports
 	parts := strings.Split(portRange, ",")
 	for _, part := range parts {
@@ -113,7 +113,7 @@ func ParsePortRange(portRange string) []int {
 			}
 		}
 	}
-	
+
 	return ports
 }
 

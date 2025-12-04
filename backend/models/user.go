@@ -14,7 +14,7 @@ type User struct {
 	Email     string             `json:"email" bson:"email"`
 	Phone     string             `json:"phone" bson:"phone"`
 	Avatar    string             `json:"avatar" bson:"avatar"`
-	Role      string             `json:"role" bson:"role"` // admin, user, viewer
+	Role      string             `json:"role" bson:"role"`     // admin, user, viewer
 	Status    int                `json:"status" bson:"status"` // 1: active, 0: disabled
 	LastLogin time.Time          `json:"last_login" bson:"last_login"`
 	CreatedAt time.Time          `json:"created_at" bson:"created_at"`

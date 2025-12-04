@@ -36,10 +36,10 @@ func (n *EmailNotifier) Type() NotifyType {
 
 func (n *EmailNotifier) Send(ctx context.Context, msg *NotifyMessage) error {
 	subject := fmt.Sprintf("[%s] %s", msg.Level, msg.Title)
-	
+
 	// 构建 HTML 邮件内容
 	body := n.buildHTMLBody(msg)
-	
+
 	// 构建邮件头
 	headers := make(map[string]string)
 	headers["From"] = n.from
@@ -47,14 +47,14 @@ func (n *EmailNotifier) Send(ctx context.Context, msg *NotifyMessage) error {
 	headers["Subject"] = subject
 	headers["MIME-Version"] = "1.0"
 	headers["Content-Type"] = "text/html; charset=UTF-8"
-	
+
 	var message strings.Builder
 	for k, v := range headers {
 		message.WriteString(fmt.Sprintf("%s: %s\r\n", k, v))
 	}
 	message.WriteString("\r\n")
 	message.WriteString(body)
-	
+
 	// 发送邮件
 	return n.sendMail(message.String())
 }
@@ -67,7 +67,7 @@ func (n *EmailNotifier) buildHTMLBody(msg *NotifyMessage) string {
 	case NotifyLevelWarning:
 		color = "#f97316" // orange
 	}
-	
+
 	return fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
@@ -104,20 +104,20 @@ func (n *EmailNotifier) buildHTMLBody(msg *NotifyMessage) string {
     </div>
 </body>
 </html>
-`, color, msg.Title, msg.Level, msg.Source, msg.Timestamp.Format("2006-01-02 15:04:05"), 
+`, color, msg.Title, msg.Level, msg.Source, msg.Timestamp.Format("2006-01-02 15:04:05"),
 		strings.ReplaceAll(msg.Content, "\n", "<br>"))
 }
 
 func (n *EmailNotifier) sendMail(message string) error {
 	addr := fmt.Sprintf("%s:%d", n.host, n.port)
-	
+
 	auth := smtp.PlainAuth("", n.user, n.password, n.host)
-	
+
 	// 对于 SSL/TLS 端口 (465)，需要特殊处理
 	if n.port == 465 {
 		return n.sendMailTLS(addr, auth, message)
 	}
-	
+
 	// 对于 STARTTLS 端口 (587) 或普通端口 (25)
 	return smtp.SendMail(addr, auth, n.from, n.to, []byte(message))
 }
@@ -126,47 +126,47 @@ func (n *EmailNotifier) sendMailTLS(addr string, auth smtp.Auth, message string)
 	tlsConfig := &tls.Config{
 		ServerName: n.host,
 	}
-	
+
 	conn, err := tls.Dial("tcp", addr, tlsConfig)
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
-	
+
 	client, err := smtp.NewClient(conn, n.host)
 	if err != nil {
 		return err
 	}
 	defer client.Close()
-	
+
 	if err := client.Auth(auth); err != nil {
 		return err
 	}
-	
+
 	if err := client.Mail(n.from); err != nil {
 		return err
 	}
-	
+
 	for _, to := range n.to {
 		if err := client.Rcpt(to); err != nil {
 			return err
 		}
 	}
-	
+
 	w, err := client.Data()
 	if err != nil {
 		return err
 	}
-	
+
 	_, err = w.Write([]byte(message))
 	if err != nil {
 		return err
 	}
-	
+
 	err = w.Close()
 	if err != nil {
 		return err
 	}
-	
+
 	return client.Quit()
 }

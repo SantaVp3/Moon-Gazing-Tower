@@ -18,18 +18,18 @@ type MonitorHandler struct {
 // NewMonitorHandler 创建监控处理器
 func NewMonitorHandler(notifyManager *notify.NotifyManager) *MonitorHandler {
 	pageMonitor := monitor.NewPageMonitor()
-	
+
 	h := &MonitorHandler{
 		pageMonitor:   pageMonitor,
 		notifyManager: notifyManager,
 		changes:       make([]*monitor.PageChange, 0),
 	}
-	
+
 	// 设置变化回调
 	pageMonitor.SetChangeCallback(func(change *monitor.PageChange) {
 		h.onPageChange(change)
 	})
-	
+
 	return h
 }
 
@@ -40,7 +40,7 @@ func (h *MonitorHandler) onPageChange(change *monitor.PageChange) {
 	if len(h.changes) > 1000 {
 		h.changes = h.changes[len(h.changes)-1000:]
 	}
-	
+
 	// 发送通知
 	if h.notifyManager != nil {
 		msg := &notify.NotifyMessage{
@@ -57,7 +57,7 @@ func (h *MonitorHandler) onPageChange(change *monitor.PageChange) {
 func formatChangeContent(change *monitor.PageChange) string {
 	content := "**URL**: " + change.URL + "\n"
 	content += "**变化类型**: " + change.ChangeType + "\n"
-	
+
 	switch change.ChangeType {
 	case "status":
 		content += "**状态码变化**: " + string(rune(change.OldStatus)) + " → " + string(rune(change.NewStatus))
@@ -72,7 +72,7 @@ func formatChangeContent(change *monitor.PageChange) string {
 			content += "**新内容**: " + truncateStr(change.NewContent, 200)
 		}
 	}
-	
+
 	return content
 }
 
@@ -91,7 +91,7 @@ func truncateStr(s string, maxLen int) string {
 // @Router /api/monitor/pages [get]
 func (h *MonitorHandler) ListMonitoredPages(c *gin.Context) {
 	pages := h.pageMonitor.GetAllPages()
-	
+
 	// 简化输出
 	items := make([]map[string]interface{}, len(pages))
 	for i, p := range pages {
@@ -109,7 +109,7 @@ func (h *MonitorHandler) ListMonitoredPages(c *gin.Context) {
 			"last_error":   p.LastError,
 		}
 	}
-	
+
 	utils.Success(c, items)
 }
 
@@ -122,13 +122,13 @@ func (h *MonitorHandler) ListMonitoredPages(c *gin.Context) {
 // @Router /api/monitor/pages/{id} [get]
 func (h *MonitorHandler) GetMonitoredPage(c *gin.Context) {
 	id := c.Param("id")
-	
+
 	page, ok := h.pageMonitor.GetPage(id)
 	if !ok {
 		utils.NotFound(c, "页面不存在")
 		return
 	}
-	
+
 	utils.Success(c, page)
 }
 
@@ -145,13 +145,13 @@ func (h *MonitorHandler) AddMonitoredPage(c *gin.Context) {
 		utils.BadRequest(c, "参数错误: "+err.Error())
 		return
 	}
-	
+
 	page, err := h.pageMonitor.AddPage(config)
 	if err != nil {
 		utils.BadRequest(c, "添加失败: "+err.Error())
 		return
 	}
-	
+
 	utils.SuccessWithMessage(c, "添加成功", map[string]interface{}{
 		"id":  page.ID,
 		"url": page.URL,
@@ -167,12 +167,12 @@ func (h *MonitorHandler) AddMonitoredPage(c *gin.Context) {
 // @Router /api/monitor/pages/{id} [delete]
 func (h *MonitorHandler) RemoveMonitoredPage(c *gin.Context) {
 	id := c.Param("id")
-	
+
 	if err := h.pageMonitor.RemovePage(id); err != nil {
 		utils.NotFound(c, err.Error())
 		return
 	}
-	
+
 	utils.SuccessWithMessage(c, "删除成功", nil)
 }
 
@@ -186,7 +186,7 @@ func (h *MonitorHandler) RemoveMonitoredPage(c *gin.Context) {
 // @Router /api/monitor/pages/{id}/enable [put]
 func (h *MonitorHandler) EnableMonitoredPage(c *gin.Context) {
 	id := c.Param("id")
-	
+
 	var req struct {
 		Enabled bool `json:"enabled"`
 	}
@@ -194,12 +194,12 @@ func (h *MonitorHandler) EnableMonitoredPage(c *gin.Context) {
 		utils.BadRequest(c, "参数错误")
 		return
 	}
-	
+
 	if err := h.pageMonitor.EnablePage(id, req.Enabled); err != nil {
 		utils.NotFound(c, err.Error())
 		return
 	}
-	
+
 	utils.SuccessWithMessage(c, "更新成功", nil)
 }
 
@@ -212,21 +212,21 @@ func (h *MonitorHandler) EnableMonitoredPage(c *gin.Context) {
 // @Router /api/monitor/pages/{id}/check [post]
 func (h *MonitorHandler) CheckPageNow(c *gin.Context) {
 	id := c.Param("id")
-	
+
 	change, err := h.pageMonitor.CheckNow(id)
 	if err != nil {
 		utils.NotFound(c, err.Error())
 		return
 	}
-	
+
 	result := map[string]interface{}{
 		"changed": change != nil,
 	}
-	
+
 	if change != nil {
 		result["change"] = change
 	}
-	
+
 	utils.Success(c, result)
 }
 
@@ -240,9 +240,9 @@ func (h *MonitorHandler) CheckPageNow(c *gin.Context) {
 // @Router /api/monitor/changes [get]
 func (h *MonitorHandler) GetChanges(c *gin.Context) {
 	pageID := c.Query("page_id")
-	
+
 	changes := h.changes
-	
+
 	// 按页面过滤
 	if pageID != "" {
 		filtered := make([]*monitor.PageChange, 0)
@@ -253,13 +253,13 @@ func (h *MonitorHandler) GetChanges(c *gin.Context) {
 		}
 		changes = filtered
 	}
-	
+
 	// 反转顺序，最新的在前
 	reversed := make([]*monitor.PageChange, len(changes))
 	for i, ch := range changes {
 		reversed[len(changes)-1-i] = ch
 	}
-	
+
 	utils.Success(c, reversed)
 }
 
@@ -302,7 +302,7 @@ func (h *MonitorHandler) GetMonitorTypes(c *gin.Context) {
 			"description": "监控页面标题变化",
 		},
 	}
-	
+
 	utils.Success(c, types)
 }
 

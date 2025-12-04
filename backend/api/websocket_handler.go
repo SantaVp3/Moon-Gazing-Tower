@@ -7,10 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 	"moongazing/service"
 	"moongazing/utils"
+
+	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 )
 
 // WebSocketHandler handles WebSocket connections for real-time data
@@ -25,11 +26,11 @@ var upgrader = websocket.Upgrader{
 
 // Client represents a WebSocket client
 type Client struct {
-	conn      *websocket.Conn
-	send      chan []byte
-	hub       *Hub
-	clientID  string
-	userID    string
+	conn        *websocket.Conn
+	send        chan []byte
+	hub         *Hub
+	clientID    string
+	userID      string
 	workspaceID string
 }
 
@@ -108,21 +109,21 @@ func (h *Hub) getMonitorData(sysService *service.SystemService, nodeService *ser
 	nodeStats, _ := nodeService.GetNodeStats()
 
 	return map[string]interface{}{
-		"type": "monitor_data",
+		"type":      "monitor_data",
 		"timestamp": time.Now().Unix(),
 		"system": map[string]interface{}{
-			"cpu_usage":         sysInfo["cpu_usage"],
-			"memory_usage":      sysInfo["memory_usage"],
-			"memory_total":      sysInfo["memory_total"],
-			"memory_used":       sysInfo["memory_used"],
-			"disk_usage":        sysInfo["disk_usage"],
-			"disk_total":        sysInfo["disk_total"],
-			"disk_used":         sysInfo["disk_used"],
+			"cpu_usage":    sysInfo["cpu_usage"],
+			"memory_usage": sysInfo["memory_usage"],
+			"memory_total": sysInfo["memory_total"],
+			"memory_used":  sysInfo["memory_used"],
+			"disk_usage":   sysInfo["disk_usage"],
+			"disk_total":   sysInfo["disk_total"],
+			"disk_used":    sysInfo["disk_used"],
 		},
 		"nodes": map[string]interface{}{
-			"total":         nodeStats["total"],
-			"online":        nodeStats["online"],
-			"offline":       nodeStats["offline"],
+			"total":   nodeStats["total"],
+			"online":  nodeStats["online"],
+			"offline": nodeStats["offline"],
 		},
 		"analytics": map[string]interface{}{
 			"monthly_users":        0,
@@ -142,11 +143,11 @@ func (h *Hub) WebSocketHandler(c *gin.Context) {
 	}
 
 	client := &Client{
-		conn:      conn,
-		send:      make(chan []byte, 256),
-		hub:       h,
-		clientID:  "", // Generate unique client ID
-		userID:    "", // Extract from JWT/auth
+		conn:        conn,
+		send:        make(chan []byte, 256),
+		hub:         h,
+		clientID:    "", // Generate unique client ID
+		userID:      "", // Extract from JWT/auth
 		workspaceID: c.Query("workspace_id"),
 	}
 

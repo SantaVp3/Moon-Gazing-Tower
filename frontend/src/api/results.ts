@@ -1,149 +1,151 @@
-import api from '@/lib/api'
+import api from '@/lib/api';
 
 // 结果类型
-export type ResultType = 
-  | 'domain' 
-  | 'subdomain' 
-  | 'takeover' 
-  | 'app' 
-  | 'miniapp' 
-  | 'url' 
-  | 'crawler' 
-  | 'sensitive' 
-  | 'dirscan' 
-  | 'vuln' 
-  | 'monitor' 
+export type ResultType =
+  | 'domain'
+  | 'subdomain'
+  | 'takeover'
+  | 'app'
+  | 'miniapp'
+  | 'url'
+  | 'crawler'
+  | 'sensitive'
+  | 'dirscan'
+  | 'vuln'
+  | 'monitor'
   | 'port'
   | 'service'
-  | 'topology'
+  | 'topology';
 
 // 通用结果接口
 export interface ScanResult {
-  id: string
-  taskId: string
-  type: ResultType
-  data: Record<string, unknown>
-  tags: string[]
-  project: string
-  source: string
-  createdAt: string
-  updatedAt: string
+  id: string;
+  taskId: string;
+  type: ResultType;
+  data: Record<string, unknown>;
+  tags: string[];
+  project: string;
+  source: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // 子域名结果
 export interface SubdomainResult {
-  id: string
-  subdomain: string
-  domain: string
-  url?: string
-  ips: string[]
-  cdn: boolean
-  cdnName?: string
-  cdnProvider?: string
-  title: string
-  statusCode: number
-  webServer: string
-  technologies?: string[]
-  fingerprint: string[]
-  isAlive: boolean
-  tags: string[]
-  project: string
-  createdAt: string
+  id: string;
+  subdomain: string;
+  domain: string;
+  url?: string;
+  ips: string[];
+  cdn: boolean;
+  cdnName?: string;
+  cdnProvider?: string;
+  title: string;
+  statusCode: number;
+  webServer: string;
+  technologies?: string[];
+  fingerprint: string[];
+  isAlive: boolean;
+  tags: string[];
+  project: string;
+  createdAt: string;
 }
 
 // 子域名接管结果
 export interface TakeoverResult {
-  id: string
-  subdomain: string
-  cname: string
-  provider: string
-  vulnerable: boolean
-  severity: string
-  description: string
-  evidence: string
-  tags: string[]
-  project: string
-  createdAt: string
+  id: string;
+  subdomain: string;
+  cname: string;
+  provider: string;
+  vulnerable: boolean;
+  severity: string;
+  description: string;
+  evidence: string;
+  tags: string[];
+  project: string;
+  createdAt: string;
 }
 
 // URL结果
 export interface URLResult {
-  id: string
-  url: string
-  method: string
-  statusCode: number
-  contentType: string
-  title: string
-  length: number
-  fingerprint: string[]
-  isApi: boolean
-  tags: string[]
-  project: string
-  createdAt: string
+  id: string;
+  url: string;
+  method: string;
+  statusCode: number;
+  contentType: string;
+  title: string;
+  length: number;
+  fingerprint: string[];
+  isApi: boolean;
+  tags: string[];
+  project: string;
+  createdAt: string;
 }
 
 // 敏感信息结果
 export interface SensitiveResult {
-  id: string
-  url: string
-  type: string
-  value: string
-  context: string
-  location: string
-  severity: string
-  tags: string[]
-  project: string
-  createdAt: string
+  id: string;
+  url: string;
+  type: string;
+  value: string;
+  context: string;
+  location: string;
+  severity: string;
+  tags: string[];
+  project: string;
+  createdAt: string;
 }
 
 // 目录扫描结果
 export interface DirScanResult {
-  id: string
-  url: string
-  path: string
-  statusCode: number
-  contentType: string
-  length: number
-  redirect?: string
-  isBackup: boolean
-  isConfig: boolean
-  tags: string[]
-  project: string
-  createdAt: string
+  id: string;
+  url: string;
+  path: string;
+  statusCode: number;
+  contentType: string;
+  length: number;
+  redirect?: string;
+  isBackup: boolean;
+  isConfig: boolean;
+  tags: string[];
+  project: string;
+  createdAt: string;
 }
 
 // 结果统计
 export interface ResultStats {
-  domain: number
-  subdomain: number
-  takeover: number
-  app: number
-  miniapp: number
-  url: number
-  crawler: number
-  sensitive: number
-  dirscan: number
-  vuln: number
-  monitor: number
-  port: number
-  service: number
+  domain: number;
+  subdomain: number;
+  takeover: number;
+  app: number;
+  miniapp: number;
+  url: number;
+  crawler: number;
+  sensitive: number;
+  dirscan: number;
+  vuln: number;
+  monitor: number;
+  port: number;
+  service: number;
 }
 
 // 后端响应格式
 interface BackendResponse<T> {
-  code: number
-  message: string
-  data: T
-  total?: number
-  page?: number
-  size?: number
+  code: number;
+  message: string;
+  data: T;
+  total?: number;
+  page?: number;
+  size?: number;
 }
 
 // 转换函数：将后端 snake_case 转为前端 camelCase
-function transformResult(item: Record<string, unknown>): Record<string, unknown> {
+function transformResult(
+  item: Record<string, unknown>
+): Record<string, unknown> {
   // 获取嵌套的 data 对象
-  const dataObj = (item.data as Record<string, unknown>) || {}
-  
+  const dataObj = (item.data as Record<string, unknown>) || {};
+
   return {
     id: item.id || item._id,
     taskId: item.task_id,
@@ -156,117 +158,142 @@ function transformResult(item: Record<string, unknown>): Record<string, unknown>
     updatedAt: item.updated_at,
     // 合并 data 中的字段到顶层
     ...transformDataFields(dataObj),
-  }
+  };
 }
 
-function transformDataFields(data: Record<string, unknown>): Record<string, unknown> {
-  const result: Record<string, unknown> = {}
-  
+function transformDataFields(
+  data: Record<string, unknown>
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+
   // 直接映射的字段
   const directFields = [
-    'domain', 'icp', 'company', 'url', 'path', 
-    'title', 'value', 'context', 'location', 'severity',
-    'cname', 'provider', 'evidence', 'description', 'service',
-    'state', 'port', 'host', 'target', 'name', 'version',
-    'category', 'confidence', 'vuln_id', 'matched_at', 'type',
-    'pattern', 'matches', 'banner'
-  ]
-  
+    'domain',
+    'icp',
+    'company',
+    'url',
+    'path',
+    'title',
+    'value',
+    'context',
+    'location',
+    'severity',
+    'cname',
+    'provider',
+    'evidence',
+    'description',
+    'service',
+    'state',
+    'port',
+    'host',
+    'target',
+    'name',
+    'version',
+    'category',
+    'confidence',
+    'vuln_id',
+    'matched_at',
+    'type',
+    'pattern',
+    'matches',
+    'banner',
+  ];
+
   for (const field of directFields) {
     if (data[field] !== undefined) {
-      result[field] = data[field]
+      result[field] = data[field];
     }
   }
-  
+
   // host 映射为 ip (端口扫描用)
   if (data.host !== undefined) {
-    result.ip = data.host
+    result.ip = data.host;
   }
-  
+
   // 子域名处理：优先使用 full_domain，其次使用 subdomain，再次使用 domain
   if (data.full_domain !== undefined) {
-    result.subdomain = data.full_domain
-    result.fullDomain = data.full_domain
+    result.subdomain = data.full_domain;
+    result.fullDomain = data.full_domain;
   } else if (data.subdomain !== undefined && data.subdomain !== '') {
-    result.subdomain = data.subdomain
-    result.fullDomain = data.subdomain
+    result.subdomain = data.subdomain;
+    result.fullDomain = data.subdomain;
   } else if (data.domain !== undefined && data.domain !== '') {
     // domain 字段作为子域名（兼容旧数据）
-    result.subdomain = data.domain
-    result.fullDomain = data.domain
+    result.subdomain = data.domain;
+    result.fullDomain = data.domain;
   }
-  
+
   // IP 处理：如果是单个 ip 字符串，转换为 ips 数组
   if (data.ip !== undefined && typeof data.ip === 'string' && data.ip !== '') {
-    result.ips = [data.ip]
-    result.ip = data.ip
+    result.ips = [data.ip];
+    result.ip = data.ip;
   }
   if (data.ips !== undefined) {
-    result.ips = data.ips
+    result.ips = data.ips;
   }
-  
+
   // snake_case 到 camelCase 的映射
-  if (data.icp_type !== undefined) result.icpType = data.icp_type
-  if (data.status_code !== undefined) result.statusCode = data.status_code
-  if (data.http_status !== undefined) result.statusCode = data.http_status
-  if (data.content_type !== undefined) result.contentType = data.content_type
-  if (data.web_server !== undefined) result.webServer = data.web_server
-  if (data.cdn_provider !== undefined) result.cdnProvider = data.cdn_provider
-  if (data.cdn_name !== undefined) result.cdnName = data.cdn_name
-  if (data.is_alive !== undefined) result.isAlive = data.is_alive
-  if (data.is_backup !== undefined) result.isBackup = data.is_backup
-  if (data.is_config !== undefined) result.isConfig = data.is_config
-  if (data.is_api !== undefined) result.isApi = data.is_api
-  
+  if (data.icp_type !== undefined) result.icpType = data.icp_type;
+  if (data.status_code !== undefined) result.statusCode = data.status_code;
+  if (data.http_status !== undefined) result.statusCode = data.http_status;
+  if (data.content_type !== undefined) result.contentType = data.content_type;
+  if (data.web_server !== undefined) result.webServer = data.web_server;
+  if (data.cdn_provider !== undefined) result.cdnProvider = data.cdn_provider;
+  if (data.cdn_name !== undefined) result.cdnName = data.cdn_name;
+  if (data.is_alive !== undefined) result.isAlive = data.is_alive;
+  if (data.is_backup !== undefined) result.isBackup = data.is_backup;
+  if (data.is_config !== undefined) result.isConfig = data.is_config;
+  if (data.is_api !== undefined) result.isApi = data.is_api;
+
   // 数组字段
-  if (data.fingerprint !== undefined) result.fingerprint = data.fingerprint
-  if (data.technologies !== undefined) result.technologies = data.technologies
-  
+  if (data.fingerprint !== undefined) result.fingerprint = data.fingerprint;
+  if (data.technologies !== undefined) result.technologies = data.technologies;
+
   // 布尔字段
-  if (data.cdn !== undefined) result.cdn = data.cdn
+  if (data.cdn !== undefined) result.cdn = data.cdn;
   if (data.alive !== undefined) {
-    result.alive = data.alive
+    result.alive = data.alive;
     // 如果 alive 但没有状态码，显示为存活
     if (data.alive && !result.statusCode) {
-      result.statusCode = data.http_status || 0
+      result.statusCode = data.http_status || 0;
     }
   }
-  if (data.vulnerable !== undefined) result.vulnerable = data.vulnerable
-  
+  if (data.vulnerable !== undefined) result.vulnerable = data.vulnerable;
+
   // 数字字段
-  if (data.length !== undefined) result.length = data.length
-  if (data.size !== undefined) result.size = data.size
-  if (data.status !== undefined) result.status = data.status
-  
-  return result
+  if (data.length !== undefined) result.length = data.length;
+  if (data.size !== undefined) result.size = data.size;
+  if (data.status !== undefined) result.status = data.status;
+
+  return result;
 }
 
 export const resultApi = {
   // 获取任务扫描结果
   getTaskResults: async (
-    taskId: string, 
-    params?: { 
-      type?: ResultType
-      page?: number
-      pageSize?: number
-      search?: string
-      statusCode?: number  // 状态码筛选
+    taskId: string,
+    params?: {
+      type?: ResultType;
+      page?: number;
+      pageSize?: number;
+      search?: string;
+      statusCode?: number; // 状态码筛选
     }
   ) => {
     // 注意：api 拦截器已经返回 response.data，所以这里 response 就是后端返回的 JSON
-    const response = await api.get<BackendResponse<Record<string, unknown>[]>>(
-      `/tasks/${taskId}/results`, 
-      { 
+    const response = (await api.get<BackendResponse<Record<string, unknown>[]>>(
+      `/tasks/${taskId}/results`,
+      {
         params: {
           type: params?.type,
           page: params?.page || 1,
           size: params?.pageSize || 20,
           search: params?.search,
           status_code: params?.statusCode || undefined,
-        }
+        },
       }
-    ) as unknown as BackendResponse<Record<string, unknown>[]>
-    
+    )) as unknown as BackendResponse<Record<string, unknown>[]>;
+
     return {
       code: response.code,
       message: response.message,
@@ -275,16 +302,16 @@ export const resultApi = {
         total: response.total || 0,
         page: response.page || 1,
         pageSize: response.size || 20,
-      }
-    }
+      },
+    };
   },
 
   // 获取结果统计
   getResultStats: async (taskId: string) => {
-    const response = await api.get<BackendResponse<Record<string, number>>>(
+    const response = (await api.get<BackendResponse<Record<string, number>>>(
       `/tasks/${taskId}/results/stats`
-    ) as unknown as BackendResponse<Record<string, number>>
-    return response
+    )) as unknown as BackendResponse<Record<string, number>>;
+    return response;
   },
 
   // 获取子域名结果
@@ -292,71 +319,73 @@ export const resultApi = {
     taskId: string,
     params?: { page?: number; pageSize?: number; search?: string }
   ) => {
-    const response = await api.get<BackendResponse<Record<string, unknown>[]>>(
+    const response = (await api.get<BackendResponse<Record<string, unknown>[]>>(
       `/tasks/${taskId}/results/subdomains`,
       {
         params: {
           page: params?.page || 1,
           size: params?.pageSize || 20,
           search: params?.search,
-        }
+        },
       }
-    ) as unknown as BackendResponse<Record<string, unknown>[]>
-    
+    )) as unknown as BackendResponse<Record<string, unknown>[]>;
+
     return {
       code: response.code,
       message: response.message,
       data: {
-        list: (response.data || []).map(transformResult) as unknown as SubdomainResult[],
+        list: (response.data || []).map(
+          transformResult
+        ) as unknown as SubdomainResult[],
         total: response.total || 0,
         page: response.page || 1,
         pageSize: response.size || 20,
-      }
-    }
+      },
+    };
   },
 
   // 导出结果
   exportResults: async (taskId: string, type?: ResultType) => {
-    const response = await api.get<BackendResponse<Record<string, unknown>[]>>(
+    const response = (await api.get<BackendResponse<Record<string, unknown>[]>>(
       `/tasks/${taskId}/results/export`,
       { params: { type } }
-    ) as unknown as BackendResponse<Record<string, unknown>[]>
-    return response.data
+    )) as unknown as BackendResponse<Record<string, unknown>[]>;
+    return response.data;
   },
 
   // 更新标签
   updateTags: async (resultId: string, tags: string[]) => {
-    const response = await api.put<BackendResponse<null>>(
+    const response = (await api.put<BackendResponse<null>>(
       `/results/${resultId}/tags`,
       { tags }
-    ) as unknown as BackendResponse<null>
-    return response
+    )) as unknown as BackendResponse<null>;
+    return response;
   },
 
   // 添加标签
   addTag: async (resultId: string, tag: string) => {
-    const response = await api.post<BackendResponse<null>>(
+    const response = (await api.post<BackendResponse<null>>(
       `/results/${resultId}/tags`,
       { tag }
-    ) as unknown as BackendResponse<null>
-    return response
+    )) as unknown as BackendResponse<null>;
+    return response;
   },
 
   // 移除标签
   removeTag: async (resultId: string, tag: string) => {
-    const response = await api.delete<BackendResponse<null>>(
+    const response = (await api.delete<BackendResponse<null>>(
       `/results/${resultId}/tags`,
       { params: { tag } }
-    ) as unknown as BackendResponse<null>
-    return response
+    )) as unknown as BackendResponse<null>;
+    return response;
   },
 
   // 批量删除
   batchDelete: async (ids: string[]) => {
-    const response = await api.post<BackendResponse<null>>(
+    const response = (await api.post<BackendResponse<null>>(
       '/results/batch-delete',
       { ids }
-    ) as unknown as BackendResponse<null>
-    return response
+    )) as unknown as BackendResponse<null>;
+    return response;
   },
-}
+};

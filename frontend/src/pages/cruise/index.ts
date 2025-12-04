@@ -1,2 +1,2 @@
-export { default as CruisePage } from './CruisePage'
-export { default as CruiseLogsDialog } from './CruiseLogsDialog'
+export { default as CruisePage } from './CruisePage';
+export { default as CruiseLogsDialog } from './CruiseLogsDialog';

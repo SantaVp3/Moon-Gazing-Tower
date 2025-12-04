@@ -27,10 +27,10 @@ type SubdomainScanModule struct {
 // SubdomainScanConfig 子域名扫描配置
 type SubdomainScanConfig struct {
 	// 主动枚举配置
-	BruteConcurrency  int  // 字典爆破并发数 (默认 500)
-	EnableBrute       bool // 是否启用字典爆破 (默认 true)
-	EnableRecursive   bool // 是否启用递归爆破 (默认 false)
-	RecursiveDepth    int  // 递归深度 (默认 2)
+	BruteConcurrency int  // 字典爆破并发数 (默认 500)
+	EnableBrute      bool // 是否启用字典爆破 (默认 true)
+	EnableRecursive  bool // 是否启用递归爆破 (默认 false)
+	RecursiveDepth   int  // 递归深度 (默认 2)
 
 	// API 配置
 	EnableAPI     bool     // 是否启用第三方API (默认 true)
@@ -52,15 +52,15 @@ type SubdomainScanConfig struct {
 // DefaultSubdomainScanConfig 默认配置
 func DefaultSubdomainScanConfig() *SubdomainScanConfig {
 	return &SubdomainScanConfig{
-		BruteConcurrency:  500,
-		EnableBrute:       true,
-		EnableRecursive:   false,
-		RecursiveDepth:    2,
-		EnableAPI:         false, // 默认关闭API，只使用字典爆破
-		APISources:        []string{},
-		APIMaxResults:     500,
-		ResolveIP:         true,
-		VerifySubdomains:  true,
+		BruteConcurrency: 500,
+		EnableBrute:      true,
+		EnableRecursive:  false,
+		RecursiveDepth:   2,
+		EnableAPI:        false, // 默认关闭API，只使用字典爆破
+		APISources:       []string{},
+		APIMaxResults:    500,
+		ResolveIP:        true,
+		VerifySubdomains: true,
 	}
 }
 

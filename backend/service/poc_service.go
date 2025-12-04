@@ -38,12 +38,12 @@ type ImportResult struct {
 type NucleiTemplate struct {
 	ID   string `yaml:"id"`
 	Info struct {
-		Name        string   `yaml:"name"`
-		Author      string   `yaml:"author"`
-		Severity    string   `yaml:"severity"`
-		Description string   `yaml:"description"`
-		Reference   []string `yaml:"reference"`
-		Tags        string   `yaml:"tags"`
+		Name           string   `yaml:"name"`
+		Author         string   `yaml:"author"`
+		Severity       string   `yaml:"severity"`
+		Description    string   `yaml:"description"`
+		Reference      []string `yaml:"reference"`
+		Tags           string   `yaml:"tags"`
 		Classification struct {
 			CVEID []string `yaml:"cve-id"`
 		} `yaml:"classification"`
@@ -481,20 +481,20 @@ func (s *POCService) ImportFromDirectory(dirPath string) (*ImportResult, error) 
 // ScanPOCDirectory 扫描 POC 目录并自动导入（启动时调用）
 func (s *POCService) ScanPOCDirectory(pocDir string) {
 	log.Printf("[POCService] Scanning POC directory: %s", pocDir)
-	
+
 	result, err := s.ImportFromDirectory(pocDir)
 	if err != nil {
 		log.Printf("[POCService] Failed to scan POC directory: %v", err)
 		return
 	}
-	
+
 	if result.Imported > 0 || result.Skipped > 0 || result.Failed > 0 {
-		log.Printf("[POCService] POC directory scan complete: imported=%d, skipped=%d, failed=%d", 
+		log.Printf("[POCService] POC directory scan complete: imported=%d, skipped=%d, failed=%d",
 			result.Imported, result.Skipped, result.Failed)
 	} else {
 		log.Printf("[POCService] No POC files found in directory: %s", pocDir)
 	}
-	
+
 	if len(result.Errors) > 0 && len(result.Errors) <= 10 {
 		for _, errMsg := range result.Errors {
 			log.Printf("[POCService] Import error: %s", errMsg)
@@ -531,7 +531,7 @@ func (s *POCService) GetByTemplateID(templateID string) (*models.POC, error) {
 
 func (s *POCService) Create(poc *models.POC) error {
 	collection := database.GetCollection("pocs")
-	
+
 	// 检查是否已存在（按 template_id 或 name 去重）
 	var filter bson.M
 	if poc.TemplateID != "" {
@@ -539,7 +539,7 @@ func (s *POCService) Create(poc *models.POC) error {
 	} else if poc.Name != "" {
 		filter = bson.M{"name": poc.Name}
 	}
-	
+
 	if filter != nil {
 		var existing models.POC
 		err := collection.FindOne(context.Background(), filter).Decode(&existing)
@@ -552,13 +552,13 @@ func (s *POCService) Create(poc *models.POC) error {
 			return err
 		}
 	}
-	
+
 	// 新建
 	poc.ID = primitive.NewObjectID()
 	poc.CreatedAt = time.Now()
 	poc.UpdatedAt = time.Now()
 	poc.Enabled = true
-	
+
 	_, err := collection.InsertOne(context.Background(), poc)
 	return err
 }
@@ -568,7 +568,7 @@ func (s *POCService) GetByID(id string) (*models.POC, error) {
 	if err != nil {
 		return nil, errors.New("invalid poc id")
 	}
-	
+
 	collection := database.GetCollection("pocs")
 	var poc models.POC
 	err = collection.FindOne(context.Background(), bson.M{"_id": objectID}).Decode(&poc)
@@ -583,9 +583,9 @@ func (s *POCService) Update(id string, update bson.M) error {
 	if err != nil {
 		return errors.New("invalid poc id")
 	}
-	
+
 	update["updated_at"] = time.Now()
-	
+
 	collection := database.GetCollection("pocs")
 	_, err = collection.UpdateOne(
 		context.Background(),
@@ -600,7 +600,7 @@ func (s *POCService) Delete(id string) error {
 	if err != nil {
 		return errors.New("invalid poc id")
 	}
-	
+
 	collection := database.GetCollection("pocs")
 	_, err = collection.DeleteOne(context.Background(), bson.M{"_id": objectID})
 	return err
@@ -610,16 +610,16 @@ func (s *POCService) Delete(id string) error {
 func (s *POCService) BatchDelete(ids []string) (int, int) {
 	deleted := 0
 	failed := 0
-	
+
 	collection := database.GetCollection("pocs")
-	
+
 	for _, id := range ids {
 		objectID, err := primitive.ObjectIDFromHex(id)
 		if err != nil {
 			failed++
 			continue
 		}
-		
+
 		result, err := collection.DeleteOne(context.Background(), bson.M{"_id": objectID})
 		if err != nil || result.DeletedCount == 0 {
 			failed++
@@ -627,7 +627,7 @@ func (s *POCService) BatchDelete(ids []string) (int, int) {
 			deleted++
 		}
 	}
-	
+
 	return deleted, failed
 }
 
@@ -657,7 +657,7 @@ type POCListResult struct {
 
 func (s *POCService) List(params POCListParams) (*POCListResult, error) {
 	collection := database.GetCollection("pocs")
-	
+
 	filter := bson.M{}
 	if params.Type != "" {
 		filter["type"] = params.Type
@@ -675,32 +675,32 @@ func (s *POCService) List(params POCListParams) (*POCListResult, error) {
 			{"cve_id": bson.M{"$regex": params.Search, "$options": "i"}},
 		}
 	}
-	
+
 	total, err := collection.CountDocuments(context.Background(), filter)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	opts := options.Find().
 		SetSort(bson.D{{Key: "created_at", Value: -1}}).
 		SetSkip((params.Page - 1) * params.PageSize).
 		SetLimit(params.PageSize)
-	
+
 	cursor, err := collection.Find(context.Background(), filter, opts)
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(context.Background())
-	
+
 	var pocs []models.POC
 	if err := cursor.All(context.Background(), &pocs); err != nil {
 		return nil, err
 	}
-	
+
 	if pocs == nil {
 		pocs = []models.POC{}
 	}
-	
+
 	return &POCListResult{
 		POCs:  pocs,
 		Total: total,
@@ -713,31 +713,31 @@ func (s *POCService) ToggleEnabled(id string, enabled bool) error {
 
 func (s *POCService) GetStatistics() (map[string]interface{}, error) {
 	collection := database.GetCollection("pocs")
-	
+
 	// Total count
 	total, _ := collection.CountDocuments(context.Background(), bson.M{})
-	
+
 	// Enabled count
 	enabledCount, _ := collection.CountDocuments(context.Background(), bson.M{"enabled": true})
-	
+
 	// By severity
 	severityCounts := map[string]int64{}
 	for _, severity := range []string{"critical", "high", "medium", "low", "info"} {
 		count, _ := collection.CountDocuments(context.Background(), bson.M{"severity": severity})
 		severityCounts[severity] = count
 	}
-	
+
 	// By type
 	typeCounts := map[string]int64{}
 	for _, pocType := range []string{"nuclei", "xray", "custom"} {
 		count, _ := collection.CountDocuments(context.Background(), bson.M{"type": pocType})
 		typeCounts[pocType] = count
 	}
-	
+
 	return map[string]interface{}{
-		"total":    total,
-		"enabled":  enabledCount,
-		"disabled": total - enabledCount,
+		"total":       total,
+		"enabled":     enabledCount,
+		"disabled":    total - enabledCount,
 		"by_severity": severityCounts,
 		"by_type":     typeCounts,
 	}, nil

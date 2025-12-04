@@ -12,8 +12,8 @@ import (
 
 // TakeoverScanner 子域名接管检测器
 type TakeoverScanner struct {
-	client      *http.Client
-	concurrency int
+	client       *http.Client
+	concurrency  int
 	fingerprints []TakeoverFingerprint
 }
 
@@ -648,33 +648,33 @@ func (s *TakeoverScanner) Scan(ctx context.Context, domain string) (*TakeoverRes
 func (s *TakeoverScanner) ScanBatch(ctx context.Context, domains []string) ([]*TakeoverResult, error) {
 	results := make([]*TakeoverResult, 0, len(domains))
 	resultsMu := sync.Mutex{}
-	
+
 	sem := make(chan struct{}, s.concurrency)
 	var wg sync.WaitGroup
-	
+
 	for _, domain := range domains {
 		select {
 		case <-ctx.Done():
 			return results, ctx.Err()
 		case sem <- struct{}{}:
 		}
-		
+
 		wg.Add(1)
 		go func(d string) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			
+
 			result, err := s.Scan(ctx, d)
 			if err != nil {
 				return
 			}
-			
+
 			resultsMu.Lock()
 			results = append(results, result)
 			resultsMu.Unlock()
 		}(domain)
 	}
-	
+
 	wg.Wait()
 	return results, nil
 }
@@ -685,15 +685,15 @@ func (s *TakeoverScanner) getCNAME(domain string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	// 移除末尾的点
 	cname = strings.TrimSuffix(cname, ".")
-	
+
 	// 如果 CNAME 与原域名相同，说明没有 CNAME
 	if strings.EqualFold(cname, domain) {
 		return "", nil
 	}
-	
+
 	return cname, nil
 }
 
@@ -711,40 +711,40 @@ func (s *TakeoverScanner) matchCNAME(cname string, patterns []string) bool {
 // checkHTTP 检查 HTTP 响应中的指纹
 func (s *TakeoverScanner) checkHTTP(ctx context.Context, domain string, fingerprints []string) (bool, []string) {
 	matched := make([]string, 0)
-	
+
 	urls := []string{
 		"http://" + domain,
 		"https://" + domain,
 	}
-	
+
 	for _, u := range urls {
 		req, err := http.NewRequestWithContext(ctx, "GET", u, nil)
 		if err != nil {
 			continue
 		}
-		
+
 		resp, err := s.client.Do(req)
 		if err != nil {
 			continue
 		}
-		
+
 		body := make([]byte, 1024*100) // 读取前 100KB
 		n, _ := resp.Body.Read(body)
 		resp.Body.Close()
-		
+
 		bodyStr := string(body[:n])
-		
+
 		for _, fp := range fingerprints {
 			if strings.Contains(bodyStr, fp) {
 				matched = append(matched, fp)
 			}
 		}
-		
+
 		if len(matched) > 0 {
 			return true, matched
 		}
 	}
-	
+
 	return false, nil
 }
 

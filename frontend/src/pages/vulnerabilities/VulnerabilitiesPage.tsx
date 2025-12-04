@@ -1,10 +1,10 @@
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { vulnApi } from '@/api/vulnerabilities'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { vulnApi } from '@/api/vulnerabilities';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -12,41 +12,47 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
+} from '@/components/ui/table';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs'
+} from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { useToast } from '@/components/ui/use-toast'
-import { cn, formatDate, getSeverityColor, getStatusColor } from '@/lib/utils'
-import { Search, Eye, Download, RefreshCw, CheckCircle, MoreHorizontal, BarChart3, List, Loader2, Shield } from 'lucide-react'
-import { Link } from 'react-router-dom'
-import VulnDashboard from '@/components/vulnerabilities/VulnDashboard'
+} from '@/components/ui/dropdown-menu';
+import { useToast } from '@/components/ui/use-toast';
+import { cn, formatDate, getSeverityColor, getStatusColor } from '@/lib/utils';
+import {
+  Search,
+  Eye,
+  Download,
+  RefreshCw,
+  CheckCircle,
+  MoreHorizontal,
+  BarChart3,
+  List,
+  Loader2,
+  Shield,
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import VulnDashboard from '@/components/vulnerabilities/VulnDashboard';
 
 export default function VulnerabilitiesPage() {
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
-  const [activeTab, setActiveTab] = useState('dashboard')
-  const [search, setSearch] = useState('')
-  const [severityFilter, setSeverityFilter] = useState<string>('all')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [page, setPage] = useState(1)
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [search, setSearch] = useState('');
+  const [severityFilter, setSeverityFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [page, setPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['vulnerabilities', page, search, severityFilter, statusFilter],
@@ -58,40 +64,40 @@ export default function VulnerabilitiesPage() {
         severity: severityFilter === 'all' ? undefined : severityFilter,
         status: statusFilter === 'all' ? undefined : statusFilter,
       }),
-  })
+  });
 
   const verifyMutation = useMutation({
     mutationFn: vulnApi.verifyVulnerability,
     onSuccess: (result) => {
-      toast({ 
+      toast({
         title: result.data.verified ? '漏洞已验证存在' : '漏洞无法复现',
         variant: result.data.verified ? 'default' : 'destructive',
-      })
-      queryClient.invalidateQueries({ queryKey: ['vulnerabilities'] })
-      queryClient.invalidateQueries({ queryKey: ['vulnStatistics'] })
+      });
+      queryClient.invalidateQueries({ queryKey: ['vulnerabilities'] });
+      queryClient.invalidateQueries({ queryKey: ['vulnStatistics'] });
     },
     onError: () => {
-      toast({ title: '验证失败', variant: 'destructive' })
+      toast({ title: '验证失败', variant: 'destructive' });
     },
-  })
+  });
 
   const batchUpdateMutation = useMutation({
     mutationFn: ({ ids, status }: { ids: string[]; status: string }) =>
       vulnApi.batchUpdateStatus(ids, status),
     onSuccess: () => {
-      toast({ title: '批量更新成功' })
-      setSelectedIds([])
-      queryClient.invalidateQueries({ queryKey: ['vulnerabilities'] })
-      queryClient.invalidateQueries({ queryKey: ['vulnStatistics'] })
+      toast({ title: '批量更新成功' });
+      setSelectedIds([]);
+      queryClient.invalidateQueries({ queryKey: ['vulnerabilities'] });
+      queryClient.invalidateQueries({ queryKey: ['vulnStatistics'] });
     },
     onError: () => {
-      toast({ title: '批量更新失败', variant: 'destructive' })
+      toast({ title: '批量更新失败', variant: 'destructive' });
     },
-  })
+  });
 
-  const vulnerabilities = data?.data?.list || []
-  const total = data?.data?.total || 0
-  const totalPages = Math.ceil(total / 10)
+  const vulnerabilities = data?.data?.list || [];
+  const total = data?.data?.total || 0;
+  const totalPages = Math.ceil(total / 10);
 
   const getSeverityLabel = (severity: string) => {
     const labels: Record<string, string> = {
@@ -100,9 +106,9 @@ export default function VulnerabilitiesPage() {
       medium: '中危',
       low: '低危',
       info: '信息',
-    }
-    return labels[severity] || severity
-  }
+    };
+    return labels[severity] || severity;
+  };
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
@@ -111,33 +117,33 @@ export default function VulnerabilitiesPage() {
       fixed: '已修复',
       ignored: '已忽略',
       false_positive: '误报',
-    }
-    return labels[status] || status
-  }
+    };
+    return labels[status] || status;
+  };
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(vulnerabilities.map((v) => v.id))
+      setSelectedIds(vulnerabilities.map((v) => v.id));
     } else {
-      setSelectedIds([])
+      setSelectedIds([]);
     }
-  }
+  };
 
   const handleSelectOne = (id: string, checked: boolean) => {
     if (checked) {
-      setSelectedIds([...selectedIds, id])
+      setSelectedIds([...selectedIds, id]);
     } else {
-      setSelectedIds(selectedIds.filter((i) => i !== id))
+      setSelectedIds(selectedIds.filter((i) => i !== id));
     }
-  }
+  };
 
   const handleBatchAction = (status: string) => {
     if (selectedIds.length === 0) {
-      toast({ title: '请先选择漏洞', variant: 'destructive' })
-      return
+      toast({ title: '请先选择漏洞', variant: 'destructive' });
+      return;
     }
-    batchUpdateMutation.mutate({ ids: selectedIds, status })
-  }
+    batchUpdateMutation.mutate({ ids: selectedIds, status });
+  };
 
   const VulnListContent = () => (
     <div className="space-y-4">
@@ -178,7 +184,7 @@ export default function VulnerabilitiesPage() {
             <SelectItem value="false_positive">误报</SelectItem>
           </SelectContent>
         </Select>
-        
+
         {/* Batch Actions */}
         {selectedIds.length > 0 && (
           <DropdownMenu>
@@ -198,7 +204,9 @@ export default function VulnerabilitiesPage() {
               <DropdownMenuItem onClick={() => handleBatchAction('ignored')}>
                 标记为已忽略
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleBatchAction('false_positive')}>
+              <DropdownMenuItem
+                onClick={() => handleBatchAction('false_positive')}
+              >
                 标记为误报
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -213,7 +221,10 @@ export default function VulnerabilitiesPage() {
             <TableRow>
               <TableHead className="w-[40px]">
                 <Checkbox
-                  checked={selectedIds.length === vulnerabilities.length && vulnerabilities.length > 0}
+                  checked={
+                    selectedIds.length === vulnerabilities.length &&
+                    vulnerabilities.length > 0
+                  }
                   onCheckedChange={handleSelectAll}
                 />
               </TableHead>
@@ -235,7 +246,10 @@ export default function VulnerabilitiesPage() {
               </TableRow>
             ) : vulnerabilities.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell
+                  colSpan={8}
+                  className="text-center py-8 text-muted-foreground"
+                >
                   暂无数据
                 </TableCell>
               </TableRow>
@@ -245,17 +259,24 @@ export default function VulnerabilitiesPage() {
                   <TableCell>
                     <Checkbox
                       checked={selectedIds.includes(vuln.id)}
-                      onCheckedChange={(checked) => handleSelectOne(vuln.id, checked as boolean)}
+                      onCheckedChange={(checked) =>
+                        handleSelectOne(vuln.id, checked as boolean)
+                      }
                     />
                   </TableCell>
-                  <TableCell className="font-medium max-w-xs truncate">{vuln.name}</TableCell>
+                  <TableCell className="font-medium max-w-xs truncate">
+                    {vuln.name}
+                  </TableCell>
                   <TableCell>
                     <Badge className={cn(getSeverityColor(vuln.severity))}>
                       {getSeverityLabel(vuln.severity)}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={cn(getStatusColor(vuln.status))}>
+                    <Badge
+                      variant="outline"
+                      className={cn(getStatusColor(vuln.status))}
+                    >
                       {getStatusLabel(vuln.status)}
                     </Badge>
                   </TableCell>
@@ -320,7 +341,7 @@ export default function VulnerabilitiesPage() {
         </div>
       )}
     </div>
-  )
+  );
 
   return (
     <div className="space-y-6">
@@ -352,15 +373,15 @@ export default function VulnerabilitiesPage() {
             漏洞列表
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="dashboard" className="mt-6">
           <VulnDashboard />
         </TabsContent>
-        
+
         <TabsContent value="list" className="mt-6">
           <VulnListContent />
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

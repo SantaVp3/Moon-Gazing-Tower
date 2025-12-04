@@ -1,12 +1,12 @@
 package api
 
 import (
-"moongazing/models"
-"moongazing/service"
-"moongazing/utils"
-"strconv"
+	"moongazing/models"
+	"moongazing/service"
+	"moongazing/utils"
+	"strconv"
 
-"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
 )
 
 type ResultHandler struct {

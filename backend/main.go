@@ -28,7 +28,7 @@ func main() {
 		log.Fatalf("Failed to get executable path: %v", err)
 	}
 	execDir := filepath.Dir(execPath)
-	
+
 	// Load configuration
 	configPath := filepath.Join(execDir, "..", "config", "config.yaml")
 	if envPath := os.Getenv("CONFIG_PATH"); envPath != "" {
@@ -39,24 +39,24 @@ func main() {
 		configPath = "config/config.yaml"
 	}
 	cfg := config.LoadConfig(configPath)
-	
+
 	// Set Gin mode
 	gin.SetMode(cfg.Server.Mode)
-	
+
 	// Initialize MongoDB
 	database.InitMongoDB(&cfg.MongoDB)
 	defer database.CloseMongoDB()
-	
+
 	// Initialize Redis
 	database.InitRedis(&cfg.Redis)
 	defer database.CloseRedis()
-	
+
 	// Initialize default admin user
 	userService := service.NewUserService()
 	if err := userService.InitAdmin(); err != nil {
 		log.Printf("Warning: Failed to initialize admin user: %v", err)
 	}
-	
+
 	// Scan POC directory for auto-import
 	log.Println("Scanning POC directory...")
 	pocService := service.NewPOCService()
@@ -75,14 +75,14 @@ func main() {
 		}
 	}
 	pocService.ScanPOCDirectory(pocDir)
-	
+
 	// Start task executor
 	log.Println("Starting task executor...")
 	taskExecutor := service.NewTaskExecutor(5) // 5 workers
 	taskExecutor.Start()
 	log.Println("Task executor started")
 	defer taskExecutor.Stop()
-	
+
 	// Start cruise scheduler
 	log.Println("Starting cruise scheduler...")
 	cruiseService := service.NewCruiseService()
@@ -100,22 +100,22 @@ func main() {
 
 	// Setup router with WebSocket hub
 	r := router.SetupRouterWithWebSocket(wsHub)
-	
+
 	// Start server
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	log.Printf("Server starting on %s", addr)
-	
+
 	// Graceful shutdown
 	go func() {
 		if err := r.Run(addr); err != nil {
 			log.Fatalf("Failed to start server: %v", err)
 		}
 	}()
-	
+
 	// Wait for interrupt signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	
+
 	log.Println("Shutting down server...")
 }

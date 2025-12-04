@@ -1,9 +1,9 @@
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { taskApi, Task } from '@/api/tasks'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { taskApi, Task } from '@/api/tasks';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -11,17 +11,17 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
+} from '@/components/ui/table';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Progress } from '@/components/ui/progress'
-import { useToast } from '@/components/ui/use-toast'
-import { cn, formatDate, getStatusColor } from '@/lib/utils'
+} from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/components/ui/use-toast';
+import { cn, formatDate, getStatusColor } from '@/lib/utils';
 import {
   Plus,
   Search,
@@ -32,17 +32,17 @@ import {
   Square,
   RefreshCw,
   RotateCw,
-} from 'lucide-react'
-import { Link } from 'react-router-dom'
-import TaskCreateDialog from '@/components/tasks/TaskCreateDialog'
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import TaskCreateDialog from '@/components/tasks/TaskCreateDialog';
 
 export default function TasksPage() {
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [page, setPage] = useState(1)
-  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [page, setPage] = useState(1);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['tasks', page, search, statusFilter],
@@ -54,59 +54,59 @@ export default function TasksPage() {
         status: statusFilter === 'all' ? undefined : statusFilter,
       }),
     refetchInterval: 5000, // Auto refresh every 5s for running tasks
-  })
+  });
 
   const startMutation = useMutation({
     mutationFn: taskApi.startTask,
     onSuccess: () => {
-      toast({ title: '任务已启动' })
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      toast({ title: '任务已启动' });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
-  })
+  });
 
   const pauseMutation = useMutation({
     mutationFn: taskApi.pauseTask,
     onSuccess: () => {
-      toast({ title: '任务已暂停' })
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      toast({ title: '任务已暂停' });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
-  })
+  });
 
   const cancelMutation = useMutation({
     mutationFn: taskApi.cancelTask,
     onSuccess: () => {
-      toast({ title: '任务已取消' })
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      toast({ title: '任务已取消' });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
-  })
+  });
 
   const resumeMutation = useMutation({
     mutationFn: taskApi.resumeTask,
     onSuccess: () => {
-      toast({ title: '任务已恢复' })
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      toast({ title: '任务已恢复' });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
-  })
+  });
 
   const retryMutation = useMutation({
     mutationFn: taskApi.retryTask,
     onSuccess: () => {
-      toast({ title: '任务已重试' })
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      toast({ title: '任务已重试' });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
-  })
+  });
 
   const deleteMutation = useMutation({
     mutationFn: taskApi.deleteTask,
     onSuccess: () => {
-      toast({ title: '删除成功' })
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      toast({ title: '删除成功' });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
-  })
+  });
 
-  const tasks = data?.data?.list || []
-  const total = data?.data?.total || 0
-  const totalPages = Math.ceil(total / 10)
+  const tasks = data?.data?.list || [];
+  const total = data?.data?.total || 0;
+  const totalPages = Math.ceil(total / 10);
 
   const getStatusLabel = (status: Task['status']) => {
     const labels: Record<string, string> = {
@@ -116,9 +116,9 @@ export default function TasksPage() {
       completed: '已完成',
       failed: '失败',
       cancelled: '已取消',
-    }
-    return labels[status] || status
-  }
+    };
+    return labels[status] || status;
+  };
 
   return (
     <div className="space-y-6">
@@ -137,7 +137,10 @@ export default function TasksPage() {
       </div>
 
       {/* 创建任务弹窗 */}
-      <TaskCreateDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+      <TaskCreateDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+      />
 
       {/* Filters */}
       <div className="flex gap-4">
@@ -187,7 +190,10 @@ export default function TasksPage() {
               </TableRow>
             ) : tasks.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell
+                  colSpan={6}
+                  className="text-center py-8 text-muted-foreground"
+                >
                   暂无数据
                 </TableCell>
               </TableRow>
@@ -204,7 +210,9 @@ export default function TasksPage() {
                   <TableCell>
                     <div className="w-32">
                       <Progress value={task.progress} className="h-2" />
-                      <span className="text-xs text-muted-foreground">{task.progress}%</span>
+                      <span className="text-xs text-muted-foreground">
+                        {task.progress}%
+                      </span>
                     </div>
                   </TableCell>
                   <TableCell>{formatDate(task.createdAt)}</TableCell>
@@ -246,7 +254,8 @@ export default function TasksPage() {
                           <Square className="h-4 w-4 text-red-500" />
                         </Button>
                       )}
-                      {(task.status === 'failed' || task.status === 'cancelled') && (
+                      {(task.status === 'failed' ||
+                        task.status === 'cancelled') && (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -302,5 +311,5 @@ export default function TasksPage() {
         </div>
       )}
     </div>
-  )
+  );
 }

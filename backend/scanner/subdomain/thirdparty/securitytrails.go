@@ -20,8 +20,8 @@ type SecurityTrailsClient struct {
 
 // SecurityTrailsSubdomainsResponse 子域名响应
 type SecurityTrailsSubdomainsResponse struct {
-	Subdomains      []string `json:"subdomains"`
-	SubdomainCount  int      `json:"subdomain_count"`
+	Subdomains     []string `json:"subdomains"`
+	SubdomainCount int      `json:"subdomain_count"`
 }
 
 // SecurityTrailsDNSHistoryResponse DNS历史响应

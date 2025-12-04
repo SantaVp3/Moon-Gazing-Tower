@@ -62,11 +62,11 @@ type DomainInfo struct {
 
 // DomainScanner handles domain scanning and subdomain enumeration
 type DomainScanner struct {
-	Timeout      time.Duration
-	Concurrency  int
-	Resolvers    []string
-	EnableHTTP   bool // 是否启用HTTP探测（会变慢但获取更多信息）
-	WildcardIPs  map[string]bool // 泛解析IP记录
+	Timeout     time.Duration
+	Concurrency int
+	Resolvers   []string
+	EnableHTTP  bool            // 是否启用HTTP探测（会变慢但获取更多信息）
+	WildcardIPs map[string]bool // 泛解析IP记录
 }
 
 // NewDomainScanner creates a new domain scanner
@@ -84,7 +84,7 @@ func NewDomainScanner(concurrency int) *DomainScanner {
 			"1.1.1.1:53",
 			"114.114.114.114:53",
 			"223.5.5.5:53",
-			"119.29.29.29:53",  // DNSPod
+			"119.29.29.29:53", // DNSPod
 			"180.76.76.76:53", // 百度DNS
 		},
 		WildcardIPs: make(map[string]bool),
@@ -238,14 +238,14 @@ func (s *DomainScanner) isWildcardIP(ips []string) bool {
 // detectWildcardDNS detects wildcard DNS for a domain
 func (s *DomainScanner) detectWildcardDNS(ctx context.Context, domain string) {
 	s.WildcardIPs = make(map[string]bool)
-	
+
 	// 生成随机子域名测试泛解析
 	testSubdomains := []string{
 		generateRandomString(8),
 		generateRandomString(10),
 		generateRandomString(12),
 	}
-	
+
 	resolver := &net.Resolver{
 		PreferGo: true,
 		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
@@ -254,14 +254,14 @@ func (s *DomainScanner) detectWildcardDNS(ctx context.Context, domain string) {
 			return d.DialContext(ctx, "udp", resolverAddr)
 		},
 	}
-	
+
 	wildcardCount := 0
 	for _, sub := range testSubdomains {
 		testDomain := sub + "." + domain
 		queryCtx, cancel := context.WithTimeout(ctx, s.Timeout)
 		ips, err := resolver.LookupIP(queryCtx, "ip4", testDomain)
 		cancel()
-		
+
 		if err == nil && len(ips) > 0 {
 			wildcardCount++
 			for _, ip := range ips {
@@ -269,7 +269,7 @@ func (s *DomainScanner) detectWildcardDNS(ctx context.Context, domain string) {
 			}
 		}
 	}
-	
+
 	// 如果3个随机子域名都有解析，认为存在泛解析
 	if wildcardCount < 2 {
 		s.WildcardIPs = make(map[string]bool) // 清空，不是泛解析
@@ -356,12 +356,12 @@ func (s *DomainScanner) parseHTTPResponse(resp *http.Response, result *Subdomain
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 64*1024))
 	if err == nil {
 		result.ContentLen = int64(len(body))
-		
+
 		// Extract title
 		if title := core.ExtractTitle(string(body)); title != "" {
 			result.Title = title
 		}
-		
+
 		// Simple fingerprint detection from body
 		bodyStr := strings.ToLower(string(body))
 		fingerprints := detectFingerprints(bodyStr, resp.Header)
@@ -372,36 +372,35 @@ func (s *DomainScanner) parseHTTPResponse(resp *http.Response, result *Subdomain
 	result.Fingerprint = uniqueStrings(result.Fingerprint)
 }
 
-
 // detectFingerprints detects web technologies from response
 func detectFingerprints(body string, headers http.Header) []string {
 	var fps []string
-	
+
 	// Common frameworks/technologies
 	patterns := map[string][]string{
-		"WordPress":   {"wp-content", "wp-includes", "wordpress"},
-		"Drupal":      {"drupal", "sites/all", "sites/default"},
-		"Joomla":      {"joomla", "/components/com_"},
-		"ThinkPHP":    {"thinkphp", "think\\"},
-		"Laravel":     {"laravel", "laravel_session"},
-		"Spring":      {"spring", "j_spring_security"},
-		"React":       {"react", "_react", "reactroot"},
-		"Vue.js":      {"vue.js", "vue.min.js", "__vue__"},
-		"Angular":     {"angular", "ng-version"},
-		"jQuery":      {"jquery"},
-		"Bootstrap":   {"bootstrap"},
-		"Nginx":       {"nginx"},
-		"Apache":      {"apache"},
-		"IIS":         {"iis", "asp.net"},
-		"Tomcat":      {"tomcat", "catalina"},
-		"WebLogic":    {"weblogic"},
-		"phpMyAdmin":  {"phpmyadmin"},
-		"Confluence":  {"confluence"},
-		"JIRA":        {"jira"},
-		"GitLab":      {"gitlab"},
-		"Jenkins":     {"jenkins"},
+		"WordPress":  {"wp-content", "wp-includes", "wordpress"},
+		"Drupal":     {"drupal", "sites/all", "sites/default"},
+		"Joomla":     {"joomla", "/components/com_"},
+		"ThinkPHP":   {"thinkphp", "think\\"},
+		"Laravel":    {"laravel", "laravel_session"},
+		"Spring":     {"spring", "j_spring_security"},
+		"React":      {"react", "_react", "reactroot"},
+		"Vue.js":     {"vue.js", "vue.min.js", "__vue__"},
+		"Angular":    {"angular", "ng-version"},
+		"jQuery":     {"jquery"},
+		"Bootstrap":  {"bootstrap"},
+		"Nginx":      {"nginx"},
+		"Apache":     {"apache"},
+		"IIS":        {"iis", "asp.net"},
+		"Tomcat":     {"tomcat", "catalina"},
+		"WebLogic":   {"weblogic"},
+		"phpMyAdmin": {"phpmyadmin"},
+		"Confluence": {"confluence"},
+		"JIRA":       {"jira"},
+		"GitLab":     {"gitlab"},
+		"Jenkins":    {"jenkins"},
 	}
-	
+
 	for tech, keywords := range patterns {
 		for _, kw := range keywords {
 			if strings.Contains(body, kw) {
@@ -410,7 +409,7 @@ func detectFingerprints(body string, headers http.Header) []string {
 			}
 		}
 	}
-	
+
 	// Check headers for tech
 	if setCookie := headers.Get("Set-Cookie"); setCookie != "" {
 		setCookieLower := strings.ToLower(setCookie)
@@ -424,7 +423,7 @@ func detectFingerprints(body string, headers http.Header) []string {
 			fps = append(fps, "ASP.NET")
 		}
 	}
-	
+
 	return fps
 }
 
@@ -432,25 +431,25 @@ func detectFingerprints(body string, headers http.Header) []string {
 func (s *DomainScanner) detectCDN(cnames []string, ips []string) (bool, string) {
 	// CDN CNAME patterns
 	cdnPatterns := map[string][]string{
-		"Cloudflare":    {"cloudflare", "cdn.cloudflare"},
-		"Akamai":        {"akamai", "akamaitechnologies", "edgekey", "edgesuite"},
-		"Fastly":        {"fastly", "fastlylb"},
-		"CloudFront":    {"cloudfront.net", "awsglobalaccelerator"},
-		"Azure CDN":     {"azureedge.net", "msecnd.net"},
-		"Google CDN":    {"googleusercontent", "googleapis", "gstatic"},
+		"Cloudflare": {"cloudflare", "cdn.cloudflare"},
+		"Akamai":     {"akamai", "akamaitechnologies", "edgekey", "edgesuite"},
+		"Fastly":     {"fastly", "fastlylb"},
+		"CloudFront": {"cloudfront.net", "awsglobalaccelerator"},
+		"Azure CDN":  {"azureedge.net", "msecnd.net"},
+		"Google CDN": {"googleusercontent", "googleapis", "gstatic"},
 		"阿里云CDN":     {"alicdn", "aliyuncs", "kunlun"},
 		"腾讯云CDN":     {"qcloud", "myqcloud", "cdntip"},
 		"百度云CDN":     {"bdimg", "baidubce", "bcebos"},
-		"网宿CDN":       {"wscdns", "wsdvs", "wsglb"},
-		"七牛CDN":       {"qiniudns", "qbox"},
+		"网宿CDN":      {"wscdns", "wsdvs", "wsglb"},
+		"七牛CDN":      {"qiniudns", "qbox"},
 		"又拍云CDN":     {"upai", "upaiyun"},
-		"Imperva":       {"incapdns", "imperva"},
-		"StackPath":     {"stackpathdns", "highwinds"},
-		"KeyCDN":        {"keycdn"},
-		"Sucuri":        {"sucuri"},
-		"Verizon":       {"edgecast"},
+		"Imperva":    {"incapdns", "imperva"},
+		"StackPath":  {"stackpathdns", "highwinds"},
+		"KeyCDN":     {"keycdn"},
+		"Sucuri":     {"sucuri"},
+		"Verizon":    {"edgecast"},
 	}
-	
+
 	// Check CNAMEs
 	for _, cname := range cnames {
 		cnameLower := strings.ToLower(cname)
@@ -462,14 +461,14 @@ func (s *DomainScanner) detectCDN(cnames []string, ips []string) (bool, string) 
 			}
 		}
 	}
-	
+
 	// Check IP ranges for known CDN providers
 	for _, ip := range ips {
 		if provider := checkCDNByIP(ip); provider != "" {
 			return true, provider
 		}
 	}
-	
+
 	return false, ""
 }
 
@@ -483,13 +482,13 @@ func checkCDNByIP(ip string) string {
 		"162.158.", "172.64.", "172.65.", "172.66.", "172.67.", "173.245.",
 		"188.114.", "190.93.", "197.234.", "198.41.",
 	}
-	
+
 	for _, prefix := range cloudflareRanges {
 		if strings.HasPrefix(ip, prefix) {
 			return "Cloudflare"
 		}
 	}
-	
+
 	return ""
 }
 
@@ -535,7 +534,7 @@ func (s *DomainScanner) BruteSubdomains(ctx context.Context, domain string, word
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	semaphore := make(chan struct{}, s.Concurrency)
-	
+
 	// 使用批量处理提高效率
 	batchSize := 100
 	for i := 0; i < len(wordlist); i += batchSize {

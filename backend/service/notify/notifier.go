@@ -46,21 +46,21 @@ type NotifyMessage struct {
 
 // NotifyConfig 通知配置
 type NotifyConfig struct {
-	Type      NotifyType `json:"type"`
-	Enabled   bool       `json:"enabled"`
-	Name      string     `json:"name"`
-	
+	Type    NotifyType `json:"type"`
+	Enabled bool       `json:"enabled"`
+	Name    string     `json:"name"`
+
 	// DingTalk
 	DingTalkWebhook string `json:"dingtalk_webhook,omitempty"`
 	DingTalkSecret  string `json:"dingtalk_secret,omitempty"`
-	
+
 	// Feishu
 	FeishuWebhook string `json:"feishu_webhook,omitempty"`
 	FeishuSecret  string `json:"feishu_secret,omitempty"`
-	
+
 	// WeChat Work
 	WechatWebhook string `json:"wechat_webhook,omitempty"`
-	
+
 	// Email
 	SMTPHost     string   `json:"smtp_host,omitempty"`
 	SMTPPort     int      `json:"smtp_port,omitempty"`
@@ -68,7 +68,7 @@ type NotifyConfig struct {
 	SMTPPassword string   `json:"smtp_password,omitempty"`
 	SMTPFrom     string   `json:"smtp_from,omitempty"`
 	EmailTo      []string `json:"email_to,omitempty"`
-	
+
 	// Custom Webhook
 	WebhookURL     string            `json:"webhook_url,omitempty"`
 	WebhookMethod  string            `json:"webhook_method,omitempty"`
@@ -103,18 +103,18 @@ func (n *DingTalkNotifier) Type() NotifyType {
 
 func (n *DingTalkNotifier) Send(ctx context.Context, msg *NotifyMessage) error {
 	webhook := n.webhook
-	
+
 	// 如果有签名密钥，添加签名
 	if n.secret != "" {
 		timestamp := time.Now().UnixMilli()
 		sign := n.sign(timestamp)
 		webhook = fmt.Sprintf("%s&timestamp=%d&sign=%s", webhook, timestamp, url.QueryEscape(sign))
 	}
-	
+
 	// 构建消息
 	content := fmt.Sprintf("## %s\n\n**级别**: %s\n**来源**: %s\n**时间**: %s\n\n%s",
 		msg.Title, msg.Level, msg.Source, msg.Timestamp.Format("2006-01-02 15:04:05"), msg.Content)
-	
+
 	payload := map[string]interface{}{
 		"msgtype": "markdown",
 		"markdown": map[string]string{
@@ -122,7 +122,7 @@ func (n *DingTalkNotifier) Send(ctx context.Context, msg *NotifyMessage) error {
 			"text":  content,
 		},
 	}
-	
+
 	return n.post(ctx, webhook, payload)
 }
 
@@ -140,18 +140,18 @@ func (n *DingTalkNotifier) post(ctx context.Context, url string, payload interfa
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	resp, err := n.client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != 200 {
 		respBody, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("dingtalk error: %s", string(respBody))
 	}
-	
+
 	return nil
 }
 
@@ -177,7 +177,7 @@ func (n *FeishuNotifier) Type() NotifyType {
 
 func (n *FeishuNotifier) Send(ctx context.Context, msg *NotifyMessage) error {
 	timestamp := time.Now().Unix()
-	
+
 	// 构建消息
 	payload := map[string]interface{}{
 		"msg_type": "interactive",
@@ -228,14 +228,14 @@ func (n *FeishuNotifier) Send(ctx context.Context, msg *NotifyMessage) error {
 			},
 		},
 	}
-	
+
 	// 如果有签名密钥
 	if n.secret != "" {
 		sign := n.sign(timestamp)
 		payload["timestamp"] = fmt.Sprintf("%d", timestamp)
 		payload["sign"] = sign
 	}
-	
+
 	return n.post(ctx, n.webhook, payload)
 }
 
@@ -264,18 +264,18 @@ func (n *FeishuNotifier) post(ctx context.Context, url string, payload interface
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	resp, err := n.client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != 200 {
 		respBody, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("feishu error: %s", string(respBody))
 	}
-	
+
 	return nil
 }
 
@@ -299,16 +299,16 @@ func (n *WechatNotifier) Type() NotifyType {
 
 func (n *WechatNotifier) Send(ctx context.Context, msg *NotifyMessage) error {
 	content := fmt.Sprintf("## %s\n> 级别: <font color=\"%s\">%s</font>\n> 来源: %s\n> 时间: %s\n\n%s",
-		msg.Title, n.getColorByLevel(msg.Level), msg.Level, msg.Source, 
+		msg.Title, n.getColorByLevel(msg.Level), msg.Level, msg.Source,
 		msg.Timestamp.Format("2006-01-02 15:04:05"), msg.Content)
-	
+
 	payload := map[string]interface{}{
 		"msgtype": "markdown",
 		"markdown": map[string]string{
 			"content": content,
 		},
 	}
-	
+
 	return n.post(ctx, n.webhook, payload)
 }
 
@@ -330,18 +330,18 @@ func (n *WechatNotifier) post(ctx context.Context, url string, payload interface
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	resp, err := n.client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != 200 {
 		respBody, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("wechat error: %s", string(respBody))
 	}
-	
+
 	return nil
 }
 
@@ -379,28 +379,28 @@ func (n *WebhookNotifier) Send(ctx context.Context, msg *NotifyMessage) error {
 		"timestamp": msg.Timestamp.Unix(),
 		"extra":     msg.Extra,
 	}
-	
+
 	body, _ := json.Marshal(payload)
 	req, err := http.NewRequestWithContext(ctx, n.method, n.url, bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
-	
+
 	req.Header.Set("Content-Type", "application/json")
 	for k, v := range n.headers {
 		req.Header.Set(k, v)
 	}
-	
+
 	resp, err := n.client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode >= 400 {
 		respBody, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("webhook error: status=%d, body=%s", resp.StatusCode, string(respBody))
 	}
-	
+
 	return nil
 }

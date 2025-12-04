@@ -25,18 +25,18 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		Password string `json:"password" binding:"required,min=6,max=32"`
 		Email    string `json:"email" binding:"required,email"`
 	}
-	
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.BadRequest(c, "参数错误: "+err.Error())
 		return
 	}
-	
+
 	user, err := h.userService.Register(req.Username, req.Password, req.Email)
 	if err != nil {
 		utils.Error(c, utils.ErrCodeDuplicate, err.Error())
 		return
 	}
-	
+
 	utils.SuccessWithMessage(c, "注册成功", gin.H{
 		"id":       user.ID.Hex(),
 		"username": user.Username,
@@ -51,18 +51,18 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		Username string `json:"username" binding:"required"`
 		Password string `json:"password" binding:"required"`
 	}
-	
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.BadRequest(c, "参数错误")
 		return
 	}
-	
+
 	token, user, err := h.userService.Login(req.Username, req.Password)
 	if err != nil {
 		utils.Error(c, utils.ErrCodePasswordWrong, err.Error())
 		return
 	}
-	
+
 	utils.Success(c, gin.H{
 		"token": token,
 		"user": gin.H{
@@ -87,13 +87,13 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 // GET /api/auth/profile
 func (h *AuthHandler) GetProfile(c *gin.Context) {
 	userID, _ := c.Get("user_id")
-	
+
 	user, err := h.userService.GetUserByID(userID.(string))
 	if err != nil {
 		utils.NotFound(c, err.Error())
 		return
 	}
-	
+
 	utils.Success(c, gin.H{
 		"id":         user.ID.Hex(),
 		"username":   user.Username,
@@ -110,18 +110,18 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 // PUT /api/auth/profile
 func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	userID, _ := c.Get("user_id")
-	
+
 	var req struct {
 		Email  string `json:"email"`
 		Phone  string `json:"phone"`
 		Avatar string `json:"avatar"`
 	}
-	
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.BadRequest(c, "参数错误")
 		return
 	}
-	
+
 	updates := make(map[string]interface{})
 	if req.Email != "" {
 		updates["email"] = req.Email
@@ -132,12 +132,12 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	if req.Avatar != "" {
 		updates["avatar"] = req.Avatar
 	}
-	
+
 	if err := h.userService.UpdateUser(userID.(string), updates); err != nil {
 		utils.Error(c, utils.ErrCodeInternalError, err.Error())
 		return
 	}
-	
+
 	utils.SuccessWithMessage(c, "更新成功", nil)
 }
 
@@ -145,22 +145,22 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 // PUT /api/auth/password
 func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	userID, _ := c.Get("user_id")
-	
+
 	var req struct {
 		OldPassword string `json:"old_password" binding:"required"`
 		NewPassword string `json:"new_password" binding:"required,min=6,max=32"`
 	}
-	
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.BadRequest(c, "参数错误")
 		return
 	}
-	
+
 	if err := h.userService.ChangePassword(userID.(string), req.OldPassword, req.NewPassword); err != nil {
 		utils.Error(c, utils.ErrCodePasswordWrong, err.Error())
 		return
 	}
-	
+
 	utils.SuccessWithMessage(c, "密码修改成功", nil)
 }
 
@@ -170,18 +170,18 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	var req struct {
 		Token string `json:"token" binding:"required"`
 	}
-	
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.BadRequest(c, "参数错误")
 		return
 	}
-	
+
 	newToken, err := utils.RefreshToken(req.Token)
 	if err != nil {
 		utils.Error(c, utils.ErrCodeTokenInvalid, "Token无效或已过期")
 		return
 	}
-	
+
 	utils.Success(c, gin.H{
 		"token": newToken,
 	})

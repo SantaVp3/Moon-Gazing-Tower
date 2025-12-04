@@ -1,11 +1,11 @@
-import { Outlet } from 'react-router-dom'
-import Sidebar from '@/components/layout/Sidebar'
-import Header from '@/components/layout/Header'
-import { useAppStore } from '@/store/app'
-import { cn } from '@/lib/utils'
+import { Outlet } from 'react-router-dom';
+import Sidebar from '@/components/layout/Sidebar';
+import Header from '@/components/layout/Header';
+import { useAppStore } from '@/store/app';
+import { cn } from '@/lib/utils';
 
 export default function MainLayout() {
-  const { sidebarCollapsed } = useAppStore()
+  const { sidebarCollapsed } = useAppStore();
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -27,5 +27,5 @@ export default function MainLayout() {
         </footer>
       </div>
     </div>
-  )
+  );
 }

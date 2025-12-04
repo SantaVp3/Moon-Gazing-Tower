@@ -1,14 +1,18 @@
-import { useState, useEffect } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { taskApi } from '@/api/tasks'
-import { resultApi, type SubdomainResult, type ResultType } from '@/api/results'
-import TaskTopologyView from '@/components/tasks/TaskTopologyView'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Checkbox } from '@/components/ui/checkbox'
-import { useToast } from '@/components/ui/use-toast'
+import { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { taskApi } from '@/api/tasks';
+import {
+  resultApi,
+  type SubdomainResult,
+  type ResultType,
+} from '@/api/results';
+import TaskTopologyView from '@/components/tasks/TaskTopologyView';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useToast } from '@/components/ui/use-toast';
 import {
   Table,
   TableBody,
@@ -16,20 +20,20 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
+} from '@/components/ui/table';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+} from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,13 +44,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
-import { cn, formatDate, getStatusColor } from '@/lib/utils'
-import { 
-  ArrowLeft, Play, Pause, Square, Trash2, RotateCcw, 
-  Search, Download, Settings, ChevronDown,
-  RefreshCw, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
-} from 'lucide-react'
+} from '@/components/ui/alert-dialog';
+import { cn, formatDate, getStatusColor } from '@/lib/utils';
+import {
+  ArrowLeft,
+  Play,
+  Pause,
+  Square,
+  Trash2,
+  RotateCcw,
+  Search,
+  Download,
+  Settings,
+  ChevronDown,
+  RefreshCw,
+  ExternalLink,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from 'lucide-react';
 
 // Tab 配置 - ID 对应后端 ResultType
 const tabConfig = [
@@ -62,22 +79,22 @@ const tabConfig = [
   { id: 'port', label: '端口' },
   { id: 'service', label: 'Web服务' },
   { id: 'topology', label: '资产星图' },
-]
+];
 
 export default function TaskDetailPage() {
-  const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
-  
-  const [activeTab, setActiveTab] = useState<ResultType | null>(null)
-  const [search, setSearch] = useState('')
-  const [searchInput, setSearchInput] = useState('')
-  const [selectedRows, setSelectedRows] = useState<string[]>([])
-  const [projectFilter, setProjectFilter] = useState<string>('all')
-  const [statusCodeFilter, setStatusCodeFilter] = useState<string>('all')
-  const [page, setPage] = useState(1)
-  const pageSize = 20
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const [activeTab, setActiveTab] = useState<ResultType | null>(null);
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [projectFilter, setProjectFilter] = useState<string>('all');
+  const [statusCodeFilter, setStatusCodeFilter] = useState<string>('all');
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
 
   // 所有 hooks 必须在条件返回之前调用
   const { data, isLoading } = useQuery({
@@ -85,130 +102,137 @@ export default function TaskDetailPage() {
     queryFn: () => taskApi.getTask(id!),
     enabled: !!id,
     refetchInterval: (query) => {
-      const task = query.state.data?.data
-      return task?.status === 'running' ? 3000 : false
+      const task = query.state.data?.data;
+      return task?.status === 'running' ? 3000 : false;
     },
-  })
+  });
 
   // 获取结果统计
   const { data: statsData } = useQuery({
     queryKey: ['task-results-stats', id],
     queryFn: () => resultApi.getResultStats(id!),
     enabled: !!id,
-  })
+  });
 
   // 自动选择第一个有数据的 Tab
-  const resultStats = statsData?.data || {}
+  const resultStats = statsData?.data || {};
   useEffect(() => {
     if (activeTab === null && statsData?.data) {
-      const stats = statsData.data as Record<string, number>
+      const stats = statsData.data as Record<string, number>;
       // 按 tabConfig 顺序找第一个有数据的 tab
-      const firstWithData = tabConfig.find(tab => (stats[tab.id] || 0) > 0)
+      const firstWithData = tabConfig.find((tab) => (stats[tab.id] || 0) > 0);
       if (firstWithData) {
-        setActiveTab(firstWithData.id as ResultType)
+        setActiveTab(firstWithData.id as ResultType);
       } else {
         // 默认选择 domain
-        setActiveTab('domain')
+        setActiveTab('domain');
       }
     }
-  }, [statsData?.data, activeTab])
+  }, [statsData?.data, activeTab]);
 
   // 确保 activeTab 有值后再查询结果
-  const currentTab = activeTab || 'domain'
+  const currentTab = activeTab || 'domain';
 
   // 获取当前Tab的结果数据（dirscan时支持状态码筛选）
-  const statusCodeNum = statusCodeFilter !== 'all' ? parseInt(statusCodeFilter) : undefined
+  const statusCodeNum =
+    statusCodeFilter !== 'all' ? parseInt(statusCodeFilter) : undefined;
   const { data: resultsData, isLoading: resultsLoading } = useQuery({
     queryKey: ['task-results', id, currentTab, page, search, statusCodeFilter],
-    queryFn: () => resultApi.getTaskResults(id!, { 
-      type: currentTab, 
-      page, 
-      pageSize,
-      search,
-      statusCode: currentTab === 'dirscan' ? statusCodeNum : undefined
-    }),
+    queryFn: () =>
+      resultApi.getTaskResults(id!, {
+        type: currentTab,
+        page,
+        pageSize,
+        search,
+        statusCode: currentTab === 'dirscan' ? statusCodeNum : undefined,
+      }),
     enabled: !!id && !!activeTab,
-  })
+  });
 
   // 任务操作 mutations
   const startMutation = useMutation({
     mutationFn: () => taskApi.startTask(id!),
     onSuccess: () => {
-      toast({ title: '任务已开始' })
-      queryClient.invalidateQueries({ queryKey: ['task', id] })
+      toast({ title: '任务已开始' });
+      queryClient.invalidateQueries({ queryKey: ['task', id] });
     },
     onError: () => toast({ title: '操作失败', variant: 'destructive' }),
-  })
+  });
 
   const pauseMutation = useMutation({
     mutationFn: () => taskApi.pauseTask(id!),
     onSuccess: () => {
-      toast({ title: '任务已暂停' })
-      queryClient.invalidateQueries({ queryKey: ['task', id] })
+      toast({ title: '任务已暂停' });
+      queryClient.invalidateQueries({ queryKey: ['task', id] });
     },
     onError: () => toast({ title: '操作失败', variant: 'destructive' }),
-  })
+  });
 
   const resumeMutation = useMutation({
     mutationFn: () => taskApi.resumeTask(id!),
     onSuccess: () => {
-      toast({ title: '任务已恢复' })
-      queryClient.invalidateQueries({ queryKey: ['task', id] })
+      toast({ title: '任务已恢复' });
+      queryClient.invalidateQueries({ queryKey: ['task', id] });
     },
     onError: () => toast({ title: '操作失败', variant: 'destructive' }),
-  })
+  });
 
   const cancelMutation = useMutation({
     mutationFn: () => taskApi.cancelTask(id!),
     onSuccess: () => {
-      toast({ title: '任务已停止' })
-      queryClient.invalidateQueries({ queryKey: ['task', id] })
+      toast({ title: '任务已停止' });
+      queryClient.invalidateQueries({ queryKey: ['task', id] });
     },
     onError: () => toast({ title: '操作失败', variant: 'destructive' }),
-  })
+  });
 
   const retryMutation = useMutation({
     mutationFn: () => taskApi.retryTask(id!),
     onSuccess: () => {
-      toast({ title: '任务已重新启动' })
-      queryClient.invalidateQueries({ queryKey: ['task', id] })
+      toast({ title: '任务已重新启动' });
+      queryClient.invalidateQueries({ queryKey: ['task', id] });
     },
     onError: () => toast({ title: '操作失败', variant: 'destructive' }),
-  })
+  });
 
   const rescanMutation = useMutation({
     mutationFn: (fromScratch: boolean) => taskApi.rescanTask(id!, fromScratch),
     onSuccess: (_, fromScratch) => {
-      toast({ title: fromScratch ? '任务已从头开始扫描' : '任务已继续扫描' })
-      queryClient.invalidateQueries({ queryKey: ['task', id] })
+      toast({ title: fromScratch ? '任务已从头开始扫描' : '任务已继续扫描' });
+      queryClient.invalidateQueries({ queryKey: ['task', id] });
     },
     onError: () => toast({ title: '操作失败', variant: 'destructive' }),
-  })
+  });
 
   const deleteMutation = useMutation({
     mutationFn: () => taskApi.deleteTask(id!),
     onSuccess: () => {
-      toast({ title: '任务已删除' })
-      navigate('/tasks')
+      toast({ title: '任务已删除' });
+      navigate('/tasks');
     },
     onError: () => toast({ title: '删除失败', variant: 'destructive' }),
-  })
+  });
 
   // 计算派生状态
-  const isOperating = startMutation.isPending || pauseMutation.isPending || 
-    resumeMutation.isPending || cancelMutation.isPending || 
-    retryMutation.isPending || deleteMutation.isPending || rescanMutation.isPending
+  const isOperating =
+    startMutation.isPending ||
+    pauseMutation.isPending ||
+    resumeMutation.isPending ||
+    cancelMutation.isPending ||
+    retryMutation.isPending ||
+    deleteMutation.isPending ||
+    rescanMutation.isPending;
 
-  const task = data?.data
+  const task = data?.data;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const results: any[] = resultsData?.data?.list || []
-  const total = resultsData?.data?.total || 0
+  const results: any[] = resultsData?.data?.list || [];
+  const total = resultsData?.data?.total || 0;
 
   // 生成带统计数字的tabs
-  const tabs = tabConfig.map(tab => ({
+  const tabs = tabConfig.map((tab) => ({
     ...tab,
-    count: resultStats[tab.id] || 0
-  }))
+    count: resultStats[tab.id] || 0,
+  }));
 
   // 条件渲染 - 在所有 hooks 之后
   if (isLoading) {
@@ -216,14 +240,16 @@ export default function TaskDetailPage() {
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
-    )
+    );
   }
 
   if (!task) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
         <div className="text-6xl mb-4">🔍</div>
-        <h2 className="text-xl font-semibold text-foreground mb-2">任务不存在</h2>
+        <h2 className="text-xl font-semibold text-foreground mb-2">
+          任务不存在
+        </h2>
         <p className="text-muted-foreground mb-6 text-center max-w-md">
           该任务可能已被删除，或任务ID无效。
           <br />
@@ -233,7 +259,7 @@ export default function TaskDetailPage() {
           <Link to="/tasks">返回任务列表</Link>
         </Button>
       </div>
-    )
+    );
   }
 
   const getStatusLabel = (status: string) => {
@@ -244,91 +270,95 @@ export default function TaskDetailPage() {
       completed: '已完成',
       failed: '失败',
       cancelled: '已取消',
-    }
-    return labels[status] || status
-  }
+    };
+    return labels[status] || status;
+  };
 
   const toggleSelectAll = () => {
     if (selectedRows.length === results.length) {
-      setSelectedRows([])
+      setSelectedRows([]);
     } else {
-      setSelectedRows(results.map((item: { id: string }) => item.id))
+      setSelectedRows(results.map((item: { id: string }) => item.id));
     }
-  }
+  };
 
   const toggleSelectRow = (rowId: string) => {
     if (selectedRows.includes(rowId)) {
-      setSelectedRows(selectedRows.filter(r => r !== rowId))
+      setSelectedRows(selectedRows.filter((r) => r !== rowId));
     } else {
-      setSelectedRows([...selectedRows, rowId])
+      setSelectedRows([...selectedRows, rowId]);
     }
-  }
+  };
 
   const handleSearch = () => {
-    setSearch(searchInput)
-    setPage(1)
-  }
+    setSearch(searchInput);
+    setPage(1);
+  };
 
   const handleExport = async () => {
     try {
-      const data = await resultApi.exportResults(id!, currentTab)
+      const data = await resultApi.exportResults(id!, currentTab);
       // 转换为CSV并下载
-      const results = Array.isArray(data) ? data : (data as Record<string, unknown>)?.data || []
-      const csvContent = convertToCSV(results as Record<string, unknown>[])
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `${task?.name}-${currentTab}-${new Date().toISOString().slice(0, 10)}.csv`
-      link.click()
-      URL.revokeObjectURL(url)
-      toast({ title: '导出成功' })
+      const results = Array.isArray(data)
+        ? data
+        : (data as Record<string, unknown>)?.data || [];
+      const csvContent = convertToCSV(results as Record<string, unknown>[]);
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${task?.name}-${currentTab}-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast({ title: '导出成功' });
     } catch {
-      toast({ title: '导出失败', variant: 'destructive' })
+      toast({ title: '导出失败', variant: 'destructive' });
     }
-  }
+  };
 
   // 转换为CSV格式
   const convertToCSV = (data: Record<string, unknown>[]) => {
-    if (data.length === 0) return ''
-    const headers = Object.keys(data[0])
-    const rows = data.map(item => 
-      headers.map(h => JSON.stringify(item[h] ?? '')).join(',')
-    )
-    return [headers.join(','), ...rows].join('\n')
-  }
+    if (data.length === 0) return '';
+    const headers = Object.keys(data[0]);
+    const rows = data.map((item) =>
+      headers.map((h) => JSON.stringify(item[h] ?? '')).join(',')
+    );
+    return [headers.join(','), ...rows].join('\n');
+  };
 
   // 渲染不同类型的表格
   const renderTable = () => {
     switch (currentTab) {
       case 'subdomain':
-        return renderSubdomainTable()
+        return renderSubdomainTable();
       case 'takeover':
-        return renderTakeoverTable()
+        return renderTakeoverTable();
       case 'url':
-        return renderURLTable()
+        return renderURLTable();
       case 'sensitive':
-        return renderSensitiveTable()
+        return renderSensitiveTable();
       case 'port':
-        return renderPortTable()
+        return renderPortTable();
       case 'service':
-        return renderServiceTable()
+        return renderServiceTable();
       case 'dirscan':
-        return renderDirScanTable()
+        return renderDirScanTable();
       case 'crawler':
-        return renderCrawlerTable()
+        return renderCrawlerTable();
       default:
-        return renderGenericTable()
+        return renderGenericTable();
     }
-  }
+  };
 
   const renderSubdomainTable = () => (
     <Table>
       <TableHeader className="sticky top-0 bg-background">
         <TableRow>
           <TableHead className="w-12">
-            <Checkbox 
-              checked={selectedRows.length === results.length && results.length > 0}
+            <Checkbox
+              checked={
+                selectedRows.length === results.length && results.length > 0
+              }
               onCheckedChange={toggleSelectAll}
             />
           </TableHead>
@@ -345,27 +375,32 @@ export default function TaskDetailPage() {
       <TableBody>
         {results.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+            <TableCell
+              colSpan={9}
+              className="text-center py-8 text-muted-foreground"
+            >
               {resultsLoading ? '加载中...' : '暂无数据'}
             </TableCell>
           </TableRow>
         ) : (
           results.map((item: SubdomainResult, index: number) => (
-            <TableRow 
+            <TableRow
               key={item.id}
               className={cn(selectedRows.includes(item.id) && 'bg-muted/50')}
             >
               <TableCell>
-                <Checkbox 
+                <Checkbox
                   checked={selectedRows.includes(item.id)}
                   onCheckedChange={() => toggleSelectRow(item.id)}
                 />
               </TableCell>
-              <TableCell className="text-muted-foreground">{(page - 1) * pageSize + index + 1}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {(page - 1) * pageSize + index + 1}
+              </TableCell>
               <TableCell>
-                <a 
-                  href={`https://${item.subdomain}`} 
-                  target="_blank" 
+                <a
+                  href={`https://${item.subdomain}`}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline flex items-center gap-1"
                 >
@@ -374,35 +409,54 @@ export default function TaskDetailPage() {
                 </a>
               </TableCell>
               <TableCell className="text-muted-foreground font-mono text-xs">
-                {item.ips?.join(', ') || (item as unknown as { ip?: string }).ip || '-'}
+                {item.ips?.join(', ') ||
+                  (item as unknown as { ip?: string }).ip ||
+                  '-'}
               </TableCell>
-              <TableCell className="max-w-[200px] truncate">{item.title || '-'}</TableCell>
+              <TableCell className="max-w-[200px] truncate">
+                {item.title || '-'}
+              </TableCell>
               <TableCell>
                 {item.statusCode && item.statusCode > 0 ? (
-                  <Badge variant={item.statusCode === 200 ? 'default' : 'secondary'}>
+                  <Badge
+                    variant={item.statusCode === 200 ? 'default' : 'secondary'}
+                  >
                     {item.statusCode}
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="text-muted-foreground">-</Badge>
+                  <Badge variant="outline" className="text-muted-foreground">
+                    -
+                  </Badge>
                 )}
               </TableCell>
               <TableCell>
                 {item.cdn ? (
-                  <Badge variant="outline">{item.cdnName || item.cdnProvider || 'CDN'}</Badge>
-                ) : '-'}
+                  <Badge variant="outline">
+                    {item.cdnName || item.cdnProvider || 'CDN'}
+                  </Badge>
+                ) : (
+                  '-'
+                )}
               </TableCell>
               <TableCell>
-                {(item.technologies?.slice(0, 2) || item.fingerprint?.slice(0, 2))?.map((fp: string) => (
-                  <Badge key={fp} variant="outline" className="mr-1 text-xs">{fp}</Badge>
+                {(
+                  item.technologies?.slice(0, 2) ||
+                  item.fingerprint?.slice(0, 2)
+                )?.map((fp: string) => (
+                  <Badge key={fp} variant="outline" className="mr-1 text-xs">
+                    {fp}
+                  </Badge>
                 )) || '-'}
               </TableCell>
-              <TableCell className="text-muted-foreground">{formatDate(item.createdAt)}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {formatDate(item.createdAt)}
+              </TableCell>
             </TableRow>
           ))
         )}
       </TableBody>
     </Table>
-  )
+  );
 
   // 子域名接管检测结果表格
   const renderTakeoverTable = () => (
@@ -410,8 +464,10 @@ export default function TaskDetailPage() {
       <TableHeader className="sticky top-0 bg-background">
         <TableRow>
           <TableHead className="w-12">
-            <Checkbox 
-              checked={selectedRows.length === results.length && results.length > 0}
+            <Checkbox
+              checked={
+                selectedRows.length === results.length && results.length > 0
+              }
               onCheckedChange={toggleSelectAll}
             />
           </TableHead>
@@ -427,13 +483,16 @@ export default function TaskDetailPage() {
       <TableBody>
         {results.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+            <TableCell
+              colSpan={8}
+              className="text-center py-8 text-muted-foreground"
+            >
               {resultsLoading ? '加载中...' : '暂无数据'}
             </TableCell>
           </TableRow>
         ) : (
           results.map((item: Record<string, unknown>, index: number) => (
-            <TableRow 
+            <TableRow
               key={item.id as string}
               className={cn(
                 selectedRows.includes(item.id as string) && 'bg-muted/50',
@@ -441,24 +500,30 @@ export default function TaskDetailPage() {
               )}
             >
               <TableCell>
-                <Checkbox 
+                <Checkbox
                   checked={selectedRows.includes(item.id as string)}
                   onCheckedChange={() => toggleSelectRow(item.id as string)}
                 />
               </TableCell>
-              <TableCell className="text-muted-foreground">{(page - 1) * pageSize + index + 1}</TableCell>
-              <TableCell className="font-mono">{item.subdomain as string}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {(page - 1) * pageSize + index + 1}
+              </TableCell>
+              <TableCell className="font-mono">
+                {item.subdomain as string}
+              </TableCell>
               <TableCell className="font-mono text-xs max-w-[200px] truncate">
-                {item.cname as string || '-'}
+                {(item.cname as string) || '-'}
               </TableCell>
               <TableCell>
-                <Badge variant="outline">{item.provider as string || '-'}</Badge>
+                <Badge variant="outline">
+                  {(item.provider as string) || '-'}
+                </Badge>
               </TableCell>
               <TableCell>
-                <Badge 
+                <Badge
                   variant={
-                    (item.severity as string) === 'high' 
-                      ? 'destructive' 
+                    (item.severity as string) === 'high'
+                      ? 'destructive'
                       : (item.severity as string) === 'medium'
                         ? 'secondary'
                         : 'outline'
@@ -467,24 +532,31 @@ export default function TaskDetailPage() {
                   {(item.severity as string) || '高'}
                 </Badge>
               </TableCell>
-              <TableCell className="max-w-[300px] truncate" title={item.reason as string}>
-                {item.reason as string || '-'}
+              <TableCell
+                className="max-w-[300px] truncate"
+                title={item.reason as string}
+              >
+                {(item.reason as string) || '-'}
               </TableCell>
-              <TableCell className="text-muted-foreground">{formatDate(item.createdAt as string)}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {formatDate(item.createdAt as string)}
+              </TableCell>
             </TableRow>
           ))
         )}
       </TableBody>
     </Table>
-  )
+  );
 
   const renderURLTable = () => (
     <Table>
       <TableHeader className="sticky top-0 bg-background">
         <TableRow>
           <TableHead className="w-12">
-            <Checkbox 
-              checked={selectedRows.length === results.length && results.length > 0}
+            <Checkbox
+              checked={
+                selectedRows.length === results.length && results.length > 0
+              }
               onCheckedChange={toggleSelectAll}
             />
           </TableHead>
@@ -500,27 +572,34 @@ export default function TaskDetailPage() {
       <TableBody>
         {results.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+            <TableCell
+              colSpan={8}
+              className="text-center py-8 text-muted-foreground"
+            >
               {resultsLoading ? '加载中...' : '暂无数据'}
             </TableCell>
           </TableRow>
         ) : (
           results.map((item: Record<string, unknown>, index: number) => (
-            <TableRow 
+            <TableRow
               key={item.id as string}
-              className={cn(selectedRows.includes(item.id as string) && 'bg-muted/50')}
+              className={cn(
+                selectedRows.includes(item.id as string) && 'bg-muted/50'
+              )}
             >
               <TableCell>
-                <Checkbox 
+                <Checkbox
                   checked={selectedRows.includes(item.id as string)}
                   onCheckedChange={() => toggleSelectRow(item.id as string)}
                 />
               </TableCell>
-              <TableCell className="text-muted-foreground">{(page - 1) * pageSize + index + 1}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {(page - 1) * pageSize + index + 1}
+              </TableCell>
               <TableCell className="max-w-[400px] truncate">
-                <a 
-                  href={item.url as string} 
-                  target="_blank" 
+                <a
+                  href={item.url as string}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline"
                 >
@@ -528,30 +607,46 @@ export default function TaskDetailPage() {
                 </a>
               </TableCell>
               <TableCell>
-                <Badge variant="outline">{(item.method as string) || 'GET'}</Badge>
-              </TableCell>
-              <TableCell>
-                <Badge variant={(item.statusCode as number) === 200 ? 'default' : 'secondary'}>
-                  {item.statusCode as number || '-'}
+                <Badge variant="outline">
+                  {(item.method as string) || 'GET'}
                 </Badge>
               </TableCell>
-              <TableCell className="text-muted-foreground">{item.contentType as string || '-'}</TableCell>
-              <TableCell className="text-muted-foreground">{item.length as number || '-'}</TableCell>
-              <TableCell className="text-muted-foreground">{formatDate(item.createdAt as string)}</TableCell>
+              <TableCell>
+                <Badge
+                  variant={
+                    (item.statusCode as number) === 200
+                      ? 'default'
+                      : 'secondary'
+                  }
+                >
+                  {(item.statusCode as number) || '-'}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {(item.contentType as string) || '-'}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {(item.length as number) || '-'}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {formatDate(item.createdAt as string)}
+              </TableCell>
             </TableRow>
           ))
         )}
       </TableBody>
     </Table>
-  )
+  );
 
   const renderSensitiveTable = () => (
     <Table>
       <TableHeader className="sticky top-0 bg-background">
         <TableRow>
           <TableHead className="w-12">
-            <Checkbox 
-              checked={selectedRows.length === results.length && results.length > 0}
+            <Checkbox
+              checked={
+                selectedRows.length === results.length && results.length > 0
+              }
               onCheckedChange={toggleSelectAll}
             />
           </TableHead>
@@ -568,27 +663,34 @@ export default function TaskDetailPage() {
       <TableBody>
         {results.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+            <TableCell
+              colSpan={9}
+              className="text-center py-8 text-muted-foreground"
+            >
               {resultsLoading ? '加载中...' : '暂无数据'}
             </TableCell>
           </TableRow>
         ) : (
           results.map((item: Record<string, unknown>, index: number) => (
-            <TableRow 
+            <TableRow
               key={item.id as string}
-              className={cn(selectedRows.includes(item.id as string) && 'bg-muted/50')}
+              className={cn(
+                selectedRows.includes(item.id as string) && 'bg-muted/50'
+              )}
             >
               <TableCell>
-                <Checkbox 
+                <Checkbox
                   checked={selectedRows.includes(item.id as string)}
                   onCheckedChange={() => toggleSelectRow(item.id as string)}
                 />
               </TableCell>
-              <TableCell className="text-muted-foreground">{(page - 1) * pageSize + index + 1}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {(page - 1) * pageSize + index + 1}
+              </TableCell>
               <TableCell className="max-w-[250px] truncate">
-                <a 
-                  href={item.url as string} 
-                  target="_blank" 
+                <a
+                  href={item.url as string}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline"
                 >
@@ -598,38 +700,61 @@ export default function TaskDetailPage() {
               <TableCell>
                 <Badge variant="outline">{item.type as string}</Badge>
               </TableCell>
-              <TableCell className="text-muted-foreground">{item.pattern as string}</TableCell>
-              <TableCell className="font-mono text-xs max-w-[200px] truncate" title={Array.isArray(item.matches) ? (item.matches as string[]).join(', ') : ''}>
-                {Array.isArray(item.matches) ? (item.matches as string[]).slice(0, 2).join(', ') : '-'}
-                {Array.isArray(item.matches) && (item.matches as string[]).length > 2 && '...'}
+              <TableCell className="text-muted-foreground">
+                {item.pattern as string}
+              </TableCell>
+              <TableCell
+                className="font-mono text-xs max-w-[200px] truncate"
+                title={
+                  Array.isArray(item.matches)
+                    ? (item.matches as string[]).join(', ')
+                    : ''
+                }
+              >
+                {Array.isArray(item.matches)
+                  ? (item.matches as string[]).slice(0, 2).join(', ')
+                  : '-'}
+                {Array.isArray(item.matches) &&
+                  (item.matches as string[]).length > 2 &&
+                  '...'}
               </TableCell>
               <TableCell>
-                <Badge 
+                <Badge
                   variant={
-                    (item.severity as string) === 'critical' ? 'destructive' :
-                    (item.severity as string) === 'high' ? 'destructive' : 
-                    (item.severity as string) === 'medium' ? 'default' : 'secondary'
+                    (item.severity as string) === 'critical'
+                      ? 'destructive'
+                      : (item.severity as string) === 'high'
+                        ? 'destructive'
+                        : (item.severity as string) === 'medium'
+                          ? 'default'
+                          : 'secondary'
                   }
                 >
                   {item.severity as string}
                 </Badge>
               </TableCell>
-              <TableCell className="text-muted-foreground">{item.location as string}</TableCell>
-              <TableCell className="text-muted-foreground">{formatDate(item.createdAt as string)}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {item.location as string}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {formatDate(item.createdAt as string)}
+              </TableCell>
             </TableRow>
           ))
         )}
       </TableBody>
     </Table>
-  )
+  );
 
   const renderPortTable = () => (
     <Table>
       <TableHeader className="sticky top-0 bg-background">
         <TableRow>
           <TableHead className="w-12">
-            <Checkbox 
-              checked={selectedRows.length === results.length && results.length > 0}
+            <Checkbox
+              checked={
+                selectedRows.length === results.length && results.length > 0
+              }
               onCheckedChange={toggleSelectAll}
             />
           </TableHead>
@@ -646,50 +771,67 @@ export default function TaskDetailPage() {
       <TableBody>
         {results.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+            <TableCell
+              colSpan={9}
+              className="text-center py-8 text-muted-foreground"
+            >
               {resultsLoading ? '加载中...' : '暂无数据'}
             </TableCell>
           </TableRow>
         ) : (
           results.map((item: Record<string, unknown>, index: number) => (
-            <TableRow 
+            <TableRow
               key={item.id as string}
-              className={cn(selectedRows.includes(item.id as string) && 'bg-muted/50')}
+              className={cn(
+                selectedRows.includes(item.id as string) && 'bg-muted/50'
+              )}
             >
               <TableCell>
-                <Checkbox 
+                <Checkbox
                   checked={selectedRows.includes(item.id as string)}
                   onCheckedChange={() => toggleSelectRow(item.id as string)}
                 />
               </TableCell>
-              <TableCell className="text-muted-foreground">{(page - 1) * pageSize + index + 1}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {(page - 1) * pageSize + index + 1}
+              </TableCell>
               <TableCell className="font-mono">{item.ip as string}</TableCell>
               <TableCell>
                 <Badge variant="outline">{item.port as number}</Badge>
               </TableCell>
-              <TableCell>{item.protocol as string || 'tcp'}</TableCell>
-              <TableCell>{item.service as string || '-'}</TableCell>
-              <TableCell className="text-muted-foreground">{item.version as string || '-'}</TableCell>
-              <TableCell>
-                {(item.fingerprint as string[])?.slice(0, 2).map((fp: string) => (
-                  <Badge key={fp} variant="outline" className="mr-1 text-xs">{fp}</Badge>
-                ))}
+              <TableCell>{(item.protocol as string) || 'tcp'}</TableCell>
+              <TableCell>{(item.service as string) || '-'}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {(item.version as string) || '-'}
               </TableCell>
-              <TableCell className="text-muted-foreground">{formatDate(item.createdAt as string)}</TableCell>
+              <TableCell>
+                {(item.fingerprint as string[])
+                  ?.slice(0, 2)
+                  .map((fp: string) => (
+                    <Badge key={fp} variant="outline" className="mr-1 text-xs">
+                      {fp}
+                    </Badge>
+                  ))}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {formatDate(item.createdAt as string)}
+              </TableCell>
             </TableRow>
           ))
         )}
       </TableBody>
     </Table>
-  )
+  );
 
   const renderServiceTable = () => (
     <Table>
       <TableHeader className="sticky top-0 bg-background">
         <TableRow>
           <TableHead className="w-12">
-            <Checkbox 
-              checked={selectedRows.length === results.length && results.length > 0}
+            <Checkbox
+              checked={
+                selectedRows.length === results.length && results.length > 0
+              }
               onCheckedChange={toggleSelectAll}
             />
           </TableHead>
@@ -706,27 +848,34 @@ export default function TaskDetailPage() {
       <TableBody>
         {results.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+            <TableCell
+              colSpan={9}
+              className="text-center py-8 text-muted-foreground"
+            >
               {resultsLoading ? '加载中...' : '暂无数据'}
             </TableCell>
           </TableRow>
         ) : (
           results.map((item: Record<string, unknown>, index: number) => (
-            <TableRow 
+            <TableRow
               key={item.id as string}
-              className={cn(selectedRows.includes(item.id as string) && 'bg-muted/50')}
+              className={cn(
+                selectedRows.includes(item.id as string) && 'bg-muted/50'
+              )}
             >
               <TableCell>
-                <Checkbox 
+                <Checkbox
                   checked={selectedRows.includes(item.id as string)}
                   onCheckedChange={() => toggleSelectRow(item.id as string)}
                 />
               </TableCell>
-              <TableCell className="text-muted-foreground">{(page - 1) * pageSize + index + 1}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {(page - 1) * pageSize + index + 1}
+              </TableCell>
               <TableCell>
-                <a 
-                  href={item.url as string} 
-                  target="_blank" 
+                <a
+                  href={item.url as string}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline flex items-center gap-1 max-w-xs truncate"
                 >
@@ -734,44 +883,77 @@ export default function TaskDetailPage() {
                   <ExternalLink className="h-3 w-3 flex-shrink-0" />
                 </a>
               </TableCell>
-              <TableCell className="max-w-[200px] truncate" title={item.title as string}>
-                {item.title as string || '-'}
+              <TableCell
+                className="max-w-[200px] truncate"
+                title={item.title as string}
+              >
+                {(item.title as string) || '-'}
               </TableCell>
               <TableCell>
-                <Badge variant={
-                  (item.status_code as number) >= 200 && (item.status_code as number) < 300 ? 'default' :
-                  (item.status_code as number) >= 300 && (item.status_code as number) < 400 ? 'secondary' :
-                  (item.status_code as number) >= 400 ? 'destructive' : 'outline'
-                }>
-                  {item.status_code as number || '-'}
+                <Badge
+                  variant={
+                    (item.status_code as number) >= 200 &&
+                    (item.status_code as number) < 300
+                      ? 'default'
+                      : (item.status_code as number) >= 300 &&
+                          (item.status_code as number) < 400
+                        ? 'secondary'
+                        : (item.status_code as number) >= 400
+                          ? 'destructive'
+                          : 'outline'
+                  }
+                >
+                  {(item.status_code as number) || '-'}
                 </Badge>
               </TableCell>
-              <TableCell className="text-muted-foreground">{item.server as string || '-'}</TableCell>
-              <TableCell>
-                {(item.technologies as string[])?.slice(0, 3).map((tech: string) => (
-                  <Badge key={tech} variant="outline" className="mr-1 text-xs">{tech}</Badge>
-                ))}
+              <TableCell className="text-muted-foreground">
+                {(item.server as string) || '-'}
               </TableCell>
               <TableCell>
-                {(item.fingerprints as string[])?.slice(0, 2).map((fp: string) => (
-                  <Badge key={fp} variant="secondary" className="mr-1 text-xs">{fp}</Badge>
-                ))}
+                {(item.technologies as string[])
+                  ?.slice(0, 3)
+                  .map((tech: string) => (
+                    <Badge
+                      key={tech}
+                      variant="outline"
+                      className="mr-1 text-xs"
+                    >
+                      {tech}
+                    </Badge>
+                  ))}
               </TableCell>
-              <TableCell className="text-muted-foreground">{formatDate(item.createdAt as string)}</TableCell>
+              <TableCell>
+                {(item.fingerprints as string[])
+                  ?.slice(0, 2)
+                  .map((fp: string) => (
+                    <Badge
+                      key={fp}
+                      variant="secondary"
+                      className="mr-1 text-xs"
+                    >
+                      {fp}
+                    </Badge>
+                  ))}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {formatDate(item.createdAt as string)}
+              </TableCell>
             </TableRow>
           ))
         )}
       </TableBody>
     </Table>
-  )
+  );
 
   const renderDirScanTable = () => (
     <Table>
       <TableHeader className="sticky top-0 bg-background">
         <TableRow>
           <TableHead className="w-12">
-            <Checkbox 
-              checked={selectedRows.length === results.length && results.length > 0}
+            <Checkbox
+              checked={
+                selectedRows.length === results.length && results.length > 0
+              }
               onCheckedChange={toggleSelectAll}
             />
           </TableHead>
@@ -787,30 +969,37 @@ export default function TaskDetailPage() {
       <TableBody>
         {results.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+            <TableCell
+              colSpan={8}
+              className="text-center py-8 text-muted-foreground"
+            >
               {resultsLoading ? '加载中...' : '暂无数据'}
             </TableCell>
           </TableRow>
         ) : (
           results.map((item: Record<string, unknown>, index: number) => {
             // 从 data 字段中提取数据
-            const data = (item.data || item) as Record<string, unknown>
+            const data = (item.data || item) as Record<string, unknown>;
             return (
-              <TableRow 
+              <TableRow
                 key={item.id as string}
-                className={cn(selectedRows.includes(item.id as string) && 'bg-muted/50')}
+                className={cn(
+                  selectedRows.includes(item.id as string) && 'bg-muted/50'
+                )}
               >
                 <TableCell>
-                  <Checkbox 
+                  <Checkbox
                     checked={selectedRows.includes(item.id as string)}
                     onCheckedChange={() => toggleSelectRow(item.id as string)}
                   />
                 </TableCell>
-                <TableCell className="text-muted-foreground">{(page - 1) * pageSize + index + 1}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {(page - 1) * pageSize + index + 1}
+                </TableCell>
                 <TableCell className="max-w-[400px] truncate">
-                  <a 
-                    href={data.url as string} 
-                    target="_blank" 
+                  <a
+                    href={data.url as string}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary hover:underline"
                   >
@@ -819,41 +1008,51 @@ export default function TaskDetailPage() {
                 </TableCell>
                 <TableCell>
                   {data.status ? (
-                    <Badge 
+                    <Badge
                       variant={
-                        (data.status as number) >= 200 && (data.status as number) < 300 ? 'default' : 
-                        (data.status as number) >= 400 ? 'destructive' : 'secondary'
+                        (data.status as number) >= 200 &&
+                        (data.status as number) < 300
+                          ? 'default'
+                          : (data.status as number) >= 400
+                            ? 'destructive'
+                            : 'secondary'
                       }
                     >
                       {data.status as number}
                     </Badge>
-                  ) : '-'}
+                  ) : (
+                    '-'
+                  )}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {data.size ? `${data.size}` : '-'}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-xs">
-                  {data.content_type as string || '-'}
+                  {(data.content_type as string) || '-'}
                 </TableCell>
                 <TableCell className="text-muted-foreground max-w-[150px] truncate">
-                  {data.target as string || '-'}
+                  {(data.target as string) || '-'}
                 </TableCell>
-                <TableCell className="text-muted-foreground">{formatDate(item.createdAt as string)}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatDate(item.createdAt as string)}
+                </TableCell>
               </TableRow>
-            )
+            );
           })
         )}
       </TableBody>
     </Table>
-  )
+  );
 
   const renderCrawlerTable = () => (
     <Table>
       <TableHeader className="sticky top-0 bg-background">
         <TableRow>
           <TableHead className="w-12">
-            <Checkbox 
-              checked={selectedRows.length === results.length && results.length > 0}
+            <Checkbox
+              checked={
+                selectedRows.length === results.length && results.length > 0
+              }
               onCheckedChange={toggleSelectAll}
             />
           </TableHead>
@@ -869,29 +1068,36 @@ export default function TaskDetailPage() {
       <TableBody>
         {results.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+            <TableCell
+              colSpan={8}
+              className="text-center py-8 text-muted-foreground"
+            >
               {resultsLoading ? '加载中...' : '暂无数据'}
             </TableCell>
           </TableRow>
         ) : (
           results.map((item: Record<string, unknown>, index: number) => {
-            const data = (item.data || item) as Record<string, unknown>
+            const data = (item.data || item) as Record<string, unknown>;
             return (
-              <TableRow 
+              <TableRow
                 key={item.id as string}
-                className={cn(selectedRows.includes(item.id as string) && 'bg-muted/50')}
+                className={cn(
+                  selectedRows.includes(item.id as string) && 'bg-muted/50'
+                )}
               >
                 <TableCell>
-                  <Checkbox 
+                  <Checkbox
                     checked={selectedRows.includes(item.id as string)}
                     onCheckedChange={() => toggleSelectRow(item.id as string)}
                   />
                 </TableCell>
-                <TableCell className="text-muted-foreground">{(page - 1) * pageSize + index + 1}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {(page - 1) * pageSize + index + 1}
+                </TableCell>
                 <TableCell className="max-w-[400px] truncate">
-                  <a 
-                    href={data.url as string} 
-                    target="_blank" 
+                  <a
+                    href={data.url as string}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary hover:underline"
                   >
@@ -899,19 +1105,26 @@ export default function TaskDetailPage() {
                   </a>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">{(data.method as string) || 'GET'}</Badge>
+                  <Badge variant="outline">
+                    {(data.method as string) || 'GET'}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   {data.status_code ? (
-                    <Badge 
+                    <Badge
                       variant={
-                        (data.status_code as number) === 200 ? 'default' : 
-                        (data.status_code as number) >= 400 ? 'destructive' : 'secondary'
+                        (data.status_code as number) === 200
+                          ? 'default'
+                          : (data.status_code as number) >= 400
+                            ? 'destructive'
+                            : 'secondary'
                       }
                     >
                       {data.status_code as number}
                     </Badge>
-                  ) : '-'}
+                  ) : (
+                    '-'
+                  )}
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline" className="text-xs">
@@ -919,24 +1132,28 @@ export default function TaskDetailPage() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground max-w-[150px] truncate">
-                  {data.target as string || '-'}
+                  {(data.target as string) || '-'}
                 </TableCell>
-                <TableCell className="text-muted-foreground">{formatDate(item.createdAt as string)}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatDate(item.createdAt as string)}
+                </TableCell>
               </TableRow>
-            )
+            );
           })
         )}
       </TableBody>
     </Table>
-  )
+  );
 
   const renderGenericTable = () => (
     <Table>
       <TableHeader className="sticky top-0 bg-background">
         <TableRow>
           <TableHead className="w-12">
-            <Checkbox 
-              checked={selectedRows.length === results.length && results.length > 0}
+            <Checkbox
+              checked={
+                selectedRows.length === results.length && results.length > 0
+              }
               onCheckedChange={toggleSelectAll}
             />
           </TableHead>
@@ -950,41 +1167,52 @@ export default function TaskDetailPage() {
       <TableBody>
         {results.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+            <TableCell
+              colSpan={6}
+              className="text-center py-8 text-muted-foreground"
+            >
               {resultsLoading ? '加载中...' : '暂无数据'}
             </TableCell>
           </TableRow>
         ) : (
           results.map((item: Record<string, unknown>, index: number) => (
-            <TableRow 
+            <TableRow
               key={item.id as string}
-              className={cn(selectedRows.includes(item.id as string) && 'bg-muted/50')}
+              className={cn(
+                selectedRows.includes(item.id as string) && 'bg-muted/50'
+              )}
             >
               <TableCell>
-                <Checkbox 
+                <Checkbox
                   checked={selectedRows.includes(item.id as string)}
                   onCheckedChange={() => toggleSelectRow(item.id as string)}
                 />
               </TableCell>
-              <TableCell className="text-muted-foreground">{(page - 1) * pageSize + index + 1}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {(page - 1) * pageSize + index + 1}
+              </TableCell>
               <TableCell className="max-w-[400px] truncate font-mono text-xs">
                 {JSON.stringify(item.data || item)}
               </TableCell>
-              <TableCell>{item.project as string || '-'}</TableCell>
+              <TableCell>{(item.project as string) || '-'}</TableCell>
               <TableCell>
-                {(item.tags as string[])?.length > 0 ? (
-                  (item.tags as string[]).map((tag: string) => (
-                    <Badge key={tag} variant="outline" className="mr-1">{tag}</Badge>
-                  ))
-                ) : '-'}
+                {(item.tags as string[])?.length > 0
+                  ? (item.tags as string[]).map((tag: string) => (
+                      <Badge key={tag} variant="outline" className="mr-1">
+                        {tag}
+                      </Badge>
+                    ))
+                  : '-'}
               </TableCell>
-              <TableCell className="text-muted-foreground">{formatDate(item.createdAt as string)}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {formatDate(item.createdAt as string)}
+              </TableCell>
             </TableRow>
           ))
         )}
       </TableBody>
     </Table>
-  )
+  );
 
   return (
     <div className="h-full flex flex-col -m-6">
@@ -1003,28 +1231,43 @@ export default function TaskDetailPage() {
                 <Badge className={cn(getStatusColor(task.status), 'text-xs')}>
                   {getStatusLabel(task.status)}
                 </Badge>
-                <span className="text-muted-foreground text-sm">{task.type}</span>
+                <span className="text-muted-foreground text-sm">
+                  {task.type}
+                </span>
                 <span className="text-muted-foreground text-sm">•</span>
-                <span className="text-muted-foreground text-sm">{formatDate(task.createdAt)}</span>
+                <span className="text-muted-foreground text-sm">
+                  {formatDate(task.createdAt)}
+                </span>
               </div>
             </div>
           </div>
-          
+
           {/* 操作按钮 */}
           <div className="flex items-center gap-2">
             {task.status === 'pending' && (
-              <Button onClick={() => startMutation.mutate()} disabled={isOperating}>
+              <Button
+                onClick={() => startMutation.mutate()}
+                disabled={isOperating}
+              >
                 <Play className="h-4 w-4 mr-2" />
                 开始
               </Button>
             )}
             {task.status === 'running' && (
               <>
-                <Button variant="outline" onClick={() => pauseMutation.mutate()} disabled={isOperating}>
+                <Button
+                  variant="outline"
+                  onClick={() => pauseMutation.mutate()}
+                  disabled={isOperating}
+                >
                   <Pause className="h-4 w-4 mr-2" />
                   暂停
                 </Button>
-                <Button variant="destructive" onClick={() => cancelMutation.mutate()} disabled={isOperating}>
+                <Button
+                  variant="destructive"
+                  onClick={() => cancelMutation.mutate()}
+                  disabled={isOperating}
+                >
                   <Square className="h-4 w-4 mr-2" />
                   停止
                 </Button>
@@ -1032,18 +1275,28 @@ export default function TaskDetailPage() {
             )}
             {task.status === 'paused' && (
               <>
-                <Button onClick={() => resumeMutation.mutate()} disabled={isOperating}>
+                <Button
+                  onClick={() => resumeMutation.mutate()}
+                  disabled={isOperating}
+                >
                   <Play className="h-4 w-4 mr-2" />
                   继续
                 </Button>
-                <Button variant="destructive" onClick={() => cancelMutation.mutate()} disabled={isOperating}>
+                <Button
+                  variant="destructive"
+                  onClick={() => cancelMutation.mutate()}
+                  disabled={isOperating}
+                >
                   <Square className="h-4 w-4 mr-2" />
                   停止
                 </Button>
               </>
             )}
             {(task.status === 'failed' || task.status === 'cancelled') && (
-              <Button onClick={() => retryMutation.mutate()} disabled={isOperating}>
+              <Button
+                onClick={() => retryMutation.mutate()}
+                disabled={isOperating}
+              >
                 <RotateCcw className="h-4 w-4 mr-2" />
                 重试
               </Button>
@@ -1057,7 +1310,9 @@ export default function TaskDetailPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => rescanMutation.mutate(false)}>
+                  <DropdownMenuItem
+                    onClick={() => rescanMutation.mutate(false)}
+                  >
                     继续未完成部分
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => rescanMutation.mutate(true)}>
@@ -1068,7 +1323,11 @@ export default function TaskDetailPage() {
             )}
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" size="icon" disabled={isOperating || task.status === 'running'}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={isOperating || task.status === 'running'}
+                >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </AlertDialogTrigger>
@@ -1081,7 +1340,7 @@ export default function TaskDetailPage() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>取消</AlertDialogCancel>
-                  <AlertDialogAction 
+                  <AlertDialogAction
                     onClick={() => deleteMutation.mutate()}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
@@ -1101,9 +1360,9 @@ export default function TaskDetailPage() {
             <button
               key={tab.id}
               onClick={() => {
-                setActiveTab(tab.id as ResultType)
-                setPage(1)
-                setSelectedRows([])
+                setActiveTab(tab.id as ResultType);
+                setPage(1);
+                setSelectedRows([]);
               }}
               className={cn(
                 'px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors',
@@ -1125,170 +1384,189 @@ export default function TaskDetailPage() {
 
       {/* Toolbar - 只在非资产星图tab时显示 */}
       {currentTab !== 'topology' && (
-      <div className="border-b bg-background px-6 py-3">
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="搜索"
-              className="pl-9"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            />
-          </div>
-          <Button variant="outline" size="sm" onClick={handleSearch}>
-            <Search className="h-4 w-4 mr-2" />
-            搜索
-          </Button>
-          <Button variant="default" size="sm" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
-            导出
-          </Button>
-          <Select value={projectFilter} onValueChange={setProjectFilter}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="项目筛选" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">全部项目</SelectItem>
-            </SelectContent>
-          </Select>
-          {currentTab === 'dirscan' && (
-            <div className="flex items-center gap-1">
-              <Select value={statusCodeFilter} onValueChange={setStatusCodeFilter}>
-                <SelectTrigger className="w-28">
-                  <SelectValue placeholder="状态码" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全部</SelectItem>
-                  <SelectItem value="200">200</SelectItem>
-                  <SelectItem value="301">301</SelectItem>
-                  <SelectItem value="302">302</SelectItem>
-                  <SelectItem value="400">400</SelectItem>
-                  <SelectItem value="401">401</SelectItem>
-                  <SelectItem value="403">403</SelectItem>
-                  <SelectItem value="404">404</SelectItem>
-                  <SelectItem value="500">500</SelectItem>
-                  <SelectItem value="502">502</SelectItem>
-                  <SelectItem value="503">503</SelectItem>
-                </SelectContent>
-              </Select>
+        <div className="border-b bg-background px-6 py-3">
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                type="number"
-                placeholder="自定义"
-                className="w-20 h-9"
-                onChange={(e) => {
-                  const val = e.target.value
-                  if (val === '' || val === '0') {
-                    setStatusCodeFilter('all')
-                  } else {
-                    setStatusCodeFilter(val)
-                  }
-                }}
+                placeholder="搜索"
+                className="pl-9"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
             </div>
-          )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" disabled={selectedRows.length === 0}>
-                操作 ({selectedRows.length})
-                <ChevronDown className="h-4 w-4 ml-2" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => {
-                resultApi.batchDelete(selectedRows).then(() => {
-                  toast({ title: '删除成功' })
-                  setSelectedRows([])
-                  queryClient.invalidateQueries({ queryKey: ['task-results', id] })
-                })
-              }}>批量删除</DropdownMenuItem>
-              <DropdownMenuItem>批量导出</DropdownMenuItem>
-              <DropdownMenuItem>批量标记</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button variant="ghost" size="icon">
-            <Settings className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
-          <span>
-            共 <span className="font-medium text-foreground">{total}</span> 条结果
-          </span>
-          {total > pageSize && (
-            <div className="flex items-center gap-1">
-              {/* 首页 */}
-              <Button 
-                variant="outline" 
-                size="icon"
-                className="h-8 w-8"
-                disabled={page === 1}
-                onClick={() => setPage(1)}
-                title="首页"
-              >
-                <ChevronsLeft className="h-4 w-4" />
-              </Button>
-              
-              {/* 上一页 */}
-              <Button 
-                variant="outline" 
-                size="icon"
-                className="h-8 w-8"
-                disabled={page === 1}
-                onClick={() => setPage(p => p - 1)}
-                title="上一页"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-
-              {/* 页码输入 */}
-              <div className="flex items-center gap-1 px-2">
-                <span className="text-sm whitespace-nowrap">第</span>
-                <input
-                  type="text"
-                  placeholder={String(page)}
-                  className="h-8 w-14 text-center px-1 border rounded-md text-sm"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const val = parseInt((e.target as HTMLInputElement).value, 10)
-                      const maxPage = Math.ceil(total / pageSize)
-                      if (!isNaN(val) && val >= 1 && val <= maxPage) {
-                        setPage(val)
-                        ;(e.target as HTMLInputElement).value = ''
-                      }
+            <Button variant="outline" size="sm" onClick={handleSearch}>
+              <Search className="h-4 w-4 mr-2" />
+              搜索
+            </Button>
+            <Button variant="default" size="sm" onClick={handleExport}>
+              <Download className="h-4 w-4 mr-2" />
+              导出
+            </Button>
+            <Select value={projectFilter} onValueChange={setProjectFilter}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="项目筛选" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部项目</SelectItem>
+              </SelectContent>
+            </Select>
+            {currentTab === 'dirscan' && (
+              <div className="flex items-center gap-1">
+                <Select
+                  value={statusCodeFilter}
+                  onValueChange={setStatusCodeFilter}
+                >
+                  <SelectTrigger className="w-28">
+                    <SelectValue placeholder="状态码" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全部</SelectItem>
+                    <SelectItem value="200">200</SelectItem>
+                    <SelectItem value="301">301</SelectItem>
+                    <SelectItem value="302">302</SelectItem>
+                    <SelectItem value="400">400</SelectItem>
+                    <SelectItem value="401">401</SelectItem>
+                    <SelectItem value="403">403</SelectItem>
+                    <SelectItem value="404">404</SelectItem>
+                    <SelectItem value="500">500</SelectItem>
+                    <SelectItem value="502">502</SelectItem>
+                    <SelectItem value="503">503</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="number"
+                  placeholder="自定义"
+                  className="w-20 h-9"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '' || val === '0') {
+                      setStatusCodeFilter('all');
+                    } else {
+                      setStatusCodeFilter(val);
                     }
                   }}
                 />
-                <span className="text-sm whitespace-nowrap">/ {Math.ceil(total / pageSize)} 页</span>
               </div>
-              
-              {/* 下一页 */}
-              <Button 
-                variant="outline" 
-                size="icon"
-                className="h-8 w-8"
-                disabled={page >= Math.ceil(total / pageSize)}
-                onClick={() => setPage(p => p + 1)}
-                title="下一页"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              
-              {/* 末页 */}
-              <Button 
-                variant="outline" 
-                size="icon"
-                className="h-8 w-8"
-                disabled={page >= Math.ceil(total / pageSize)}
-                onClick={() => setPage(Math.ceil(total / pageSize))}
-                title="末页"
-              >
-                <ChevronsRight className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={selectedRows.length === 0}
+                >
+                  操作 ({selectedRows.length})
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem
+                  onClick={() => {
+                    resultApi.batchDelete(selectedRows).then(() => {
+                      toast({ title: '删除成功' });
+                      setSelectedRows([]);
+                      queryClient.invalidateQueries({
+                        queryKey: ['task-results', id],
+                      });
+                    });
+                  }}
+                >
+                  批量删除
+                </DropdownMenuItem>
+                <DropdownMenuItem>批量导出</DropdownMenuItem>
+                <DropdownMenuItem>批量标记</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="ghost" size="icon">
+              <Settings className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
+            <span>
+              共 <span className="font-medium text-foreground">{total}</span>{' '}
+              条结果
+            </span>
+            {total > pageSize && (
+              <div className="flex items-center gap-1">
+                {/* 首页 */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={page === 1}
+                  onClick={() => setPage(1)}
+                  title="首页"
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
+
+                {/* 上一页 */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={page === 1}
+                  onClick={() => setPage((p) => p - 1)}
+                  title="上一页"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+
+                {/* 页码输入 */}
+                <div className="flex items-center gap-1 px-2">
+                  <span className="text-sm whitespace-nowrap">第</span>
+                  <input
+                    type="text"
+                    placeholder={String(page)}
+                    className="h-8 w-14 text-center px-1 border rounded-md text-sm"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const val = parseInt(
+                          (e.target as HTMLInputElement).value,
+                          10
+                        );
+                        const maxPage = Math.ceil(total / pageSize);
+                        if (!isNaN(val) && val >= 1 && val <= maxPage) {
+                          setPage(val);
+                          (e.target as HTMLInputElement).value = '';
+                        }
+                      }
+                    }}
+                  />
+                  <span className="text-sm whitespace-nowrap">
+                    / {Math.ceil(total / pageSize)} 页
+                  </span>
+                </div>
+
+                {/* 下一页 */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={page >= Math.ceil(total / pageSize)}
+                  onClick={() => setPage((p) => p + 1)}
+                  title="下一页"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+
+                {/* 末页 */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={page >= Math.ceil(total / pageSize)}
+                  onClick={() => setPage(Math.ceil(total / pageSize))}
+                  title="末页"
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
       )}
 
       {/* Table Content or Topology View */}
@@ -1300,5 +1578,5 @@ export default function TaskDetailPage() {
         )}
       </div>
     </div>
-  )
+  );
 }

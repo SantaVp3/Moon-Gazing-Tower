@@ -1,12 +1,12 @@
-import { useState, useRef } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { nodeApi, Plugin } from '@/api/nodes'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { useState, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { nodeApi, Plugin } from '@/api/nodes';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Table,
   TableBody,
@@ -14,32 +14,39 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
+} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog'
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { useToast } from '@/components/ui/use-toast'
-import { formatDate } from '@/lib/utils'
-import { Search, Plus, Upload, RefreshCw, Trash2, Settings } from 'lucide-react'
+} from '@/components/ui/select';
+import { useToast } from '@/components/ui/use-toast';
+import { formatDate } from '@/lib/utils';
+import {
+  Search,
+  Plus,
+  Upload,
+  RefreshCw,
+  Trash2,
+  Settings,
+} from 'lucide-react';
 
 export default function PluginsPage() {
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [search, setSearch] = useState('')
-  const [page, setPage] = useState(1)
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newPlugin, setNewPlugin] = useState<Partial<Plugin>>({
     name: '',
     type: 'scanner',
@@ -47,7 +54,7 @@ export default function PluginsPage() {
     description: '',
     author: '',
     enabled: true,
-  })
+  });
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['plugins', page, search],
@@ -57,30 +64,30 @@ export default function PluginsPage() {
         pageSize: 10,
         search,
       }),
-  })
+  });
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
       nodeApi.togglePlugin(id, enabled),
     onSuccess: () => {
-      toast({ title: '更新成功' })
-      queryClient.invalidateQueries({ queryKey: ['plugins'] })
+      toast({ title: '更新成功' });
+      queryClient.invalidateQueries({ queryKey: ['plugins'] });
     },
-  })
+  });
 
   const deleteMutation = useMutation({
     mutationFn: nodeApi.deletePlugin,
     onSuccess: () => {
-      toast({ title: '删除成功' })
-      queryClient.invalidateQueries({ queryKey: ['plugins'] })
+      toast({ title: '删除成功' });
+      queryClient.invalidateQueries({ queryKey: ['plugins'] });
     },
-  })
+  });
 
   const createMutation = useMutation({
     mutationFn: nodeApi.createPlugin,
     onSuccess: () => {
-      toast({ title: '插件创建成功' })
-      setIsCreateDialogOpen(false)
+      toast({ title: '插件创建成功' });
+      setIsCreateDialogOpen(false);
       setNewPlugin({
         name: '',
         type: 'scanner',
@@ -88,48 +95,48 @@ export default function PluginsPage() {
         description: '',
         author: '',
         enabled: true,
-      })
-      queryClient.invalidateQueries({ queryKey: ['plugins'] })
+      });
+      queryClient.invalidateQueries({ queryKey: ['plugins'] });
     },
     onError: () => {
-      toast({ title: '创建失败', variant: 'destructive' })
+      toast({ title: '创建失败', variant: 'destructive' });
     },
-  })
+  });
 
   const uploadMutation = useMutation({
     mutationFn: nodeApi.uploadPlugin,
     onSuccess: () => {
-      toast({ title: '插件上传成功' })
-      queryClient.invalidateQueries({ queryKey: ['plugins'] })
+      toast({ title: '插件上传成功' });
+      queryClient.invalidateQueries({ queryKey: ['plugins'] });
     },
     onError: () => {
-      toast({ title: '上传失败', variant: 'destructive' })
+      toast({ title: '上传失败', variant: 'destructive' });
     },
-  })
+  });
 
   const handleUpload = () => {
-    fileInputRef.current?.click()
-  }
+    fileInputRef.current?.click();
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
-      uploadMutation.mutate(file)
+      uploadMutation.mutate(file);
     }
-    e.target.value = ''
-  }
+    e.target.value = '';
+  };
 
   const handleCreate = () => {
     if (!newPlugin.name) {
-      toast({ title: '请填写插件名称', variant: 'destructive' })
-      return
+      toast({ title: '请填写插件名称', variant: 'destructive' });
+      return;
     }
-    createMutation.mutate(newPlugin)
-  }
+    createMutation.mutate(newPlugin);
+  };
 
-  const plugins = data?.data?.list || []
-  const total = data?.data?.total || 0
-  const totalPages = Math.ceil(total / 10)
+  const plugins = data?.data?.list || [];
+  const total = data?.data?.total || 0;
+  const totalPages = Math.ceil(total / 10);
 
   return (
     <div className="space-y-6">
@@ -196,7 +203,10 @@ export default function PluginsPage() {
               </TableRow>
             ) : plugins.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell
+                  colSpan={7}
+                  className="text-center py-8 text-muted-foreground"
+                >
                   暂无数据
                 </TableCell>
               </TableRow>
@@ -222,7 +232,10 @@ export default function PluginsPage() {
                     <Switch
                       checked={plugin.enabled}
                       onCheckedChange={(checked) =>
-                        toggleMutation.mutate({ id: plugin.id, enabled: checked })
+                        toggleMutation.mutate({
+                          id: plugin.id,
+                          enabled: checked,
+                        })
                       }
                     />
                   </TableCell>
@@ -284,7 +297,9 @@ export default function PluginsPage() {
               <Label>插件名称 *</Label>
               <Input
                 value={newPlugin.name}
-                onChange={(e) => setNewPlugin({ ...newPlugin, name: e.target.value })}
+                onChange={(e) =>
+                  setNewPlugin({ ...newPlugin, name: e.target.value })
+                }
                 placeholder="插件名称"
               />
             </div>
@@ -310,7 +325,9 @@ export default function PluginsPage() {
               <Label>版本</Label>
               <Input
                 value={newPlugin.version}
-                onChange={(e) => setNewPlugin({ ...newPlugin, version: e.target.value })}
+                onChange={(e) =>
+                  setNewPlugin({ ...newPlugin, version: e.target.value })
+                }
                 placeholder="1.0.0"
               />
             </div>
@@ -318,7 +335,9 @@ export default function PluginsPage() {
               <Label>作者</Label>
               <Input
                 value={newPlugin.author}
-                onChange={(e) => setNewPlugin({ ...newPlugin, author: e.target.value })}
+                onChange={(e) =>
+                  setNewPlugin({ ...newPlugin, author: e.target.value })
+                }
                 placeholder="作者名称"
               />
             </div>
@@ -326,13 +345,18 @@ export default function PluginsPage() {
               <Label>描述</Label>
               <Textarea
                 value={newPlugin.description}
-                onChange={(e) => setNewPlugin({ ...newPlugin, description: e.target.value })}
+                onChange={(e) =>
+                  setNewPlugin({ ...newPlugin, description: e.target.value })
+                }
                 placeholder="插件描述"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsCreateDialogOpen(false)}
+            >
               取消
             </Button>
             <Button onClick={handleCreate} disabled={createMutation.isPending}>
@@ -342,5 +366,5 @@ export default function PluginsPage() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

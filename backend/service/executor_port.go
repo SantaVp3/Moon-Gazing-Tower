@@ -25,7 +25,7 @@ func (e *TaskExecutor) executePortScan(task *models.Task) {
 	// 首先为每个非IP目标创建根域名记录
 
 	results := make([]models.ScanResult, 0)
-	
+
 	// 使用 GoGo 进行端口扫描
 	gogoConfig := &portscan.GoGoConfig{
 		Timeout: task.Config.Timeout,
@@ -37,13 +37,13 @@ func (e *TaskExecutor) executePortScan(task *models.Task) {
 	if gogoConfig.Threads <= 0 {
 		gogoConfig.Threads = 1000
 	}
-	
+
 	gogoScanner := portscan.NewGoGoScannerWithConfig(gogoConfig)
 	if !gogoScanner.IsAvailable() {
 		e.failTask(task, "GoGo 端口扫描器初始化失败")
 		return
 	}
-	
+
 	log.Printf("[TaskExecutor] Using GoGo for port scanning, config: timeout=%ds, threads=%d",
 		gogoConfig.Timeout, gogoConfig.Threads)
 
@@ -52,15 +52,15 @@ func (e *TaskExecutor) executePortScan(task *models.Task) {
 		e.updateProgress(task, progress)
 
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-		
+
 		scanResult, err := e.runPortScanMode(ctx, gogoScanner, target, task.Config.PortScanMode, task.Config.PortRange)
 		cancel()
-		
+
 		if err != nil {
 			log.Printf("[TaskExecutor] GoGo error on %s: %v", target, err)
 			continue
 		}
-		
+
 		if scanResult == nil {
 			continue
 		}
@@ -97,7 +97,7 @@ func (e *TaskExecutor) runPortScanMode(ctx context.Context, gogoScanner *portsca
 	if mode == "" {
 		mode = "quick"
 	}
-	
+
 	switch mode {
 	case "full":
 		log.Printf("[TaskExecutor] Running full port scan (1-65535) on %s", target)

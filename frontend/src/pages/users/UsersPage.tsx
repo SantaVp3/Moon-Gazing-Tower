@@ -1,9 +1,9 @@
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { userApi } from '@/api/auth'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { userApi } from '@/api/auth';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -11,7 +11,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
+} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -20,35 +20,35 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { useToast } from '@/components/ui/use-toast'
-import { cn, formatDate, getStatusColor } from '@/lib/utils'
-import { Search, Plus, Trash2, RefreshCw, Key } from 'lucide-react'
+} from '@/components/ui/select';
+import { useToast } from '@/components/ui/use-toast';
+import { cn, formatDate, getStatusColor } from '@/lib/utils';
+import { Search, Plus, Trash2, RefreshCw, Key } from 'lucide-react';
 
 export default function UsersPage() {
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
-  const [search, setSearch] = useState('')
-  const [page, setPage] = useState(1)
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
-  const [newPassword, setNewPassword] = useState('')
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState('');
   const [newUser, setNewUser] = useState({
     username: '',
     email: '',
     password: '',
     nickname: '',
     role: 'user',
-  })
+  });
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['users', page, search],
@@ -58,88 +58,97 @@ export default function UsersPage() {
         pageSize: 10,
         search,
       }),
-  })
+  });
 
   const createMutation = useMutation({
     mutationFn: userApi.createUser,
     onSuccess: () => {
-      toast({ title: '创建成功' })
-      setIsCreateDialogOpen(false)
-      setNewUser({ username: '', email: '', password: '', nickname: '', role: 'user' })
-      queryClient.invalidateQueries({ queryKey: ['users'] })
+      toast({ title: '创建成功' });
+      setIsCreateDialogOpen(false);
+      setNewUser({
+        username: '',
+        email: '',
+        password: '',
+        nickname: '',
+        role: 'user',
+      });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
     },
     onError: () => {
-      toast({ title: '创建失败', variant: 'destructive' })
+      toast({ title: '创建失败', variant: 'destructive' });
     },
-  })
+  });
 
   const deleteMutation = useMutation({
     mutationFn: userApi.deleteUser,
     onSuccess: () => {
-      toast({ title: '删除成功' })
-      queryClient.invalidateQueries({ queryKey: ['users'] })
+      toast({ title: '删除成功' });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
     },
-  })
+  });
 
   const resetPasswordMutation = useMutation({
     mutationFn: ({ id, password }: { id: string; password: string }) =>
       userApi.resetPassword(id, password),
     onSuccess: () => {
-      toast({ title: '密码修改成功' })
-      setIsPasswordDialogOpen(false)
-      setNewPassword('')
-      setSelectedUserId(null)
+      toast({ title: '密码修改成功' });
+      setIsPasswordDialogOpen(false);
+      setNewPassword('');
+      setSelectedUserId(null);
     },
     onError: () => {
-      toast({ title: '密码修改失败', variant: 'destructive' })
+      toast({ title: '密码修改失败', variant: 'destructive' });
     },
-  })
+  });
 
   const openPasswordDialog = (userId: string) => {
-    setSelectedUserId(userId)
-    setNewPassword('')
-    setIsPasswordDialogOpen(true)
-  }
+    setSelectedUserId(userId);
+    setNewPassword('');
+    setIsPasswordDialogOpen(true);
+  };
 
   const handleChangePassword = () => {
     if (!newPassword || newPassword.length < 6) {
-      toast({ title: '密码至少6位', variant: 'destructive' })
-      return
+      toast({ title: '密码至少6位', variant: 'destructive' });
+      return;
     }
     if (selectedUserId) {
-      resetPasswordMutation.mutate({ id: selectedUserId, password: newPassword })
+      resetPasswordMutation.mutate({
+        id: selectedUserId,
+        password: newPassword,
+      });
     }
-  }
+  };
 
   const handleCreate = () => {
     if (!newUser.username || !newUser.email || !newUser.password) {
-      toast({ title: '请填写完整', variant: 'destructive' })
-      return
+      toast({ title: '请填写完整', variant: 'destructive' });
+      return;
     }
-    createMutation.mutate(newUser)
-  }
+    createMutation.mutate(newUser);
+  };
 
-  const users = data?.data?.list || []
-  const total = data?.data?.total || 0
-  const totalPages = Math.ceil(total / 10)
+  const users = data?.data?.list || [];
+  const total = data?.data?.total || 0;
+  const totalPages = Math.ceil(total / 10);
 
   const getRoleLabel = (role: string) => {
     const labels: Record<string, string> = {
       admin: '管理员',
       user: '普通用户',
       viewer: '访客',
-    }
-    return labels[role] || role
-  }
+    };
+    return labels[role] || role;
+  };
 
   const getRoleColor = (role: string) => {
     const colors: Record<string, string> = {
       admin: 'bg-red-500 text-white',
       user: 'bg-blue-500 text-white',
       viewer: 'bg-gray-500 text-white',
-    }
-    return colors[role] || 'bg-gray-500 text-white'
-  }
+    };
+    return colors[role] || 'bg-gray-500 text-white';
+  };
 
   return (
     <div className="space-y-6">
@@ -150,7 +159,10 @@ export default function UsersPage() {
             <RefreshCw className="h-4 w-4 mr-2" />
             刷新
           </Button>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <Dialog
+            open={isCreateDialogOpen}
+            onOpenChange={setIsCreateDialogOpen}
+          >
             <DialogTrigger asChild>
               <Button size="sm">
                 <Plus className="h-4 w-4 mr-2" />
@@ -167,7 +179,9 @@ export default function UsersPage() {
                   <Label>用户名</Label>
                   <Input
                     value={newUser.username}
-                    onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, username: e.target.value })
+                    }
                     placeholder="用户名"
                   />
                 </div>
@@ -176,7 +190,9 @@ export default function UsersPage() {
                   <Input
                     type="email"
                     value={newUser.email}
-                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, email: e.target.value })
+                    }
                     placeholder="邮箱"
                   />
                 </div>
@@ -184,7 +200,9 @@ export default function UsersPage() {
                   <Label>昵称</Label>
                   <Input
                     value={newUser.nickname}
-                    onChange={(e) => setNewUser({ ...newUser, nickname: e.target.value })}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, nickname: e.target.value })
+                    }
                     placeholder="昵称（可选）"
                   />
                 </div>
@@ -193,7 +211,9 @@ export default function UsersPage() {
                   <Input
                     type="password"
                     value={newUser.password}
-                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, password: e.target.value })
+                    }
                     placeholder="密码"
                   />
                 </div>
@@ -215,10 +235,16 @@ export default function UsersPage() {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsCreateDialogOpen(false)}
+                >
                   取消
                 </Button>
-                <Button onClick={handleCreate} disabled={createMutation.isPending}>
+                <Button
+                  onClick={handleCreate}
+                  disabled={createMutation.isPending}
+                >
                   创建
                 </Button>
               </DialogFooter>
@@ -263,7 +289,10 @@ export default function UsersPage() {
               </TableRow>
             ) : users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell
+                  colSpan={7}
+                  className="text-center py-8 text-muted-foreground"
+                >
                   暂无数据
                 </TableCell>
               </TableRow>
@@ -336,7 +365,10 @@ export default function UsersPage() {
       )}
 
       {/* 修改密码对话框 */}
-      <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+      <Dialog
+        open={isPasswordDialogOpen}
+        onOpenChange={setIsPasswordDialogOpen}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>修改密码</DialogTitle>
@@ -354,15 +386,21 @@ export default function UsersPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsPasswordDialogOpen(false)}
+            >
               取消
             </Button>
-            <Button onClick={handleChangePassword} disabled={resetPasswordMutation.isPending}>
+            <Button
+              onClick={handleChangePassword}
+              disabled={resetPasswordMutation.isPending}
+            >
               确认修改
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

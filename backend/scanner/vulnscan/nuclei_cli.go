@@ -15,13 +15,13 @@ import (
 
 // NucleiCLIScanner 基于命令行的 Nuclei 扫描器
 type NucleiCLIScanner struct {
-	nucleiBinary    string
-	templatesDir    string
-	concurrency     int
-	rateLimit       int
-	timeout         time.Duration
-	resultCallback  func(*NucleiResult)
-	mu              sync.Mutex
+	nucleiBinary   string
+	templatesDir   string
+	concurrency    int
+	rateLimit      int
+	timeout        time.Duration
+	resultCallback func(*NucleiResult)
+	mu             sync.Mutex
 }
 
 // NucleiResult Nuclei 扫描结果
@@ -47,12 +47,12 @@ type NucleiJSONOutput struct {
 	TemplateID   string `json:"template-id"`
 	TemplatePath string `json:"template-path"`
 	Info         struct {
-		Name        string   `json:"name"`
-		Author      []string `json:"author"`
-		Tags        []string `json:"tags"`
-		Description string   `json:"description"`
-		Reference   []string `json:"reference"`
-		Severity    string   `json:"severity"`
+		Name           string   `json:"name"`
+		Author         []string `json:"author"`
+		Tags           []string `json:"tags"`
+		Description    string   `json:"description"`
+		Reference      []string `json:"reference"`
+		Severity       string   `json:"severity"`
 		Classification struct {
 			CVEID []string `json:"cve-id"`
 		} `json:"classification"`
@@ -102,12 +102,12 @@ func (s *NucleiCLIScanner) findNucleiBinary() string {
 	if path != "" {
 		return path
 	}
-	
+
 	// Fallback to PATH
 	if path, err := exec.LookPath("nuclei"); err == nil {
 		return path
 	}
-	
+
 	return "nuclei"
 }
 

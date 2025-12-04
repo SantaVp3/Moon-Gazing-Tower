@@ -1,12 +1,12 @@
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { monitorApi, MonitorType } from '@/api/monitor'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { monitorApi, MonitorType } from '@/api/monitor';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -14,24 +14,24 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
+} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog'
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
-import { useToast } from '@/components/ui/use-toast'
-import { formatDate } from '@/lib/utils'
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/components/ui/use-toast';
+import { formatDate } from '@/lib/utils';
 import {
   Eye,
   Plus,
@@ -46,35 +46,58 @@ import {
   Link as LinkIcon,
   Hash,
   Layout,
-} from 'lucide-react'
+} from 'lucide-react';
 
 const monitorTypeLabels: Record<MonitorType, string> = {
   content_hash: '内容哈希',
   dom_structure: 'DOM结构',
   keywords: '关键词',
   links: '链接',
-}
+};
 
 const monitorTypeIcons: Record<MonitorType, React.ReactNode> = {
   content_hash: <Hash className="h-4 w-4" />,
   dom_structure: <Layout className="h-4 w-4" />,
   keywords: <FileText className="h-4 w-4" />,
   links: <LinkIcon className="h-4 w-4" />,
-}
+};
 
-const statusConfig: Record<string, { label: string; variant: 'default' | 'destructive' | 'outline' | 'secondary'; icon: React.ReactNode }> = {
-  normal: { label: '正常', variant: 'default', icon: <CheckCircle className="h-3 w-3" /> },
-  changed: { label: '已变化', variant: 'destructive', icon: <AlertTriangle className="h-3 w-3" /> },
-  error: { label: '错误', variant: 'destructive', icon: <XCircle className="h-3 w-3" /> },
-  pending: { label: '待检查', variant: 'outline', icon: <Clock className="h-3 w-3" /> },
-}
+const statusConfig: Record<
+  string,
+  {
+    label: string;
+    variant: 'default' | 'destructive' | 'outline' | 'secondary';
+    icon: React.ReactNode;
+  }
+> = {
+  normal: {
+    label: '正常',
+    variant: 'default',
+    icon: <CheckCircle className="h-3 w-3" />,
+  },
+  changed: {
+    label: '已变化',
+    variant: 'destructive',
+    icon: <AlertTriangle className="h-3 w-3" />,
+  },
+  error: {
+    label: '错误',
+    variant: 'destructive',
+    icon: <XCircle className="h-3 w-3" />,
+  },
+  pending: {
+    label: '待检查',
+    variant: 'outline',
+    icon: <Clock className="h-3 w-3" />,
+  },
+};
 
 export default function MonitorPage() {
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
-  const [activeTab, setActiveTab] = useState('pages')
-  const [showAddDialog, setShowAddDialog] = useState(false)
-  const [changesPage, setChangesPage] = useState(1)
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState('pages');
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [changesPage, setChangesPage] = useState(1);
 
   // 新建监控表单
   const [newPage, setNewPage] = useState({
@@ -83,82 +106,92 @@ export default function MonitorPage() {
     interval: 60,
     monitorTypes: ['content_hash'] as MonitorType[],
     keywords: '',
-  })
+  });
 
   // 获取监控页面列表
-  const { data: pagesData, isLoading: pagesLoading, refetch: refetchPages } = useQuery({
+  const {
+    data: pagesData,
+    isLoading: pagesLoading,
+    refetch: refetchPages,
+  } = useQuery({
     queryKey: ['monitor-pages'],
     queryFn: () => monitorApi.getPages(),
-  })
+  });
 
   // 获取变化记录
   const { data: changesData, isLoading: changesLoading } = useQuery({
     queryKey: ['monitor-changes', changesPage],
     queryFn: () => monitorApi.getChanges({ page: changesPage, pageSize: 10 }),
     enabled: activeTab === 'changes',
-  })
+  });
 
   // 添加监控
   const addMutation = useMutation({
     mutationFn: monitorApi.addPage,
     onSuccess: () => {
-      toast({ title: '添加成功' })
-      queryClient.invalidateQueries({ queryKey: ['monitor-pages'] })
-      setShowAddDialog(false)
-      setNewPage({ url: '', name: '', interval: 60, monitorTypes: ['content_hash'], keywords: '' })
+      toast({ title: '添加成功' });
+      queryClient.invalidateQueries({ queryKey: ['monitor-pages'] });
+      setShowAddDialog(false);
+      setNewPage({
+        url: '',
+        name: '',
+        interval: 60,
+        monitorTypes: ['content_hash'],
+        keywords: '',
+      });
     },
     onError: () => {
-      toast({ title: '添加失败', variant: 'destructive' })
+      toast({ title: '添加失败', variant: 'destructive' });
     },
-  })
+  });
 
   // 删除监控
   const deleteMutation = useMutation({
     mutationFn: monitorApi.deletePage,
     onSuccess: () => {
-      toast({ title: '删除成功' })
-      queryClient.invalidateQueries({ queryKey: ['monitor-pages'] })
+      toast({ title: '删除成功' });
+      queryClient.invalidateQueries({ queryKey: ['monitor-pages'] });
     },
-  })
+  });
 
   // 切换启用状态
   const toggleMutation = useMutation({
     mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
       monitorApi.togglePage(id, enabled),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['monitor-pages'] })
+      queryClient.invalidateQueries({ queryKey: ['monitor-pages'] });
     },
-  })
+  });
 
   // 立即检查
   const checkMutation = useMutation({
     mutationFn: monitorApi.checkNow,
     onSuccess: (res) => {
       if (res.data?.changed) {
-        toast({ title: '检测到变化', variant: 'destructive' })
+        toast({ title: '检测到变化', variant: 'destructive' });
       } else {
-        toast({ title: '检查完成', description: '未检测到变化' })
+        toast({ title: '检查完成', description: '未检测到变化' });
       }
-      queryClient.invalidateQueries({ queryKey: ['monitor-pages'] })
+      queryClient.invalidateQueries({ queryKey: ['monitor-pages'] });
     },
     onError: () => {
-      toast({ title: '检查失败', variant: 'destructive' })
+      toast({ title: '检查失败', variant: 'destructive' });
     },
-  })
+  });
 
   // 确认变化
   const acknowledgeMutation = useMutation({
     mutationFn: monitorApi.acknowledgeChange,
     onSuccess: () => {
-      toast({ title: '已确认' })
-      queryClient.invalidateQueries({ queryKey: ['monitor-changes'] })
+      toast({ title: '已确认' });
+      queryClient.invalidateQueries({ queryKey: ['monitor-changes'] });
     },
-  })
+  });
 
-  const pages = pagesData?.data?.list || []
-  const changes = changesData?.data?.list || []
-  const changesTotal = changesData?.data?.total || 0
-  const changesTotalPages = Math.ceil(changesTotal / 10)
+  const pages = pagesData?.data?.list || [];
+  const changes = changesData?.data?.list || [];
+  const changesTotal = changesData?.data?.total || 0;
+  const changesTotalPages = Math.ceil(changesTotal / 10);
 
   // 统计
   const stats = {
@@ -166,35 +199,37 @@ export default function MonitorPage() {
     normal: pages.filter((p) => p.status === 'normal').length,
     changed: pages.filter((p) => p.status === 'changed').length,
     error: pages.filter((p) => p.status === 'error').length,
-  }
+  };
 
   const handleAdd = () => {
     if (!newPage.url || !newPage.name) {
-      toast({ title: '请填写完整信息', variant: 'destructive' })
-      return
+      toast({ title: '请填写完整信息', variant: 'destructive' });
+      return;
     }
     addMutation.mutate({
       url: newPage.url,
       name: newPage.name,
       interval: newPage.interval,
       monitorTypes: newPage.monitorTypes,
-      keywords: newPage.keywords ? newPage.keywords.split(',').map((k) => k.trim()) : undefined,
-    })
-  }
+      keywords: newPage.keywords
+        ? newPage.keywords.split(',').map((k) => k.trim())
+        : undefined,
+    });
+  };
 
   const toggleMonitorType = (type: MonitorType) => {
     if (newPage.monitorTypes.includes(type)) {
       setNewPage({
         ...newPage,
         monitorTypes: newPage.monitorTypes.filter((t) => t !== type),
-      })
+      });
     } else {
       setNewPage({
         ...newPage,
         monitorTypes: [...newPage.monitorTypes, type],
-      })
+      });
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -228,23 +263,33 @@ export default function MonitorPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-green-600">正常</CardTitle>
+            <CardTitle className="text-sm font-medium text-green-600">
+              正常
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.normal}</div>
+            <div className="text-2xl font-bold text-green-600">
+              {stats.normal}
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-orange-600">已变化</CardTitle>
+            <CardTitle className="text-sm font-medium text-orange-600">
+              已变化
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{stats.changed}</div>
+            <div className="text-2xl font-bold text-orange-600">
+              {stats.changed}
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-red-600">错误</CardTitle>
+            <CardTitle className="text-sm font-medium text-red-600">
+              错误
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{stats.error}</div>
@@ -259,7 +304,10 @@ export default function MonitorPage() {
           <TabsTrigger value="changes">
             变化记录
             {stats.changed > 0 && (
-              <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 justify-center">
+              <Badge
+                variant="destructive"
+                className="ml-2 h-5 w-5 p-0 justify-center"
+              >
                 {stats.changed}
               </Badge>
             )}
@@ -291,16 +339,22 @@ export default function MonitorPage() {
                   </TableRow>
                 ) : pages.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell
+                      colSpan={8}
+                      className="text-center py-8 text-muted-foreground"
+                    >
                       暂无监控页面，点击"添加监控"开始
                     </TableCell>
                   </TableRow>
                 ) : (
                   pages.map((page) => {
-                    const status = statusConfig[page.status] || statusConfig.pending
+                    const status =
+                      statusConfig[page.status] || statusConfig.pending;
                     return (
                       <TableRow key={page.id}>
-                        <TableCell className="font-medium">{page.name}</TableCell>
+                        <TableCell className="font-medium">
+                          {page.name}
+                        </TableCell>
                         <TableCell className="max-w-xs truncate">
                           <a
                             href={page.url}
@@ -314,7 +368,11 @@ export default function MonitorPage() {
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {page.monitorTypes.map((type) => (
-                              <Badge key={type} variant="outline" className="text-xs">
+                              <Badge
+                                key={type}
+                                variant="outline"
+                                className="text-xs"
+                              >
                                 {monitorTypeLabels[type]}
                               </Badge>
                             ))}
@@ -322,7 +380,10 @@ export default function MonitorPage() {
                         </TableCell>
                         <TableCell>{page.interval}分钟</TableCell>
                         <TableCell>
-                          <Badge variant={status.variant} className="flex items-center gap-1 w-fit">
+                          <Badge
+                            variant={status.variant}
+                            className="flex items-center gap-1 w-fit"
+                          >
                             {status.icon}
                             {status.label}
                           </Badge>
@@ -334,7 +395,10 @@ export default function MonitorPage() {
                           <Switch
                             checked={page.enabled}
                             onCheckedChange={(checked) =>
-                              toggleMutation.mutate({ id: page.id, enabled: checked })
+                              toggleMutation.mutate({
+                                id: page.id,
+                                enabled: checked,
+                              })
                             }
                           />
                         </TableCell>
@@ -360,7 +424,7 @@ export default function MonitorPage() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    )
+                    );
                   })
                 )}
               </TableBody>
@@ -390,7 +454,10 @@ export default function MonitorPage() {
                   </TableRow>
                 ) : changes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell
+                      colSpan={5}
+                      className="text-center py-8 text-muted-foreground"
+                    >
                       暂无变化记录
                     </TableCell>
                   </TableRow>
@@ -406,7 +473,10 @@ export default function MonitorPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                        <Badge
+                          variant="outline"
+                          className="flex items-center gap-1 w-fit"
+                        >
                           {monitorTypeIcons[change.changeType]}
                           {monitorTypeLabels[change.changeType]}
                         </Badge>
@@ -430,7 +500,9 @@ export default function MonitorPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => acknowledgeMutation.mutate(change.id)}
+                            onClick={() =>
+                              acknowledgeMutation.mutate(change.id)
+                            }
                           >
                             确认
                           </Button>
@@ -482,7 +554,9 @@ export default function MonitorPage() {
               <Input
                 placeholder="输入监控名称"
                 value={newPage.name}
-                onChange={(e) => setNewPage({ ...newPage, name: e.target.value })}
+                onChange={(e) =>
+                  setNewPage({ ...newPage, name: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2">
@@ -490,14 +564,18 @@ export default function MonitorPage() {
               <Input
                 placeholder="https://example.com"
                 value={newPage.url}
-                onChange={(e) => setNewPage({ ...newPage, url: e.target.value })}
+                onChange={(e) =>
+                  setNewPage({ ...newPage, url: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2">
               <Label>检查间隔 (分钟)</Label>
               <Select
                 value={String(newPage.interval)}
-                onValueChange={(value) => setNewPage({ ...newPage, interval: Number(value) })}
+                onValueChange={(value) =>
+                  setNewPage({ ...newPage, interval: Number(value) })
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -515,17 +593,23 @@ export default function MonitorPage() {
             <div className="space-y-2">
               <Label>监控类型</Label>
               <div className="flex flex-wrap gap-2">
-                {(Object.keys(monitorTypeLabels) as MonitorType[]).map((type) => (
-                  <Button
-                    key={type}
-                    variant={newPage.monitorTypes.includes(type) ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => toggleMonitorType(type)}
-                  >
-                    {monitorTypeIcons[type]}
-                    <span className="ml-1">{monitorTypeLabels[type]}</span>
-                  </Button>
-                ))}
+                {(Object.keys(monitorTypeLabels) as MonitorType[]).map(
+                  (type) => (
+                    <Button
+                      key={type}
+                      variant={
+                        newPage.monitorTypes.includes(type)
+                          ? 'default'
+                          : 'outline'
+                      }
+                      size="sm"
+                      onClick={() => toggleMonitorType(type)}
+                    >
+                      {monitorTypeIcons[type]}
+                      <span className="ml-1">{monitorTypeLabels[type]}</span>
+                    </Button>
+                  )
+                )}
               </div>
             </div>
             {newPage.monitorTypes.includes('keywords') && (
@@ -534,7 +618,9 @@ export default function MonitorPage() {
                 <Input
                   placeholder="关键词1, 关键词2"
                   value={newPage.keywords}
-                  onChange={(e) => setNewPage({ ...newPage, keywords: e.target.value })}
+                  onChange={(e) =>
+                    setNewPage({ ...newPage, keywords: e.target.value })
+                  }
                 />
               </div>
             )}
@@ -550,5 +636,5 @@ export default function MonitorPage() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
-import { dashboardApi, DashboardStats, TrendData } from '@/api/dashboard'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import RealTimeMonitor from '@/components/dashboard/RealTimeMonitor'
+import { useQuery } from '@tanstack/react-query';
+import { dashboardApi, DashboardStats, TrendData } from '@/api/dashboard';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import RealTimeMonitor from '@/components/dashboard/RealTimeMonitor';
 import {
   Server,
   Shield,
@@ -11,7 +11,7 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-} from 'lucide-react'
+} from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -25,7 +25,7 @@ import {
   Cell,
   BarChart,
   Bar,
-} from 'recharts'
+} from 'recharts';
 
 const SEVERITY_COLORS = {
   critical: '#ef4444',
@@ -33,50 +33,50 @@ const SEVERITY_COLORS = {
   medium: '#eab308',
   low: '#3b82f6',
   info: '#6b7280',
-}
+};
 
-const ASSET_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444']
+const ASSET_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
 
 export default function DashboardPage() {
   const { data: statsData, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: () => dashboardApi.getStats(),
-  })
+  });
 
   const { data: trendsData } = useQuery({
     queryKey: ['dashboard-trends'],
     queryFn: () => dashboardApi.getTrends(7),
-  })
+  });
 
   const { data: activitiesData } = useQuery({
     queryKey: ['dashboard-activities'],
     queryFn: () => dashboardApi.getRecentActivities(5),
-  })
+  });
 
-  const stats: DashboardStats | undefined = statsData?.data
-  const trends: TrendData[] = trendsData?.data || []
-  const activities = activitiesData?.data || []
+  const stats: DashboardStats | undefined = statsData?.data;
+  const trends: TrendData[] = trendsData?.data || [];
+  const activities = activitiesData?.data || [];
 
   const assetDistribution = stats?.assets?.byType
     ? Object.entries(stats.assets.byType).map(([name, value]) => ({
         name,
         value,
       }))
-    : []
+    : [];
 
   const vulnBySeverity = stats?.vulnerabilities?.bySeverity
     ? Object.entries(stats.vulnerabilities.bySeverity).map(([name, value]) => ({
         name,
         value,
       }))
-    : []
+    : [];
 
   if (statsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
-    )
+    );
   }
 
   return (
@@ -107,7 +107,9 @@ export default function DashboardPage() {
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.vulnerabilities.total || 0}</div>
+            <div className="text-2xl font-bold">
+              {stats?.vulnerabilities.total || 0}
+            </div>
             <p className="text-xs text-muted-foreground">
               待修复 {stats?.vulnerabilities.open || 0} 个
             </p>
@@ -198,8 +200,9 @@ export default function DashboardPage() {
                       <Cell
                         key={`cell-${index}`}
                         fill={
-                          SEVERITY_COLORS[entry.name as keyof typeof SEVERITY_COLORS] ||
-                          '#6b7280'
+                          SEVERITY_COLORS[
+                            entry.name as keyof typeof SEVERITY_COLORS
+                          ] || '#6b7280'
                         }
                       />
                     ))}
@@ -253,7 +256,9 @@ export default function DashboardPage() {
           <CardContent>
             <div className="space-y-4">
               {activities.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">暂无活动记录</p>
+                <p className="text-muted-foreground text-center py-4">
+                  暂无活动记录
+                </p>
               ) : (
                 activities.map((activity) => (
                   <div
@@ -261,15 +266,23 @@ export default function DashboardPage() {
                     className="flex items-center gap-3 text-sm"
                   >
                     <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                      {activity.type === 'task' && <ListTodo className="h-4 w-4" />}
-                      {activity.type === 'vulnerability' && <Shield className="h-4 w-4" />}
-                      {activity.type === 'asset' && <Server className="h-4 w-4" />}
+                      {activity.type === 'task' && (
+                        <ListTodo className="h-4 w-4" />
+                      )}
+                      {activity.type === 'vulnerability' && (
+                        <Shield className="h-4 w-4" />
+                      )}
+                      {activity.type === 'asset' && (
+                        <Server className="h-4 w-4" />
+                      )}
                     </div>
                     <div className="flex-1">
                       <p>
                         <span className="font-medium">{activity.username}</span>{' '}
                         {activity.action}{' '}
-                        <span className="text-muted-foreground">{activity.target}</span>
+                        <span className="text-muted-foreground">
+                          {activity.target}
+                        </span>
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(activity.createdAt).toLocaleString('zh-CN')}
@@ -293,14 +306,18 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3 p-4 rounded-lg bg-muted">
               <Clock className="h-8 w-8 text-yellow-500" />
               <div>
-                <p className="text-2xl font-bold">{stats?.tasks.running || 0}</p>
+                <p className="text-2xl font-bold">
+                  {stats?.tasks.running || 0}
+                </p>
                 <p className="text-sm text-muted-foreground">运行中</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-4 rounded-lg bg-muted">
               <CheckCircle className="h-8 w-8 text-green-500" />
               <div>
-                <p className="text-2xl font-bold">{stats?.tasks.completed || 0}</p>
+                <p className="text-2xl font-bold">
+                  {stats?.tasks.completed || 0}
+                </p>
                 <p className="text-sm text-muted-foreground">已完成</p>
               </div>
             </div>
@@ -314,7 +331,9 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3 p-4 rounded-lg bg-muted">
               <AlertTriangle className="h-8 w-8 text-orange-500" />
               <div>
-                <p className="text-2xl font-bold">{stats?.vulnerabilities.recentlyFound || 0}</p>
+                <p className="text-2xl font-bold">
+                  {stats?.vulnerabilities.recentlyFound || 0}
+                </p>
                 <p className="text-sm text-muted-foreground">新发现漏洞</p>
               </div>
             </div>
@@ -322,5 +341,5 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

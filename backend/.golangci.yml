@@ -1,0 +1,70 @@
+# golangci-lint configuration
+# Philosophy: Simple, effective, no bullshit.
+
+version: 2
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    # Quality fundamentals
+    - govet
+    - staticcheck
+    - errcheck
+    - ineffassign
+    - unused
+
+    # Complexity - catch real problems
+    - gocyclo
+    - gocognit
+
+    # Comment quality
+    - godot
+
+    # Code smell detection
+    - dupl
+    - goconst
+
+    # Best practices
+    - revive
+
+linters-settings:
+  gocyclo:
+    # Cyclomatic complexity threshold
+    # 15 is reasonable - if you need more, redesign it
+    min-complexity: 15
+
+  gocognit:
+    # Cognitive complexity threshold
+    min-complexity: 20
+
+  dupl:
+    # Duplicate code detection threshold
+    threshold: 100
+
+  goconst:
+    # Minimum occurrences to suggest constant extraction
+    min-occurrences: 3
+
+  revive:
+    rules:
+      # Exported functions/types must have comments
+      - name: exported
+        severity: warning
+      # Ensure package comments exist
+      - name: package-comments
+        severity: warning
+
+issues:
+  # Don't hide multiple issues in the same file
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+  # Exclude common false positives
+  exclude-rules:
+    # Exclude test files from some checks
+    - path: _test\.go
+      linters:
+        - dupl
+        - goconst

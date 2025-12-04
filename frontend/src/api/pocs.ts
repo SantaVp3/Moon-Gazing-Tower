@@ -1,13 +1,13 @@
-import api, { ApiResponse, PaginatedResponse } from '@/lib/api'
+import api, { ApiResponse, PaginatedResponse } from '@/lib/api';
 
 // Backend paginated response format
 interface BackendPaginatedResponse {
-  code: number
-  message: string
-  data: Record<string, unknown>[]
-  total: number
-  page: number
-  size: number
+  code: number;
+  message: string;
+  data: Record<string, unknown>[];
+  total: number;
+  page: number;
+  size: number;
 }
 
 // Transform backend POC to frontend format
@@ -16,7 +16,7 @@ const transformPOC = (p: Record<string, unknown>): POC => ({
   name: p.name as string,
   type: p.type as string,
   severity: p.severity as string,
-  description: p.description as string || '',
+  description: (p.description as string) || '',
   content: p.content as string,
   cveId: p.cve_id as string,
   tags: (p.tags as string[]) || [],
@@ -28,77 +28,77 @@ const transformPOC = (p: Record<string, unknown>): POC => ({
   failCount: p.fail_count as number,
   createdAt: p.created_at as string,
   updatedAt: p.updated_at as string,
-})
+});
 
 export interface POC {
-  id: string
-  name: string
-  type: string // nuclei, xray, custom
-  severity: string // critical, high, medium, low, info
-  description: string
-  content: string
-  cveId?: string
-  tags: string[]
-  author?: string
-  references?: string[]
-  enabled: boolean
-  lastUsed?: string
-  successCount?: number
-  failCount?: number
-  createdAt: string
-  updatedAt: string
+  id: string;
+  name: string;
+  type: string; // nuclei, xray, custom
+  severity: string; // critical, high, medium, low, info
+  description: string;
+  content: string;
+  cveId?: string;
+  tags: string[];
+  author?: string;
+  references?: string[];
+  enabled: boolean;
+  lastUsed?: string;
+  successCount?: number;
+  failCount?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreatePOCRequest {
-  name: string
-  type: string
-  severity: string
-  description?: string
-  content: string
-  cveId?: string
-  tags?: string[]
-  author?: string
-  references?: string[]
-  enabled?: boolean
+  name: string;
+  type: string;
+  severity: string;
+  description?: string;
+  content: string;
+  cveId?: string;
+  tags?: string[];
+  author?: string;
+  references?: string[];
+  enabled?: boolean;
 }
 
 export interface UpdatePOCRequest {
-  name?: string
-  type?: string
-  severity?: string
-  description?: string
-  content?: string
-  cveId?: string
-  tags?: string[]
-  author?: string
-  references?: string[]
-  enabled?: boolean
+  name?: string;
+  type?: string;
+  severity?: string;
+  description?: string;
+  content?: string;
+  cveId?: string;
+  tags?: string[];
+  author?: string;
+  references?: string[];
+  enabled?: boolean;
 }
 
 export interface POCListParams {
-  page?: number
-  pageSize?: number
-  type?: string
-  severity?: string
-  enabled?: boolean
-  search?: string
+  page?: number;
+  pageSize?: number;
+  type?: string;
+  severity?: string;
+  enabled?: boolean;
+  search?: string;
 }
 
 export interface POCStatistics {
-  total: number
-  enabled: number
-  disabled: number
-  bySeverity: Record<string, number>
-  byType: Record<string, number>
+  total: number;
+  enabled: number;
+  disabled: number;
+  bySeverity: Record<string, number>;
+  byType: Record<string, number>;
 }
 
 export interface POCImportResult {
-  totalFiles: number
-  imported: number
-  failed: number
-  skipped: number
-  failedFiles: string[]
-  skippedFiles: string[]
+  totalFiles: number;
+  imported: number;
+  failed: number;
+  skipped: number;
+  failedFiles: string[];
+  skippedFiles: string[];
 }
 
 export const pocApi = {
@@ -112,7 +112,7 @@ export const pocApi = {
         enabled: params?.enabled,
         search: params?.search,
       },
-    })
+    });
     return {
       code: response.code,
       message: response.message,
@@ -121,17 +121,19 @@ export const pocApi = {
         total: response.total || 0,
         page: response.page || 1,
         pageSize: response.size || 20,
-      }
-    }
+      },
+    };
   },
 
   getById: async (id: string): Promise<ApiResponse<POC>> => {
-    const response: ApiResponse<Record<string, unknown>> = await api.get(`/pocs/${id}`)
+    const response: ApiResponse<Record<string, unknown>> = await api.get(
+      `/pocs/${id}`
+    );
     return {
       code: response.code,
       message: response.message,
       data: transformPOC(response.data),
-    }
+    };
   },
 
   create: (data: CreatePOCRequest): Promise<ApiResponse<POC>> => {
@@ -146,8 +148,8 @@ export const pocApi = {
       author: data.author,
       references: data.references || [],
       enabled: data.enabled ?? true,
-    }
-    return api.post('/pocs', payload)
+    };
+    return api.post('/pocs', payload);
   },
 
   update: (id: string, data: UpdatePOCRequest): Promise<ApiResponse<void>> => {
@@ -162,14 +164,15 @@ export const pocApi = {
       author: data.author,
       references: data.references,
       enabled: data.enabled,
-    }
-    return api.put(`/pocs/${id}`, payload)
+    };
+    return api.put(`/pocs/${id}`, payload);
   },
 
-  delete: (id: string): Promise<ApiResponse<void>> =>
-    api.delete(`/pocs/${id}`),
+  delete: (id: string): Promise<ApiResponse<void>> => api.delete(`/pocs/${id}`),
 
-  batchDelete: (ids: string[]): Promise<ApiResponse<{ deleted: number; failed: number }>> =>
+  batchDelete: (
+    ids: string[]
+  ): Promise<ApiResponse<{ deleted: number; failed: number }>> =>
     api.post('/pocs/batch-delete', { ids }),
 
   clearAll: (): Promise<ApiResponse<{ deleted: number }>> =>
@@ -182,12 +185,12 @@ export const pocApi = {
     api.get('/pocs/statistics'),
 
   importZip: async (file: File): Promise<ApiResponse<POCImportResult>> => {
-    const formData = new FormData()
-    formData.append('file', file)
+    const formData = new FormData();
+    formData.append('file', file);
     return api.post('/pocs/import', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-    })
+    });
   },
-}
+};

@@ -244,4 +244,3 @@ func intersectTemplates(a, b []*vulnscan.POCTemplate) []*vulnscan.POCTemplate {
 	}
 	return result
 }
-

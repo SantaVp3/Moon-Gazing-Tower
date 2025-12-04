@@ -7,11 +7,11 @@ import (
 
 // 数据库操作超时常量
 const (
-	DefaultDBTimeout   = 10 * time.Second  // 默认数据库操作超时
-	LongDBTimeout      = 30 * time.Second  // 长时间数据库操作超时
-	ShortDBTimeout     = 5 * time.Second   // 短时间数据库操作超时
-	BatchDBTimeout     = 60 * time.Second  // 批量操作超时
-	AggregateDBTimeout = 30 * time.Second  // 聚合查询超时
+	DefaultDBTimeout   = 10 * time.Second // 默认数据库操作超时
+	LongDBTimeout      = 30 * time.Second // 长时间数据库操作超时
+	ShortDBTimeout     = 5 * time.Second  // 短时间数据库操作超时
+	BatchDBTimeout     = 60 * time.Second // 批量操作超时
+	AggregateDBTimeout = 30 * time.Second // 聚合查询超时
 )
 
 // NewContext creates a context with default timeout for database operations.

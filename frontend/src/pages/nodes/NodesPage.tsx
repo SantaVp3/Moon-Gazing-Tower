@@ -1,26 +1,26 @@
-import { useQuery } from '@tanstack/react-query'
-import { nodeApi } from '@/api/nodes'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { Button } from '@/components/ui/button'
-import { cn, getStatusColor } from '@/lib/utils'
-import { RefreshCw, HardDrive, Cpu, Database } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query';
+import { nodeApi } from '@/api/nodes';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
+import { cn, getStatusColor } from '@/lib/utils';
+import { RefreshCw, HardDrive, Cpu, Database } from 'lucide-react';
 
 export default function NodesPage() {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['nodes'],
     queryFn: () => nodeApi.getNodes({ pageSize: 100 }),
     refetchInterval: 10000,
-  })
+  });
 
   const { data: statsData } = useQuery({
     queryKey: ['node-stats'],
     queryFn: () => nodeApi.getNodeStats(),
-  })
+  });
 
-  const nodes = data?.data?.list || []
-  const stats = statsData?.data
+  const nodes = data?.data?.list || [];
+  const stats = statsData?.data;
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
@@ -28,16 +28,16 @@ export default function NodesPage() {
       offline: '离线',
       busy: '忙碌',
       error: '错误',
-    }
-    return labels[status] || status
-  }
+    };
+    return labels[status] || status;
+  };
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
-    )
+    );
   }
 
   return (
@@ -71,7 +71,9 @@ export default function NodesPage() {
                   {stats.online}
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-green-500">{stats.online}</p>
+                  <p className="text-2xl font-bold text-green-500">
+                    {stats.online}
+                  </p>
                   <p className="text-sm text-muted-foreground">在线</p>
                 </div>
               </div>
@@ -82,7 +84,9 @@ export default function NodesPage() {
               <div className="flex items-center gap-2">
                 <Cpu className="h-8 w-8 text-blue-500" />
                 <div>
-                  <p className="text-2xl font-bold">{(stats.averageCpu ?? 0).toFixed(1)}%</p>
+                  <p className="text-2xl font-bold">
+                    {(stats.averageCpu ?? 0).toFixed(1)}%
+                  </p>
                   <p className="text-sm text-muted-foreground">平均CPU</p>
                 </div>
               </div>
@@ -93,7 +97,9 @@ export default function NodesPage() {
               <div className="flex items-center gap-2">
                 <Database className="h-8 w-8 text-purple-500" />
                 <div>
-                  <p className="text-2xl font-bold">{(stats.averageMemory ?? 0).toFixed(1)}%</p>
+                  <p className="text-2xl font-bold">
+                    {(stats.averageMemory ?? 0).toFixed(1)}%
+                  </p>
                   <p className="text-sm text-muted-foreground">平均内存</p>
                 </div>
               </div>
@@ -118,13 +124,17 @@ export default function NodesPage() {
                     {getStatusLabel(node.status)}
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground font-mono">{node.ipAddress}</p>
+                <p className="text-sm text-muted-foreground font-mono">
+                  {node.ipAddress}
+                </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <p className="text-muted-foreground">类型</p>
-                    <p className="font-medium">{node.type === 'master' ? '主节点' : '工作节点'}</p>
+                    <p className="font-medium">
+                      {node.type === 'master' ? '主节点' : '工作节点'}
+                    </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">版本</p>
@@ -132,7 +142,9 @@ export default function NodesPage() {
                   </div>
                   <div>
                     <p className="text-muted-foreground">当前任务</p>
-                    <p className="font-medium">{node.currentTasks} / {node.maxConcurrency}</p>
+                    <p className="font-medium">
+                      {node.currentTasks} / {node.maxConcurrency}
+                    </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">最后心跳</p>
@@ -175,5 +187,5 @@ export default function NodesPage() {
         )}
       </div>
     </div>
-  )
+  );
 }

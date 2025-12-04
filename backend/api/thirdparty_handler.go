@@ -646,10 +646,10 @@ func (h *ENScanHandler) QueryAll(c *gin.Context) {
 // POST /api/enscan/batch
 func (h *ENScanHandler) BatchQuery(c *gin.Context) {
 	var req struct {
-		Companies   []string `json:"companies" binding:"required"`
-		Fields      []string `json:"fields"`
-		Source      string   `json:"source"`
-		Timeout     int      `json:"timeout"`
+		Companies []string `json:"companies" binding:"required"`
+		Fields    []string `json:"fields"`
+		Source    string   `json:"source"`
+		Timeout   int      `json:"timeout"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {

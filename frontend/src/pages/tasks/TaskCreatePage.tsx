@@ -1,59 +1,73 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useMutation } from '@tanstack/react-query'
-import { taskApi, TaskConfig } from '@/api/tasks'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
+import { taskApi, TaskConfig } from '@/api/tasks';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { useToast } from '@/components/ui/use-toast'
-import { ArrowLeft, Play, Save, X, Plus } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+} from '@/components/ui/select';
+import { useToast } from '@/components/ui/use-toast';
+import { ArrowLeft, Play, Save, X, Plus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const scanTypes = [
   { id: 'port_scan', label: '端口扫描', description: '扫描开放端口' },
-  { id: 'service_detect', label: '服务识别', description: '识别服务类型和版本' },
+  {
+    id: 'service_detect',
+    label: '服务识别',
+    description: '识别服务类型和版本',
+  },
   { id: 'vuln_scan', label: '漏洞扫描', description: '检测已知漏洞' },
   { id: 'fingerprint', label: '指纹识别', description: '识别目标指纹' },
   { id: 'subdomain', label: '子域名枚举', description: '发现子域名' },
   { id: 'takeover', label: '子域名接管', description: '检测子域名接管漏洞' },
   { id: 'crawler', label: 'Web爬虫', description: '爬取网站URL和接口' },
   { id: 'dir_scan', label: '目录扫描', description: '扫描敏感目录' },
-]
+];
 
 // 检测目标类型
 function detectTargetType(target: string): string {
   // IP 地址
   if (/^(\d{1,3}\.){3}\d{1,3}$/.test(target)) {
-    return 'ip'
+    return 'ip';
   }
   // CIDR
   if (/^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/.test(target)) {
-    return 'cidr'
+    return 'cidr';
   }
   // URL
   if (/^https?:\/\//.test(target)) {
-    return 'url'
+    return 'url';
   }
   // 域名
-  if (/^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/.test(target)) {
-    return 'domain'
+  if (
+    /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/.test(
+      target
+    )
+  ) {
+    return 'domain';
   }
-  return 'unknown'
+  return 'unknown';
 }
 
 export default function TaskCreatePage() {
-  const navigate = useNavigate()
-  const { toast } = useToast()
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -72,88 +86,92 @@ export default function TaskCreatePage() {
       hunter_key: '',
       quake_key: '',
     } as TaskConfig,
-  })
+  });
 
   // 直接输入的目标
-  const [directTargets, setDirectTargets] = useState<string[]>([])
-  const [targetInput, setTargetInput] = useState('')
+  const [directTargets, setDirectTargets] = useState<string[]>([]);
+  const [targetInput, setTargetInput] = useState('');
 
   // 创建任务
   const createMutation = useMutation({
     mutationFn: taskApi.createTask,
     onSuccess: () => {
-      toast({ title: '任务创建成功' })
-      navigate('/tasks')
+      toast({ title: '任务创建成功' });
+      navigate('/tasks');
     },
     onError: (error: Error) => {
-      toast({ title: '创建失败', description: error.message, variant: 'destructive' })
+      toast({
+        title: '创建失败',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
-  })
+  });
 
   // 根据选择的扫描类型自动确定任务类型
   const getTaskType = (scanTypes: string[]): string => {
-    if (scanTypes.length === 0) return 'port_scan'
+    if (scanTypes.length === 0) return 'port_scan';
     if (scanTypes.length === 1) {
       // 单一扫描类型直接返回对应类型
-      return scanTypes[0]
+      return scanTypes[0];
     }
     // 多种扫描类型使用 full 模式，让后端流水线处理
-    return 'full'
-  }
+    return 'full';
+  };
 
   // 添加直接输入的目标
   const addDirectTargets = () => {
-    if (!targetInput.trim()) return
-    
+    if (!targetInput.trim()) return;
+
     // 解析输入的目标（支持换行、逗号、空格分隔）
     const newTargets = targetInput
       .split(/[\n,\s]+/)
-      .map(t => t.trim())
-      .filter(t => t.length > 0)
-    
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+
     // 去重后添加
-    const uniqueTargets = [...new Set([...directTargets, ...newTargets])]
-    setDirectTargets(uniqueTargets)
-    setTargetInput('')
-  }
+    const uniqueTargets = [...new Set([...directTargets, ...newTargets])];
+    setDirectTargets(uniqueTargets);
+    setTargetInput('');
+  };
 
   // 删除单个目标
   const removeDirectTarget = (target: string) => {
-    setDirectTargets(directTargets.filter(t => t !== target))
-  }
+    setDirectTargets(directTargets.filter((t) => t !== target));
+  };
 
   // 清空所有目标
   const clearDirectTargets = () => {
-    setDirectTargets([])
-  }
+    setDirectTargets([]);
+  };
 
   const handleSubmit = () => {
     if (!formData.name.trim()) {
-      toast({ title: '请输入任务名称', variant: 'destructive' })
-      return
+      toast({ title: '请输入任务名称', variant: 'destructive' });
+      return;
     }
-    
+
     // 验证目标 - 只支持直接输入模式
-    let targets: string[] = []
-    let targetType: string = 'unknown'
+    let targets: string[] = [];
+    let targetType: string = 'unknown';
 
     if (directTargets.length === 0) {
-      toast({ title: '请输入至少一个扫描目标', variant: 'destructive' })
-      return
+      toast({ title: '请输入至少一个扫描目标', variant: 'destructive' });
+      return;
     }
-    targets = directTargets
-    
+    targets = directTargets;
+
     // 自动检测目标类型
-    const types = [...new Set(targets.map(detectTargetType))]
-    targetType = types.length === 1 ? types[0] : 'mixed'
-    
+    const types = [...new Set(targets.map(detectTargetType))];
+    targetType = types.length === 1 ? types[0] : 'mixed';
+
     if ((formData.config.scanTypes?.length ?? 0) === 0) {
-      toast({ title: '请选择至少一种扫描类型', variant: 'destructive' })
-      return
+      toast({ title: '请选择至少一种扫描类型', variant: 'destructive' });
+      return;
     }
 
     // 根据选择的扫描类型自动确定任务类型
-    const taskType = getTaskType(formData.config.scanTypes || [])
+    const taskType = getTaskType(formData.config.scanTypes || []);
 
     createMutation.mutate({
       name: formData.name,
@@ -162,11 +180,11 @@ export default function TaskCreatePage() {
       targetType: targetType,
       description: formData.description,
       config: formData.config,
-    })
-  }
+    });
+  };
 
   const toggleScanType = (scanTypeId: string) => {
-    const current = formData.config.scanTypes || []
+    const current = formData.config.scanTypes || [];
     if (current.includes(scanTypeId)) {
       setFormData({
         ...formData,
@@ -174,7 +192,7 @@ export default function TaskCreatePage() {
           ...formData.config,
           scanTypes: current.filter((t) => t !== scanTypeId),
         },
-      })
+      });
     } else {
       setFormData({
         ...formData,
@@ -182,9 +200,9 @@ export default function TaskCreatePage() {
           ...formData.config,
           scanTypes: [...current, scanTypeId],
         },
-      })
+      });
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -211,7 +229,9 @@ export default function TaskCreatePage() {
                 <Input
                   placeholder="输入任务名称"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -219,7 +239,9 @@ export default function TaskCreatePage() {
                 <Textarea
                   placeholder="输入任务描述（可选）"
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
                 />
               </div>
             </CardContent>
@@ -264,7 +286,10 @@ export default function TaskCreatePage() {
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          config: { ...formData.config, portRange: e.target.value },
+                          config: {
+                            ...formData.config,
+                            portRange: e.target.value,
+                          },
                         })
                       }
                     />
@@ -279,7 +304,10 @@ export default function TaskCreatePage() {
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        config: { ...formData.config, timeout: Number(e.target.value) },
+                        config: {
+                          ...formData.config,
+                          timeout: Number(e.target.value),
+                        },
                       })
                     }
                   />
@@ -293,7 +321,10 @@ export default function TaskCreatePage() {
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        config: { ...formData.config, concurrent: Number(e.target.value) },
+                        config: {
+                          ...formData.config,
+                          concurrent: Number(e.target.value),
+                        },
                       })
                     }
                   />
@@ -307,7 +338,9 @@ export default function TaskCreatePage() {
             <Card>
               <CardHeader>
                 <CardTitle>第三方 API 配置</CardTitle>
-                <CardDescription>配置 FOFA/Hunter/Quake 等 API 收集更多子域名</CardDescription>
+                <CardDescription>
+                  配置 FOFA/Hunter/Quake 等 API 收集更多子域名
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-2">
@@ -317,11 +350,16 @@ export default function TaskCreatePage() {
                     onCheckedChange={(checked) =>
                       setFormData({
                         ...formData,
-                        config: { ...formData.config, use_thirdparty: checked as boolean },
+                        config: {
+                          ...formData.config,
+                          use_thirdparty: checked as boolean,
+                        },
                       })
                     }
                   />
-                  <Label htmlFor="use_thirdparty">启用第三方 API 收集子域名</Label>
+                  <Label htmlFor="use_thirdparty">
+                    启用第三方 API 收集子域名
+                  </Label>
                 </div>
 
                 {formData.config.use_thirdparty && (
@@ -333,17 +371,27 @@ export default function TaskCreatePage() {
                         {['fofa', 'hunter', 'quake', 'crtsh'].map((source) => (
                           <Badge
                             key={source}
-                            variant={formData.config.thirdparty_sources?.includes(source) ? 'default' : 'outline'}
+                            variant={
+                              formData.config.thirdparty_sources?.includes(
+                                source
+                              )
+                                ? 'default'
+                                : 'outline'
+                            }
                             className="cursor-pointer"
                             onClick={() => {
-                              const current = formData.config.thirdparty_sources || []
+                              const current =
+                                formData.config.thirdparty_sources || [];
                               const newSources = current.includes(source)
                                 ? current.filter((s) => s !== source)
-                                : [...current, source]
+                                : [...current, source];
                               setFormData({
                                 ...formData,
-                                config: { ...formData.config, thirdparty_sources: newSources },
-                              })
+                                config: {
+                                  ...formData.config,
+                                  thirdparty_sources: newSources,
+                                },
+                              });
                             }}
                           >
                             {source.toUpperCase()}
@@ -362,7 +410,10 @@ export default function TaskCreatePage() {
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              config: { ...formData.config, fofa_email: e.target.value },
+                              config: {
+                                ...formData.config,
+                                fofa_email: e.target.value,
+                              },
                             })
                           }
                         />
@@ -376,7 +427,10 @@ export default function TaskCreatePage() {
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              config: { ...formData.config, fofa_key: e.target.value },
+                              config: {
+                                ...formData.config,
+                                fofa_key: e.target.value,
+                              },
                             })
                           }
                         />
@@ -393,7 +447,10 @@ export default function TaskCreatePage() {
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            config: { ...formData.config, hunter_key: e.target.value },
+                            config: {
+                              ...formData.config,
+                              hunter_key: e.target.value,
+                            },
                           })
                         }
                       />
@@ -409,7 +466,10 @@ export default function TaskCreatePage() {
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            config: { ...formData.config, quake_key: e.target.value },
+                            config: {
+                              ...formData.config,
+                              quake_key: e.target.value,
+                            },
                           })
                         }
                       />
@@ -446,10 +506,14 @@ export default function TaskCreatePage() {
                     onClick={() => toggleScanType(type.id)}
                   >
                     <div className="flex items-center gap-2">
-                      <Checkbox checked={formData.config.scanTypes?.includes(type.id)} />
+                      <Checkbox
+                        checked={formData.config.scanTypes?.includes(type.id)}
+                      />
                       <div>
                         <div className="font-medium text-sm">{type.label}</div>
-                        <div className="text-xs text-muted-foreground">{type.description}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {type.description}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -482,13 +546,18 @@ export default function TaskCreatePage() {
                     添加
                   </Button>
                   {directTargets.length > 0 && (
-                    <Button type="button" variant="outline" size="sm" onClick={clearDirectTargets}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={clearDirectTargets}
+                    >
                       清空全部
                     </Button>
                   )}
                 </div>
               </div>
-              
+
               {/* 已添加的目标列表 */}
               {directTargets.length > 0 && (
                 <div className="space-y-2">
@@ -537,11 +606,14 @@ export default function TaskCreatePage() {
           <Save className="h-4 w-4 mr-2" />
           保存
         </Button>
-        <Button onClick={() => handleSubmit()} disabled={createMutation.isPending}>
+        <Button
+          onClick={() => handleSubmit()}
+          disabled={createMutation.isPending}
+        >
           <Play className="h-4 w-4 mr-2" />
           创建并启动
         </Button>
       </div>
     </div>
-  )
+  );
 }

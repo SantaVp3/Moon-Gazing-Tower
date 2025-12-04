@@ -1,119 +1,147 @@
-import { useState } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { useAuthStore } from '@/store/auth'
-import { useAppStore } from '@/store/app'
-import { authApi } from '@/api/auth'
-import { settingsApi, ThirdPartyConfig } from '@/api/settings'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { useToast } from '@/components/ui/use-toast'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
-import { Moon, Sun, Monitor, Palette, User, Lock, Key, CheckCircle, XCircle } from 'lucide-react'
+import { useState } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useAuthStore } from '@/store/auth';
+import { useAppStore } from '@/store/app';
+import { authApi } from '@/api/auth';
+import { settingsApi, ThirdPartyConfig } from '@/api/settings';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/components/ui/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import {
+  Moon,
+  Sun,
+  Monitor,
+  Palette,
+  User,
+  Lock,
+  Key,
+  CheckCircle,
+  XCircle,
+} from 'lucide-react';
 
 export default function SettingsPage() {
-  const { toast } = useToast()
-  const { user } = useAuthStore()
-  const { theme, setTheme } = useAppStore()
+  const { toast } = useToast();
+  const { user } = useAuthStore();
+  const { theme, setTheme } = useAppStore();
   const [passwordForm, setPasswordForm] = useState({
     oldPassword: '',
     newPassword: '',
     confirmPassword: '',
-  })
+  });
   const [profileForm, setProfileForm] = useState({
     nickname: user?.nickname || '',
     email: user?.email || '',
-  })
-  const [apiConfigForm, setApiConfigForm] = useState<Partial<ThirdPartyConfig>>({
-    fofa_email: '',
-    fofa_key: '',
-    hunter_key: '',
-    quake_key: '',
-    securitytrails_key: '',
-  })
+  });
+  const [apiConfigForm, setApiConfigForm] = useState<Partial<ThirdPartyConfig>>(
+    {
+      fofa_email: '',
+      fofa_key: '',
+      hunter_key: '',
+      quake_key: '',
+      securitytrails_key: '',
+    }
+  );
 
   // 获取当前 API 配置
   const { data: configData, refetch: refetchConfig } = useQuery({
     queryKey: ['thirdparty-config'],
     queryFn: settingsApi.getThirdPartyConfig,
-  })
+  });
 
   // 获取已配置的数据源
   const { data: sourcesData, refetch: refetchSources } = useQuery({
     queryKey: ['thirdparty-sources'],
     queryFn: settingsApi.getConfiguredSources,
-  })
+  });
 
-  const configuredSources = sourcesData?.data?.sources || []
+  const configuredSources = sourcesData?.data?.sources || [];
 
   // 更新 API 配置
   const updateConfigMutation = useMutation({
     mutationFn: settingsApi.updateThirdPartyConfig,
     onSuccess: () => {
-      toast({ title: 'API 配置更新成功' })
-      refetchConfig()
-      refetchSources()
+      toast({ title: 'API 配置更新成功' });
+      refetchConfig();
+      refetchSources();
       // 清空输入的密钥（保留 email）
-      setApiConfigForm(prev => ({
+      setApiConfigForm((prev) => ({
         ...prev,
         fofa_key: '',
         hunter_key: '',
         quake_key: '',
         securitytrails_key: '',
-      }))
+      }));
     },
     onError: () => {
-      toast({ title: 'API 配置更新失败', variant: 'destructive' })
+      toast({ title: 'API 配置更新失败', variant: 'destructive' });
     },
-  })
+  });
 
   const changePasswordMutation = useMutation({
     mutationFn: authApi.changePassword,
     onSuccess: () => {
-      toast({ title: '密码修改成功' })
-      setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' })
+      toast({ title: '密码修改成功' });
+      setPasswordForm({
+        oldPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
     },
     onError: () => {
-      toast({ title: '密码修改失败', variant: 'destructive' })
+      toast({ title: '密码修改失败', variant: 'destructive' });
     },
-  })
+  });
 
   const handleChangePassword = () => {
     if (!passwordForm.oldPassword || !passwordForm.newPassword) {
-      toast({ title: '请填写完整', variant: 'destructive' })
-      return
+      toast({ title: '请填写完整', variant: 'destructive' });
+      return;
     }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast({ title: '两次密码不一致', variant: 'destructive' })
-      return
+      toast({ title: '两次密码不一致', variant: 'destructive' });
+      return;
     }
     changePasswordMutation.mutate({
       oldPassword: passwordForm.oldPassword,
       newPassword: passwordForm.newPassword,
-    })
-  }
+    });
+  };
 
   const handleSaveApiConfig = () => {
     // 只提交非空字段
-    const configToUpdate: Partial<ThirdPartyConfig> = {}
-    if (apiConfigForm.fofa_email) configToUpdate.fofa_email = apiConfigForm.fofa_email
-    if (apiConfigForm.fofa_key) configToUpdate.fofa_key = apiConfigForm.fofa_key
-    if (apiConfigForm.hunter_key) configToUpdate.hunter_key = apiConfigForm.hunter_key
-    if (apiConfigForm.quake_key) configToUpdate.quake_key = apiConfigForm.quake_key
-    if (apiConfigForm.securitytrails_key) configToUpdate.securitytrails_key = apiConfigForm.securitytrails_key
+    const configToUpdate: Partial<ThirdPartyConfig> = {};
+    if (apiConfigForm.fofa_email)
+      configToUpdate.fofa_email = apiConfigForm.fofa_email;
+    if (apiConfigForm.fofa_key)
+      configToUpdate.fofa_key = apiConfigForm.fofa_key;
+    if (apiConfigForm.hunter_key)
+      configToUpdate.hunter_key = apiConfigForm.hunter_key;
+    if (apiConfigForm.quake_key)
+      configToUpdate.quake_key = apiConfigForm.quake_key;
+    if (apiConfigForm.securitytrails_key)
+      configToUpdate.securitytrails_key = apiConfigForm.securitytrails_key;
 
     if (Object.keys(configToUpdate).length === 0) {
-      toast({ title: '请填写至少一个配置项', variant: 'destructive' })
-      return
+      toast({ title: '请填写至少一个配置项', variant: 'destructive' });
+      return;
     }
 
-    updateConfigMutation.mutate(configToUpdate)
-  }
+    updateConfigMutation.mutate(configToUpdate);
+  };
 
   // 检查某个来源是否已配置
-  const isSourceConfigured = (source: string) => configuredSources.includes(source)
+  const isSourceConfigured = (source: string) =>
+    configuredSources.includes(source);
 
   return (
     <div className="space-y-6">
@@ -196,7 +224,9 @@ export default function SettingsPage() {
                 <Label>昵称</Label>
                 <Input
                   value={profileForm.nickname}
-                  onChange={(e) => setProfileForm({ ...profileForm, nickname: e.target.value })}
+                  onChange={(e) =>
+                    setProfileForm({ ...profileForm, nickname: e.target.value })
+                  }
                   placeholder="昵称"
                 />
               </div>
@@ -205,7 +235,9 @@ export default function SettingsPage() {
                 <Input
                   type="email"
                   value={profileForm.email}
-                  onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                  onChange={(e) =>
+                    setProfileForm({ ...profileForm, email: e.target.value })
+                  }
                   placeholder="邮箱"
                 />
               </div>
@@ -227,7 +259,12 @@ export default function SettingsPage() {
                 <Input
                   type="password"
                   value={passwordForm.oldPassword}
-                  onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })}
+                  onChange={(e) =>
+                    setPasswordForm({
+                      ...passwordForm,
+                      oldPassword: e.target.value,
+                    })
+                  }
                   placeholder="当前密码"
                 />
               </div>
@@ -236,7 +273,12 @@ export default function SettingsPage() {
                 <Input
                   type="password"
                   value={passwordForm.newPassword}
-                  onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                  onChange={(e) =>
+                    setPasswordForm({
+                      ...passwordForm,
+                      newPassword: e.target.value,
+                    })
+                  }
                   placeholder="新密码"
                 />
               </div>
@@ -245,7 +287,12 @@ export default function SettingsPage() {
                 <Input
                   type="password"
                   value={passwordForm.confirmPassword}
-                  onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                  onChange={(e) =>
+                    setPasswordForm({
+                      ...passwordForm,
+                      confirmPassword: e.target.value,
+                    })
+                  }
                   placeholder="确认新密码"
                 />
               </div>
@@ -281,7 +328,9 @@ export default function SettingsPage() {
                         </Badge>
                       )}
                     </CardTitle>
-                    <CardDescription>配置 FOFA 网络空间搜索引擎 API</CardDescription>
+                    <CardDescription>
+                      配置 FOFA 网络空间搜索引擎 API
+                    </CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -290,8 +339,16 @@ export default function SettingsPage() {
                   <Label>Email</Label>
                   <Input
                     value={apiConfigForm.fofa_email}
-                    onChange={(e) => setApiConfigForm({ ...apiConfigForm, fofa_email: e.target.value })}
-                    placeholder={configData?.data?.config?.fofa_email || '输入 FOFA 账号邮箱'}
+                    onChange={(e) =>
+                      setApiConfigForm({
+                        ...apiConfigForm,
+                        fofa_email: e.target.value,
+                      })
+                    }
+                    placeholder={
+                      configData?.data?.config?.fofa_email ||
+                      '输入 FOFA 账号邮箱'
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -299,8 +356,15 @@ export default function SettingsPage() {
                   <Input
                     type="password"
                     value={apiConfigForm.fofa_key}
-                    onChange={(e) => setApiConfigForm({ ...apiConfigForm, fofa_key: e.target.value })}
-                    placeholder={configData?.data?.config?.fofa_key || '输入 FOFA API Key'}
+                    onChange={(e) =>
+                      setApiConfigForm({
+                        ...apiConfigForm,
+                        fofa_key: e.target.value,
+                      })
+                    }
+                    placeholder={
+                      configData?.data?.config?.fofa_key || '输入 FOFA API Key'
+                    }
                   />
                 </div>
               </CardContent>
@@ -335,8 +399,16 @@ export default function SettingsPage() {
                   <Input
                     type="password"
                     value={apiConfigForm.hunter_key}
-                    onChange={(e) => setApiConfigForm({ ...apiConfigForm, hunter_key: e.target.value })}
-                    placeholder={configData?.data?.config?.hunter_key || '输入 Hunter API Key'}
+                    onChange={(e) =>
+                      setApiConfigForm({
+                        ...apiConfigForm,
+                        hunter_key: e.target.value,
+                      })
+                    }
+                    placeholder={
+                      configData?.data?.config?.hunter_key ||
+                      '输入 Hunter API Key'
+                    }
                   />
                 </div>
               </CardContent>
@@ -361,7 +433,9 @@ export default function SettingsPage() {
                         </Badge>
                       )}
                     </CardTitle>
-                    <CardDescription>配置 360 Quake 网络空间搜索引擎 API</CardDescription>
+                    <CardDescription>
+                      配置 360 Quake 网络空间搜索引擎 API
+                    </CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -371,8 +445,16 @@ export default function SettingsPage() {
                   <Input
                     type="password"
                     value={apiConfigForm.quake_key}
-                    onChange={(e) => setApiConfigForm({ ...apiConfigForm, quake_key: e.target.value })}
-                    placeholder={configData?.data?.config?.quake_key || '输入 Quake API Key'}
+                    onChange={(e) =>
+                      setApiConfigForm({
+                        ...apiConfigForm,
+                        quake_key: e.target.value,
+                      })
+                    }
+                    placeholder={
+                      configData?.data?.config?.quake_key ||
+                      '输入 Quake API Key'
+                    }
                   />
                 </div>
               </CardContent>
@@ -397,7 +479,9 @@ export default function SettingsPage() {
                         </Badge>
                       )}
                     </CardTitle>
-                    <CardDescription>配置 SecurityTrails DNS 数据 API</CardDescription>
+                    <CardDescription>
+                      配置 SecurityTrails DNS 数据 API
+                    </CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -407,8 +491,16 @@ export default function SettingsPage() {
                   <Input
                     type="password"
                     value={apiConfigForm.securitytrails_key}
-                    onChange={(e) => setApiConfigForm({ ...apiConfigForm, securitytrails_key: e.target.value })}
-                    placeholder={configData?.data?.config?.securitytrails_key || '输入 SecurityTrails API Key'}
+                    onChange={(e) =>
+                      setApiConfigForm({
+                        ...apiConfigForm,
+                        securitytrails_key: e.target.value,
+                      })
+                    }
+                    placeholder={
+                      configData?.data?.config?.securitytrails_key ||
+                      '输入 SecurityTrails API Key'
+                    }
                   />
                 </div>
               </CardContent>
@@ -426,5 +518,5 @@ export default function SettingsPage() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

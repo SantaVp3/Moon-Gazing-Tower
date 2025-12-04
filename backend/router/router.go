@@ -15,16 +15,16 @@ import (
 
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
-	
+
 	// Middleware
 	r.Use(middleware.CORSMiddleware())
 	r.Use(middleware.OperationLogMiddleware())
-	
+
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
-	
+
 	// API routes
 	apiGroup := r.Group("/api")
 	{
@@ -35,7 +35,7 @@ func SetupRouter() *gin.Engine {
 			authGroup.POST("/login", authHandler.Login)
 			authGroup.POST("/refresh", authHandler.RefreshToken)
 		}
-		
+
 		// Protected routes
 		protected := apiGroup.Group("")
 		protected.Use(middleware.AuthMiddleware())
@@ -45,7 +45,7 @@ func SetupRouter() *gin.Engine {
 			protected.GET("/auth/profile", authHandler.GetProfile)
 			protected.PUT("/auth/profile", authHandler.UpdateProfile)
 			protected.PUT("/auth/password", authHandler.ChangePassword)
-			
+
 			// User routes
 			userHandler := api.NewUserHandler()
 			userGroup := protected.Group("/users")
@@ -58,7 +58,7 @@ func SetupRouter() *gin.Engine {
 				userGroup.PUT("/:id/status", middleware.AdminMiddleware(), userHandler.SetUserStatus)
 				userGroup.PUT("/:id/password", middleware.AdminMiddleware(), userHandler.ResetPassword)
 			}
-			
+
 			// Task routes
 			taskHandler := api.NewTaskHandler()
 			resultHandler := api.NewResultHandler()
@@ -88,7 +88,7 @@ func SetupRouter() *gin.Engine {
 				taskGroup.GET("/:id/results/subdomains", resultHandler.GetSubdomainResults)
 				taskGroup.GET("/:id/results/export", resultHandler.ExportResults)
 			}
-			
+
 			// Results routes (for tag management and batch operations)
 			resultGroup := protected.Group("/results")
 			{
@@ -97,14 +97,14 @@ func SetupRouter() *gin.Engine {
 				resultGroup.DELETE("/:id/tags", resultHandler.RemoveResultTag)
 				resultGroup.POST("/batch-delete", resultHandler.BatchDeleteResults)
 			}
-			
+
 			// Vulnerability routes
 			vulnHandler := api.NewVulnHandler()
 			vulnGroup := protected.Group("/vulnerabilities")
 			{
 				vulnGroup.GET("", vulnHandler.ListVulnerabilities)
 				vulnGroup.GET("/stats", vulnHandler.GetVulnStats)
-				vulnGroup.GET("/statistics", vulnHandler.GetVulnStatistics) // 详细统计
+				vulnGroup.GET("/statistics", vulnHandler.GetVulnStatistics)        // 详细统计
 				vulnGroup.POST("/batch-update", vulnHandler.BatchUpdateVulnStatus) // 批量更新
 				vulnGroup.GET("/:id", vulnHandler.GetVulnerability)
 				vulnGroup.POST("", vulnHandler.CreateVulnerability)
@@ -115,7 +115,7 @@ func SetupRouter() *gin.Engine {
 				vulnGroup.PUT("/:id/false-positive", vulnHandler.MarkVulnAsFalsePositive)
 				vulnGroup.POST("/:id/verify", vulnHandler.VerifyVulnerability) // 验证漏洞
 			}
-			
+
 			// POC routes
 			pocHandler := api.NewPOCHandler()
 			pocGroup := protected.Group("/pocs")
@@ -131,7 +131,7 @@ func SetupRouter() *gin.Engine {
 				pocGroup.DELETE("/:id", pocHandler.DeletePOC)
 				pocGroup.POST("/:id/toggle", pocHandler.TogglePOCEnabled)
 			}
-			
+
 			// Report routes
 			reportGroup := protected.Group("/reports")
 			{
@@ -140,7 +140,7 @@ func SetupRouter() *gin.Engine {
 				reportGroup.POST("", vulnHandler.CreateReport)
 				reportGroup.DELETE("/:id", vulnHandler.DeleteReport)
 			}
-			
+
 			// Node routes
 			nodeHandler := api.NewNodeHandler()
 			nodeGroup := protected.Group("/nodes")
@@ -154,7 +154,7 @@ func SetupRouter() *gin.Engine {
 				nodeGroup.POST("/:id/heartbeat", nodeHandler.Heartbeat)
 				nodeGroup.PUT("/:id/status", nodeHandler.SetNodeStatus)
 			}
-			
+
 			// Plugin routes
 			pluginHandler := api.NewPluginHandler()
 			pluginGroup := protected.Group("/plugins")
@@ -168,7 +168,7 @@ func SetupRouter() *gin.Engine {
 				pluginGroup.POST("/:id/install", pluginHandler.InstallPlugin)
 				pluginGroup.POST("/:id/uninstall", pluginHandler.UninstallPlugin)
 			}
-			
+
 			// Fingerprint routes
 			fingerprintGroup := protected.Group("/fingerprints")
 			{
@@ -176,7 +176,7 @@ func SetupRouter() *gin.Engine {
 				fingerprintGroup.POST("", pluginHandler.CreateFingerprintRule)
 				fingerprintGroup.DELETE("/:id", pluginHandler.DeleteFingerprintRule)
 			}
-			
+
 			// Dictionary routes
 			dictionaryGroup := protected.Group("/dictionaries")
 			{
@@ -184,7 +184,7 @@ func SetupRouter() *gin.Engine {
 				dictionaryGroup.POST("", pluginHandler.CreateDictionary)
 				dictionaryGroup.DELETE("/:id", pluginHandler.DeleteDictionary)
 			}
-			
+
 			// Dashboard routes
 			dashboardHandler := api.NewDashboardHandler()
 			dashboardGroup := protected.Group("/dashboard")
@@ -205,42 +205,42 @@ func SetupRouter() *gin.Engine {
 				scanGroup.POST("/port/quick", scanHandler.QuickPortScan)
 				scanGroup.POST("/port/custom", scanHandler.CustomPortScan)
 				scanGroup.GET("/port/single", scanHandler.SinglePortScan)
-				
+
 				// C段扫描
 				scanGroup.POST("/csegment", scanHandler.CSegmentScan)
 				scanGroup.POST("/csegment/quick", scanHandler.QuickCSegmentScan)
 				scanGroup.POST("/csegment/full", scanHandler.FullCSegmentScan)
-				
+
 				// 域名扫描
 				scanGroup.GET("/domain/info", scanHandler.DomainInfo)
 				scanGroup.POST("/subdomain/quick", scanHandler.QuickSubdomainScan)
 				scanGroup.POST("/subdomain/full", scanHandler.FullSubdomainScan)
 				scanGroup.POST("/subdomain/custom", scanHandler.CustomSubdomainScan)
-				
+
 				// CDN检测
 				scanGroup.POST("/cdn/detect", scanHandler.CDNDetect)
 				scanGroup.POST("/cdn/batch", scanHandler.CDNBatchDetect)
-				
+
 				// 指纹识别
 				scanGroup.POST("/fingerprint", scanHandler.FingerprintScan)
 				scanGroup.POST("/fingerprint/batch", scanHandler.FingerprintBatchScan)
-				
+
 				// 漏洞扫描
 				scanGroup.POST("/vuln", scanHandler.VulnScan)
 				scanGroup.POST("/vuln/quick", scanHandler.VulnQuickScan)
 				scanGroup.GET("/vuln/pocs", scanHandler.GetPOCList)
-				
+
 				// 目录扫描
 				scanGroup.POST("/dir", scanHandler.DirScan)
 				scanGroup.POST("/dir/quick", scanHandler.QuickDirScan)
-				
+
 				// 敏感信息扫描
 				scanGroup.POST("/sensitive", scanHandler.SensitiveScan)
 				scanGroup.POST("/sensitive/batch", scanHandler.SensitiveBatchScan)
-				
+
 				// 爬虫
 				scanGroup.POST("/crawler", scanHandler.CrawlerScan)
-				
+
 				// 弱口令扫描
 				scanGroup.POST("/weakpwd", scanHandler.WeakPwdScan)
 
@@ -403,7 +403,7 @@ func SetupRouter() *gin.Engine {
 			}
 		}
 	}
-	
+
 	return r
 }
 
@@ -420,4 +420,3 @@ func RegisterWebSocketRoutes(router *gin.Engine, hub *api.Hub) {
 	// WebSocket endpoint for real-time data
 	router.GET("/api/ws", hub.WebSocketHandler)
 }
-

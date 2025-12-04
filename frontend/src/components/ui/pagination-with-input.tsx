@@ -1,16 +1,21 @@
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from 'lucide-react';
 
 interface PaginationWithInputProps {
-  page: number
-  totalPages: number
-  total: number
-  pageSize?: number
-  onPageChange: (page: number) => void
-  showTotal?: boolean
-  className?: string
+  page: number;
+  totalPages: number;
+  total: number;
+  pageSize?: number;
+  onPageChange: (page: number) => void;
+  showTotal?: boolean;
+  className?: string;
 }
 
 export function PaginationWithInput({
@@ -21,38 +26,38 @@ export function PaginationWithInput({
   showTotal = true,
   className = '',
 }: PaginationWithInputProps) {
-  const [inputValue, setInputValue] = useState('')
+  const [inputValue, setInputValue] = useState('');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^0-9]/g, '')
-    setInputValue(value)
-  }
+    const value = e.target.value.replace(/[^0-9]/g, '');
+    setInputValue(value);
+  };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      handleGoToPage()
+      handleGoToPage();
     }
-  }
+  };
 
   const handleGoToPage = () => {
-    const pageNum = parseInt(inputValue, 10)
+    const pageNum = parseInt(inputValue, 10);
     if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
-      onPageChange(pageNum)
-      setInputValue('')
+      onPageChange(pageNum);
+      setInputValue('');
     }
-  }
+  };
 
-  const goToFirst = () => onPageChange(1)
-  const goToPrev = () => onPageChange(Math.max(1, page - 1))
-  const goToNext = () => onPageChange(Math.min(totalPages, page + 1))
-  const goToLast = () => onPageChange(totalPages)
+  const goToFirst = () => onPageChange(1);
+  const goToPrev = () => onPageChange(Math.max(1, page - 1));
+  const goToNext = () => onPageChange(Math.min(totalPages, page + 1));
+  const goToLast = () => onPageChange(totalPages);
 
   if (totalPages <= 1) {
     return showTotal ? (
       <div className={`text-sm text-muted-foreground ${className}`}>
         共 <span className="font-medium text-foreground">{total}</span> 条结果
       </div>
-    ) : null
+    ) : null;
   }
 
   return (
@@ -74,7 +79,7 @@ export function PaginationWithInput({
         >
           <ChevronsLeft className="h-4 w-4" />
         </Button>
-        
+
         {/* 上一页 */}
         <Button
           variant="outline"
@@ -111,7 +116,7 @@ export function PaginationWithInput({
         >
           跳转
         </Button>
-        
+
         {/* 下一页 */}
         <Button
           variant="outline"
@@ -123,7 +128,7 @@ export function PaginationWithInput({
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
-        
+
         {/* 末页 */}
         <Button
           variant="outline"
@@ -137,5 +142,5 @@ export function PaginationWithInput({
         </Button>
       </div>
     </div>
-  )
+  );
 }

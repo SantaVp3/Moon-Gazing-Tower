@@ -1,0 +1,46 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Check which files changed
+FRONTEND_CHANGED=$(git diff --cached --name-only | grep "^frontend/" || true)
+BACKEND_CHANGED=$(git diff --cached --name-only | grep "^backend/" || true)
+
+# Run frontend checks if frontend files changed
+if [ -n "$FRONTEND_CHANGED" ]; then
+  echo "→ Running frontend checks..."
+  cd frontend
+  npx lint-staged
+  cd ..
+fi
+
+# Run backend checks if backend files changed
+if [ -n "$BACKEND_CHANGED" ]; then
+  echo "→ Running backend checks..."
+  cd backend
+
+  # Format check
+  echo "  → Checking Go format..."
+  if ! gofmt -l . | grep -v "^$" > /dev/null 2>&1; then
+    echo "  ✗ Code not formatted. Run 'make fmt' in backend/"
+    exit 1
+  fi
+
+  # Go mod tidy check
+  echo "  → Checking go.mod..."
+  go mod tidy
+  if ! git diff --exit-code go.mod go.sum > /dev/null 2>&1; then
+    echo "  ✗ go.mod/go.sum not tidy. Run 'make fmt' in backend/"
+    exit 1
+  fi
+
+  # Lint check
+  echo "  → Running golangci-lint..."
+  if ! golangci-lint run ./... > /dev/null 2>&1; then
+    echo "  ✗ Linting failed. Run 'make lint' in backend/"
+    exit 1
+  fi
+
+  cd ..
+fi
+
+echo "✓ Pre-commit checks passed"

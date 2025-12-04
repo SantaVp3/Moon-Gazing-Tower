@@ -15,12 +15,12 @@ import (
 
 // DNS 服务器列表
 var dnsServers = []string{
-	"8.8.8.8:53",        // Google
-	"1.1.1.1:53",        // Cloudflare
-	"223.5.5.5:53",      // 阿里DNS
+	"8.8.8.8:53",         // Google
+	"1.1.1.1:53",         // Cloudflare
+	"223.5.5.5:53",       // 阿里DNS
 	"114.114.114.114:53", // 114 DNS
-	"8.8.4.4:53",        // Google Secondary
-	"1.0.0.1:53",        // Cloudflare Secondary
+	"8.8.4.4:53",         // Google Secondary
+	"1.0.0.1:53",         // Cloudflare Secondary
 }
 
 // ActiveScannerConfig 主动扫描配置
@@ -42,7 +42,7 @@ type ActiveScannerConfig struct {
 type ActiveScanner struct {
 	config     *ActiveScannerConfig
 	apiManager *thirdparty.APIManager
-	results    sync.Map // 存储去重后的结果 map[string]*SubdomainResult
+	results    sync.Map              // 存储去重后的结果 map[string]*SubdomainResult
 	callback   func(SubdomainResult) // 结果回调函数
 }
 
@@ -260,12 +260,12 @@ func (s *ActiveScanner) resolveDomain(domain string) ([]string, error) {
 
 	// 随机选择一个DNS服务器开始
 	startIdx := rand.Intn(len(dnsServers))
-	
+
 	// 尝试所有DNS服务器
 	for i := 0; i < len(dnsServers); i++ {
 		serverIdx := (startIdx + i) % len(dnsServers)
 		dnsServer := dnsServers[serverIdx]
-		
+
 		// 创建自定义resolver
 		resolver := &net.Resolver{
 			PreferGo: true,
@@ -276,16 +276,16 @@ func (s *ActiveScanner) resolveDomain(domain string) ([]string, error) {
 				return d.DialContext(ctx, "udp", dnsServer)
 			},
 		}
-		
+
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 		ips, err := resolver.LookupHost(ctx, domain)
 		cancel()
-		
+
 		if err == nil && len(ips) > 0 {
 			return ips, nil
 		}
 	}
-	
+
 	// 所有DNS服务器都失败了，返回NXDOMAIN
 	return nil, fmt.Errorf("no DNS record found")
 }
@@ -333,7 +333,7 @@ func (s *ActiveScanner) addResult(subdomain string, ips []string, source string)
 	// 去重存储
 	if _, loaded := s.results.LoadOrStore(subdomain, result); !loaded {
 		log.Printf("[ActiveScanner] Found: %s -> %v (%s)", subdomain, ips, source)
-		
+
 		// 调用回调函数（如果设置了）
 		if s.callback != nil {
 			s.callback(*result)

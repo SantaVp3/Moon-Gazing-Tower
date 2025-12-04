@@ -13,10 +13,10 @@ import (
 // PipelineConfig 流水线配置
 type PipelineConfig struct {
 	// 子域名扫描
-	SubdomainScan         bool   `json:"subdomain_scan"`
-	SubdomainMaxEnumTime  int    `json:"subdomain_max_enum_time"` // 分钟
-	SubdomainResolveIP    bool   `json:"subdomain_resolve_ip"`
-	SubdomainCheckTakeover bool  `json:"subdomain_check_takeover"`
+	SubdomainScan          bool `json:"subdomain_scan"`
+	SubdomainMaxEnumTime   int  `json:"subdomain_max_enum_time"` // 分钟
+	SubdomainResolveIP     bool `json:"subdomain_resolve_ip"`
+	SubdomainCheckTakeover bool `json:"subdomain_check_takeover"`
 
 	// 端口扫描
 	PortScan     bool   `json:"port_scan"`
@@ -43,19 +43,19 @@ type PipelineConfig struct {
 // DefaultPipelineConfig 默认流水线配置
 func DefaultPipelineConfig() *PipelineConfig {
 	return &PipelineConfig{
-		SubdomainScan:         true,
-		SubdomainMaxEnumTime:  10,
-		SubdomainResolveIP:    true,
+		SubdomainScan:          true,
+		SubdomainMaxEnumTime:   10,
+		SubdomainResolveIP:     true,
 		SubdomainCheckTakeover: false,
-		PortScan:              true,
-		PortScanMode:          "quick",
-		PortRange:             "1-1000",
-		SkipCDN:               true,
-		Fingerprint:           true,
-		VulnScan:              false,
-		WebCrawler:            false,
-		DirScan:               false,
-		SensitiveScan:         false,
+		PortScan:               true,
+		PortScanMode:           "quick",
+		PortRange:              "1-1000",
+		SkipCDN:                true,
+		Fingerprint:            true,
+		VulnScan:               false,
+		WebCrawler:             false,
+		DirScan:                false,
+		SensitiveScan:          false,
 	}
 }
 
@@ -77,7 +77,7 @@ type StreamingPipeline struct {
 	crawlerModule     *CrawlerModule
 	dirScanModule     *DirScanModule
 	sensitiveModule   *SensitiveModule
-	
+
 	// 状态
 	running bool
 	mu      sync.Mutex
@@ -373,7 +373,7 @@ func RunPortOnlyScan(ctx context.Context, targets []string, portMode string) ([]
 	resultChan := make(chan interface{}, 1000)
 	resultCollector := NewResultCollectorModule(pipeCtx, resultChan)
 	resultCollector.SetInput(make(chan interface{}, 500)) // 初始化输入通道
-	
+
 	portScanModule := NewPortScanModule(pipeCtx, resultCollector, "", portMode)
 	portScanModule.SetInput(make(chan interface{}, 500)) // 初始化输入通道
 

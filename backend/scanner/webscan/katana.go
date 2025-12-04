@@ -15,22 +15,22 @@ import (
 // KatanaScanner 使用 Katana 进行网页爬虫
 type KatanaScanner struct {
 	BinPath          string
-	Depth            int    // 爬取深度
-	Concurrency      int    // 并发数
-	Timeout          int    // 超时时间(秒)
-	RateLimit        int    // 每秒请求数
+	Depth            int // 爬取深度
+	Concurrency      int // 并发数
+	Timeout          int // 超时时间(秒)
+	RateLimit        int // 每秒请求数
 	TempDir          string
-	ExecutionTimeout int    // 执行超时时间（分钟）
+	ExecutionTimeout int // 执行超时时间（分钟）
 }
 
 // KatanaResult Katana 爬虫结果
 type KatanaResult struct {
-	Target    string              `json:"target"`
-	URLs      []KatanaCrawledURL  `json:"urls"`
-	StartTime time.Time           `json:"start_time"`
-	EndTime   time.Time           `json:"end_time"`
-	Duration  string              `json:"duration"`
-	Total     int                 `json:"total"`
+	Target    string             `json:"target"`
+	URLs      []KatanaCrawledURL `json:"urls"`
+	StartTime time.Time          `json:"start_time"`
+	EndTime   time.Time          `json:"end_time"`
+	Duration  string             `json:"duration"`
+	Total     int                `json:"total"`
 }
 
 // KatanaCrawledURL 爬取到的URL

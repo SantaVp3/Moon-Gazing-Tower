@@ -1,6 +1,6 @@
-import { Link, useLocation } from 'react-router-dom'
-import { cn } from '@/lib/utils'
-import { useAppStore } from '@/store/app'
+import { Link, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+import { useAppStore } from '@/store/app';
 import {
   LayoutDashboard,
   ListTodo,
@@ -16,8 +16,8 @@ import {
   Layers,
   Calendar,
   Network,
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const menuItems = [
   { path: '/dashboard', icon: LayoutDashboard, label: '仪表盘' },
@@ -32,11 +32,11 @@ const menuItems = [
   { path: '/notify', icon: Bell, label: '通知管理' },
   { path: '/users', icon: Users, label: '用户管理' },
   { path: '/settings', icon: Settings, label: '系统设置' },
-]
+];
 
 export default function Sidebar() {
-  const location = useLocation()
-  const { sidebarCollapsed, toggleSidebar } = useAppStore()
+  const location = useLocation();
+  const { sidebarCollapsed, toggleSidebar } = useAppStore();
 
   return (
     <aside
@@ -53,9 +53,7 @@ export default function Sidebar() {
             <span className="font-bold text-lg">望月塔</span>
           </div>
         )}
-        {sidebarCollapsed && (
-          <Moon className="h-6 w-6 text-primary mx-auto" />
-        )}
+        {sidebarCollapsed && <Moon className="h-6 w-6 text-primary mx-auto" />}
         <Button
           variant="ghost"
           size="icon"
@@ -74,7 +72,7 @@ export default function Sidebar() {
       {/* Navigation */}
       <nav className="p-2 space-y-1">
         {menuItems.map((item) => {
-          const isActive = location.pathname.startsWith(item.path)
+          const isActive = location.pathname.startsWith(item.path);
           return (
             <Link
               key={item.path}
@@ -93,9 +91,9 @@ export default function Sidebar() {
                 <span className="truncate">{item.label}</span>
               )}
             </Link>
-          )
+          );
         })}
       </nav>
     </aside>
-  )
+  );
 }

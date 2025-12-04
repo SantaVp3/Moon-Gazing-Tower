@@ -33,28 +33,28 @@ type ScannerNode struct {
 	Description string             `json:"description" bson:"description"`
 	Type        NodeType           `json:"type" bson:"type"`
 	Status      NodeStatus         `json:"status" bson:"status"`
-	
+
 	// Node Info
-	IP          string `json:"ip" bson:"ip"`
-	Port        int    `json:"port" bson:"port"`
-	Version     string `json:"version" bson:"version"`
-	
+	IP      string `json:"ip" bson:"ip"`
+	Port    int    `json:"port" bson:"port"`
+	Version string `json:"version" bson:"version"`
+
 	// Capabilities
 	Capabilities []string `json:"capabilities" bson:"capabilities"` // port_scan, vuln_scan, etc.
 	MaxTasks     int      `json:"max_tasks" bson:"max_tasks"`
 	CurrentTasks int      `json:"current_tasks" bson:"current_tasks"`
-	
+
 	// System Info
-	SystemInfo  NodeSystemInfo `json:"system_info" bson:"system_info"`
-	
+	SystemInfo NodeSystemInfo `json:"system_info" bson:"system_info"`
+
 	// Heartbeat
-	LastHeartbeat time.Time `json:"last_heartbeat" bson:"last_heartbeat"`
-	HeartbeatInterval int   `json:"heartbeat_interval" bson:"heartbeat_interval"` // seconds
-	
+	LastHeartbeat     time.Time `json:"last_heartbeat" bson:"last_heartbeat"`
+	HeartbeatInterval int       `json:"heartbeat_interval" bson:"heartbeat_interval"` // seconds
+
 	// Metadata
-	Tags        []string  `json:"tags" bson:"tags"`
-	CreatedAt   time.Time `json:"created_at" bson:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at" bson:"updated_at"`
+	Tags      []string  `json:"tags" bson:"tags"`
+	CreatedAt time.Time `json:"created_at" bson:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`
 }
 
 // NodeSystemInfo represents node system information
@@ -76,52 +76,52 @@ type Plugin struct {
 	Description string             `json:"description" bson:"description"`
 	Author      string             `json:"author" bson:"author"`
 	Version     string             `json:"version" bson:"version"`
-	Type        string             `json:"type" bson:"type"` // scanner, processor, reporter
+	Type        string             `json:"type" bson:"type"`         // scanner, processor, reporter
 	Language    string             `json:"language" bson:"language"` // go, python
-	
+
 	// Plugin Configuration
-	EntryFile   string            `json:"entry_file" bson:"entry_file"`
-	Config      map[string]interface{} `json:"config" bson:"config"`
-	
+	EntryFile string                 `json:"entry_file" bson:"entry_file"`
+	Config    map[string]interface{} `json:"config" bson:"config"`
+
 	// Dependencies
 	Dependencies []string `json:"dependencies" bson:"dependencies"`
-	
+
 	// Status
-	Enabled     bool   `json:"enabled" bson:"enabled"`
-	Installed   bool   `json:"installed" bson:"installed"`
-	Source      string `json:"source" bson:"source"` // official, community, custom
-	
+	Enabled   bool   `json:"enabled" bson:"enabled"`
+	Installed bool   `json:"installed" bson:"installed"`
+	Source    string `json:"source" bson:"source"` // official, community, custom
+
 	// Metadata
-	Downloads   int       `json:"downloads" bson:"downloads"`
-	Rating      float64   `json:"rating" bson:"rating"`
-	Tags        []string  `json:"tags" bson:"tags"`
-	CreatedAt   time.Time `json:"created_at" bson:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at" bson:"updated_at"`
+	Downloads int       `json:"downloads" bson:"downloads"`
+	Rating    float64   `json:"rating" bson:"rating"`
+	Tags      []string  `json:"tags" bson:"tags"`
+	CreatedAt time.Time `json:"created_at" bson:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`
 }
 
 // FingerprintRule represents fingerprint detection rules
 type FingerprintRule struct {
-	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	Name        string             `json:"name" bson:"name"`
-	Category    string             `json:"category" bson:"category"` // cms, framework, server, os
-	Version     string             `json:"version" bson:"version"`
-	
+	ID       primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	Name     string             `json:"name" bson:"name"`
+	Category string             `json:"category" bson:"category"` // cms, framework, server, os
+	Version  string             `json:"version" bson:"version"`
+
 	// Detection Rules
-	Rules       []FingerprintMatch `json:"rules" bson:"rules"`
-	
+	Rules []FingerprintMatch `json:"rules" bson:"rules"`
+
 	// Metadata
-	Enabled     bool      `json:"enabled" bson:"enabled"`
-	Source      string    `json:"source" bson:"source"`
-	CreatedAt   time.Time `json:"created_at" bson:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at" bson:"updated_at"`
+	Enabled   bool      `json:"enabled" bson:"enabled"`
+	Source    string    `json:"source" bson:"source"`
+	CreatedAt time.Time `json:"created_at" bson:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`
 }
 
 // FingerprintMatch represents a single fingerprint matching rule
 type FingerprintMatch struct {
-	Type     string `json:"type" bson:"type"` // header, body, title, icon_hash
+	Type     string `json:"type" bson:"type"`                   // header, body, title, icon_hash
 	Key      string `json:"key,omitempty" bson:"key,omitempty"` // for header matching
-	Pattern  string `json:"pattern" bson:"pattern"` // regex pattern or hash value
-	Operator string `json:"operator" bson:"operator"` // contains, equals, regex, hash
+	Pattern  string `json:"pattern" bson:"pattern"`             // regex pattern or hash value
+	Operator string `json:"operator" bson:"operator"`           // contains, equals, regex, hash
 }
 
 // Dictionary represents wordlist dictionaries

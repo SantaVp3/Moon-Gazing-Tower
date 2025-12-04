@@ -8,8 +8,8 @@ import (
 	"moongazing/config"
 	"moongazing/models"
 	"moongazing/scanner/subdomain"
-	"moongazing/scanner/webscan"
 	"moongazing/scanner/subdomain/thirdparty"
+	"moongazing/scanner/webscan"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -26,14 +26,14 @@ func (e *TaskExecutor) executeSubdomainScan(task *models.Task) {
 
 	// 首先为每个非IP目标创建根域名记录
 	results := make([]models.ScanResult, 0)
-	
+
 	// 初始化扫描器
 	domainScanner := subdomain.NewDomainScanner(200)
 	httpxScanner := webscan.NewHttpxScanner(30)
-	
+
 	// 从配置文件读取第三方 API 密钥，自动创建管理器
 	thirdpartyManager := e.createThirdpartyManager()
-	
+
 	log.Printf("[TaskExecutor] Using ksubdomain for subdomain collection")
 
 	for i, target := range targets {
@@ -64,31 +64,31 @@ func (e *TaskExecutor) executeSubdomainScan(task *models.Task) {
 
 		// 收集子域名
 		subdomainSet := e.collectSubdomains(target, domainScanner, thirdpartyManager)
-		
+
 		log.Printf("[TaskExecutor] Total unique subdomains collected: %d for %s", len(subdomainSet), target)
-		
+
 		// 转换为切片
 		collectedSubdomains := make([]string, 0, len(subdomainSet))
 		for sub := range subdomainSet {
 			collectedSubdomains = append(collectedSubdomains, sub)
 		}
-		
+
 		// 使用 httpx 丰富子域名信息
 		log.Printf("[TaskExecutor] Enriching %d subdomains with HTTP info using httpx", len(collectedSubdomains))
 		e.updateProgress(task, 50+int((float64(i)/float64(len(targets)))*40))
-		
+
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 		httpxResults := httpxScanner.EnrichSubdomains(ctx, collectedSubdomains)
 		cancel()
-		
+
 		log.Printf("[TaskExecutor] Httpx enriched %d subdomains", len(httpxResults))
-		
+
 		for _, httpResult := range httpxResults {
 			ip := ""
 			if len(httpResult.IPs) > 0 {
 				ip = httpResult.IPs[0]
 			}
-			
+
 			result := models.ScanResult{
 				TaskID:      task.ID,
 				WorkspaceID: task.WorkspaceID,
@@ -122,7 +122,7 @@ func (e *TaskExecutor) executeSubdomainScan(task *models.Task) {
 // collectSubdomains 收集子域名（内置扫描器 + 第三方API）
 func (e *TaskExecutor) collectSubdomains(target string, domainScanner *subdomain.DomainScanner, thirdpartyManager *thirdparty.APIManager) map[string]bool {
 	subdomainSet := make(map[string]bool)
-	
+
 	// 使用内置扫描器 (ksubdomain) 收集子域名
 	log.Printf("[TaskExecutor] Domain scanner scanning %s", target)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
@@ -132,29 +132,29 @@ func (e *TaskExecutor) collectSubdomains(target string, domainScanner *subdomain
 		subdomainSet[sub.FullDomain] = true
 	}
 	log.Printf("[TaskExecutor] Domain scanner found %d subdomains for %s", len(scanResult.Subdomains), target)
-	
+
 	// 使用第三方 API 收集子域名
 	if thirdpartyManager != nil {
 		log.Printf("[TaskExecutor] Collecting subdomains from third-party APIs for %s", target)
 		sources := thirdpartyManager.GetConfiguredSources()
 		log.Printf("[TaskExecutor] Using third-party sources: %v", sources)
-		
+
 		ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Minute)
 		thirdpartyResult := thirdpartyManager.CollectSubdomains(ctx2, target, sources, 500)
 		cancel2()
-		
+
 		if thirdpartyResult != nil {
 			for _, sub := range thirdpartyResult.Subdomains {
 				subdomainSet[sub] = true
 			}
-			log.Printf("[TaskExecutor] Third-party APIs found %d subdomains for %s (sources: %v)", 
+			log.Printf("[TaskExecutor] Third-party APIs found %d subdomains for %s (sources: %v)",
 				thirdpartyResult.TotalFound, target, thirdpartyResult.Sources)
 		}
 	}
-	
+
 	// 添加原始域名
 	subdomainSet[target] = true
-	
+
 	return subdomainSet
 }
 
@@ -167,7 +167,7 @@ func (e *TaskExecutor) createThirdpartyManager() *thirdparty.APIManager {
 		HunterKey: cfg.ThirdParty.Hunter.Key,
 		QuakeKey:  cfg.ThirdParty.Quake.Key,
 	}
-	
+
 	if apiConfig.FofaKey != "" || apiConfig.HunterKey != "" || apiConfig.QuakeKey != "" {
 		manager := thirdparty.NewAPIManager(apiConfig)
 		configuredSources := manager.GetConfiguredSources()
@@ -189,43 +189,43 @@ func (e *TaskExecutor) executeTakeoverScan(task *models.Task) {
 
 	results := make([]models.ScanResult, 0)
 	takeoverScanner := subdomain.NewTakeoverScanner(20)
-	
+
 	// 收集所有要检测的子域名
 	allSubdomains := make([]string, 0)
-	
+
 	for i, target := range targets {
 		progress := int((float64(i) / float64(len(targets))) * 50)
 		e.updateProgress(task, progress)
-		
+
 		if isIPAddress(target) {
 			continue
 		}
 		allSubdomains = append(allSubdomains, target)
 	}
-	
+
 	if len(allSubdomains) == 0 {
 		e.failTask(task, "没有有效的域名目标")
 		return
 	}
-	
+
 	log.Printf("[TaskExecutor] Checking %d domains for takeover vulnerabilities", len(allSubdomains))
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
-	
+
 	e.updateProgress(task, 50)
-	
+
 	takeoverResults, err := takeoverScanner.ScanBatch(ctx, allSubdomains)
 	if err != nil {
 		log.Printf("[TaskExecutor] Takeover scan error: %v", err)
 	}
-	
+
 	e.updateProgress(task, 90)
-	
+
 	for _, tr := range takeoverResults {
 		if tr.Vulnerable {
 			log.Printf("[TaskExecutor] Found vulnerable subdomain: %s (Service: %s)", tr.Domain, tr.Service)
-			
+
 			result := models.ScanResult{
 				TaskID:      task.ID,
 				WorkspaceID: task.WorkspaceID,
@@ -246,9 +246,9 @@ func (e *TaskExecutor) executeTakeoverScan(task *models.Task) {
 			results = append(results, result)
 		}
 	}
-	
+
 	log.Printf("[TaskExecutor] Takeover scan completed: %d vulnerable domains found", len(results))
-	
+
 	e.saveResults(task, results)
 	e.completeTask(task, len(results))
 }

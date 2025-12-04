@@ -80,8 +80,8 @@ func (e *Engine) loadRulesFromFile(filePath string) error {
 
 	// Blacklist of overly broad rules that cause false positives
 	blacklist := map[string]bool{
-		"管理后台登录": true, // Too broad: matches any page with 管理+登录+login
-		"资管云":     true, // Contains DXImageTransform which is common IE compat code
+		"管理后台登录":    true, // Too broad: matches any page with 管理+登录+login
+		"资管云":       true, // Contains DXImageTransform which is common IE compat code
 		"jeecgboot": true, // Contains polyfill_ which is common in many sites
 	}
 

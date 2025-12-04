@@ -1,30 +1,30 @@
-import api, { ApiResponse } from '@/lib/api'
+import api, { ApiResponse } from '@/lib/api';
 
 // 接管检测结果
 export interface TakeoverResult {
-  domain: string
-  vulnerable: boolean
-  provider?: string
-  cnames?: string[]
-  fingerprint?: string
-  confidence: 'high' | 'medium' | 'low'
-  checkedAt: string
+  domain: string;
+  vulnerable: boolean;
+  provider?: string;
+  cnames?: string[];
+  fingerprint?: string;
+  confidence: 'high' | 'medium' | 'low';
+  checkedAt: string;
 }
 
 // 批量检测结果
 export interface BatchTakeoverResult {
-  total: number
-  vulnerable: number
-  results: TakeoverResult[]
-  duration: string
+  total: number;
+  vulnerable: number;
+  results: TakeoverResult[];
+  duration: string;
 }
 
 // 服务商信息
 export interface TakeoverProvider {
-  name: string
-  cnames: string[]
-  fingerprints: string[]
-  description: string
+  name: string;
+  cnames: string[];
+  fingerprints: string[];
+  description: string;
 }
 
 export const takeoverApi = {
@@ -41,6 +41,10 @@ export const takeoverApi = {
     api.get('/scan/takeover/providers'),
 
   // 获取历史检测记录
-  getHistory: (params?: { page?: number; pageSize?: number; vulnerable?: boolean }): Promise<ApiResponse<{ list: TakeoverResult[]; total: number }>> =>
+  getHistory: (params?: {
+    page?: number;
+    pageSize?: number;
+    vulnerable?: boolean;
+  }): Promise<ApiResponse<{ list: TakeoverResult[]; total: number }>> =>
     api.get('/scan/takeover/history', { params }),
-}
+};

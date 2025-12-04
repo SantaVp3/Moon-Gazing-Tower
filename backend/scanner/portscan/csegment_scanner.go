@@ -13,24 +13,24 @@ import (
 
 // HostResult represents the result of scanning a single host
 type HostResult struct {
-	IP        string       `json:"ip"`
-	Alive     bool         `json:"alive"`
-	Hostname  string       `json:"hostname,omitempty"`
+	IP        string            `json:"ip"`
+	Alive     bool              `json:"alive"`
+	Hostname  string            `json:"hostname,omitempty"`
 	OpenPorts []core.PortResult `json:"open_ports,omitempty"`
-	ScanTime  time.Duration `json:"scan_time_ms"`
+	ScanTime  time.Duration     `json:"scan_time_ms"`
 }
 
 // CSegmentResult represents the result of a C segment scan
 type CSegmentResult struct {
-	Network     string       `json:"network"`
-	StartIP     string       `json:"start_ip"`
-	EndIP       string       `json:"end_ip"`
-	TotalHosts  int          `json:"total_hosts"`
-	AliveHosts  int          `json:"alive_hosts"`
-	StartTime   time.Time    `json:"start_time"`
-	EndTime     time.Time    `json:"end_time"`
-	Duration    string       `json:"duration"`
-	Hosts       []HostResult `json:"hosts"`
+	Network    string       `json:"network"`
+	StartIP    string       `json:"start_ip"`
+	EndIP      string       `json:"end_ip"`
+	TotalHosts int          `json:"total_hosts"`
+	AliveHosts int          `json:"alive_hosts"`
+	StartTime  time.Time    `json:"start_time"`
+	EndTime    time.Time    `json:"end_time"`
+	Duration   string       `json:"duration"`
+	Hosts      []HostResult `json:"hosts"`
 }
 
 // CSegmentScanner handles C segment scanning
@@ -95,7 +95,7 @@ func ParseCSegment(input string) ([]string, string, error) {
 		if len(parts) != 4 {
 			return nil, "", fmt.Errorf("invalid IP format")
 		}
-		
+
 		rangePart := parts[3]
 		rangeParts := strings.Split(rangePart, "-")
 		if len(rangeParts) != 2 {
@@ -140,7 +140,7 @@ func ParseCSegment(input string) ([]string, string, error) {
 func (s *CSegmentScanner) IsHostAlive(ctx context.Context, ip string) bool {
 	// Try common ports to detect if host is alive
 	alivePorts := []int{80, 443, 22, 445, 139, 3389, 8080}
-	
+
 	for _, port := range alivePorts {
 		select {
 		case <-ctx.Done():
@@ -236,7 +236,7 @@ func (s *CSegmentScanner) ScanCSegment(ctx context.Context, target string, ports
 			defer func() { <-semaphore }()
 
 			hostResult := s.ScanHost(ctx, ipAddr, ports)
-			
+
 			mu.Lock()
 			if aliveOnly {
 				if hostResult.Alive {

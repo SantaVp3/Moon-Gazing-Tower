@@ -1,11 +1,11 @@
-import { useState, useRef } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { pocApi, POC, CreatePOCRequest } from '@/api/pocs'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
+import { useState, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { pocApi, POC, CreatePOCRequest } from '@/api/pocs';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -13,44 +13,54 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
+} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog'
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/components/ui/use-toast'
-import { cn, formatDate, getSeverityColor } from '@/lib/utils'
-import { Search, Plus, Eye, Upload, RefreshCw, Trash2, FileArchive, FileText, ChevronDown } from 'lucide-react'
-import { Checkbox } from '@/components/ui/checkbox'
+} from '@/components/ui/dropdown-menu';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/components/ui/use-toast';
+import { cn, formatDate, getSeverityColor } from '@/lib/utils';
+import {
+  Search,
+  Plus,
+  Eye,
+  Upload,
+  RefreshCw,
+  Trash2,
+  FileArchive,
+  FileText,
+  ChevronDown,
+} from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export default function POCsPage() {
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const zipInputRef = useRef<HTMLInputElement>(null)
-  const [search, setSearch] = useState('')
-  const [page, setPage] = useState(1)
-  const [selectedPOC, setSelectedPOC] = useState<POC | null>(null)
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [isImporting, setIsImporting] = useState(false)
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const zipInputRef = useRef<HTMLInputElement>(null);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [selectedPOC, setSelectedPOC] = useState<POC | null>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [newPOC, setNewPOC] = useState<CreatePOCRequest>({
     name: '',
     type: 'custom',
@@ -61,7 +71,7 @@ export default function POCsPage() {
     tags: [],
     author: '',
     enabled: true,
-  })
+  });
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['pocs', page, search],
@@ -71,21 +81,21 @@ export default function POCsPage() {
         pageSize: 10,
         search,
       }),
-  })
+  });
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
       pocApi.toggleEnabled(id, enabled),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pocs'] })
+      queryClient.invalidateQueries({ queryKey: ['pocs'] });
     },
-  })
+  });
 
   const createMutation = useMutation({
     mutationFn: pocApi.create,
     onSuccess: () => {
-      toast({ title: 'POC 创建成功' })
-      setIsCreateDialogOpen(false)
+      toast({ title: 'POC 创建成功' });
+      setIsCreateDialogOpen(false);
       setNewPOC({
         name: '',
         type: 'custom',
@@ -96,128 +106,131 @@ export default function POCsPage() {
         tags: [],
         author: '',
         enabled: true,
-      })
-      queryClient.invalidateQueries({ queryKey: ['pocs'] })
-      refetch()
+      });
+      queryClient.invalidateQueries({ queryKey: ['pocs'] });
+      refetch();
     },
     onError: () => {
-      toast({ title: 'POC 创建失败', variant: 'destructive' })
+      toast({ title: 'POC 创建失败', variant: 'destructive' });
     },
-  })
+  });
 
   const deleteMutation = useMutation({
     mutationFn: pocApi.delete,
     onSuccess: () => {
-      toast({ title: '删除成功' })
-      queryClient.invalidateQueries({ queryKey: ['pocs'] })
+      toast({ title: '删除成功' });
+      queryClient.invalidateQueries({ queryKey: ['pocs'] });
     },
-  })
+  });
 
   const batchDeleteMutation = useMutation({
     mutationFn: pocApi.batchDelete,
     onSuccess: (response) => {
-      const result = response.data || response
-      toast({ 
+      const result = response.data || response;
+      toast({
         title: '批量删除完成',
-        description: `成功删除 ${result.deleted} 个，失败 ${result.failed} 个`
-      })
-      setSelectedIds([])
-      queryClient.invalidateQueries({ queryKey: ['pocs'] })
+        description: `成功删除 ${result.deleted} 个，失败 ${result.failed} 个`,
+      });
+      setSelectedIds([]);
+      queryClient.invalidateQueries({ queryKey: ['pocs'] });
     },
     onError: () => {
-      toast({ title: '批量删除失败', variant: 'destructive' })
+      toast({ title: '批量删除失败', variant: 'destructive' });
     },
-  })
+  });
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(pocs.map(p => p.id))
+      setSelectedIds(pocs.map((p) => p.id));
     } else {
-      setSelectedIds([])
+      setSelectedIds([]);
     }
-  }
+  };
 
   const handleSelectOne = (id: string, checked: boolean) => {
     if (checked) {
-      setSelectedIds(prev => [...prev, id])
+      setSelectedIds((prev) => [...prev, id]);
     } else {
-      setSelectedIds(prev => prev.filter(i => i !== id))
+      setSelectedIds((prev) => prev.filter((i) => i !== id));
     }
-  }
+  };
 
   const handleBatchDelete = () => {
     if (selectedIds.length === 0) {
-      toast({ title: '请先选择要删除的POC', variant: 'destructive' })
-      return
+      toast({ title: '请先选择要删除的POC', variant: 'destructive' });
+      return;
     }
     if (confirm(`确定要删除选中的 ${selectedIds.length} 个POC吗？`)) {
-      batchDeleteMutation.mutate(selectedIds)
+      batchDeleteMutation.mutate(selectedIds);
     }
-  }
+  };
 
   const clearAllMutation = useMutation({
     mutationFn: pocApi.clearAll,
     onSuccess: (response) => {
-      const result = response.data || response
-      toast({ 
+      const result = response.data || response;
+      toast({
         title: '清除完成',
-        description: `已删除 ${result.deleted} 个POC`
-      })
-      setSelectedIds([])
-      queryClient.invalidateQueries({ queryKey: ['pocs'] })
-      refetch()
+        description: `已删除 ${result.deleted} 个POC`,
+      });
+      setSelectedIds([]);
+      queryClient.invalidateQueries({ queryKey: ['pocs'] });
+      refetch();
     },
     onError: () => {
-      toast({ title: '清除失败', variant: 'destructive' })
+      toast({ title: '清除失败', variant: 'destructive' });
     },
-  })
+  });
 
   const handleClearAll = () => {
     if (total === 0) {
-      toast({ title: '没有POC可清除', variant: 'destructive' })
-      return
+      toast({ title: '没有POC可清除', variant: 'destructive' });
+      return;
     }
     if (confirm(`确定要清除所有 ${total} 个POC吗？此操作不可恢复！`)) {
-      clearAllMutation.mutate()
+      clearAllMutation.mutate();
     }
-  }
+  };
 
   const handleCreate = () => {
     if (!newPOC.name || !newPOC.content) {
-      toast({ title: '请填写名称和内容', variant: 'destructive' })
-      return
+      toast({ title: '请填写名称和内容', variant: 'destructive' });
+      return;
     }
-    createMutation.mutate(newPOC)
-  }
+    createMutation.mutate(newPOC);
+  };
 
   const handleImport = () => {
-    fileInputRef.current?.click()
-  }
+    fileInputRef.current?.click();
+  };
 
   const handleZipImport = () => {
-    zipInputRef.current?.click()
-  }
+    zipInputRef.current?.click();
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onload = (event) => {
-      const content = event.target?.result as string
-      
+      const content = event.target?.result as string;
+
       // 尝试解析 Nuclei YAML 模板
-      const parsedPOC = parseNucleiTemplate(content, file.name)
-      
-      setNewPOC(parsedPOC)
-      setIsCreateDialogOpen(true)
-    }
-    reader.readAsText(file)
-    e.target.value = ''
-  }
+      const parsedPOC = parseNucleiTemplate(content, file.name);
+
+      setNewPOC(parsedPOC);
+      setIsCreateDialogOpen(true);
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
 
   // 解析 Nuclei 模板 YAML
-  const parseNucleiTemplate = (content: string, filename: string): CreatePOCRequest => {
+  const parseNucleiTemplate = (
+    content: string,
+    filename: string
+  ): CreatePOCRequest => {
     const result: CreatePOCRequest = {
       name: filename.replace(/\.(yaml|yml|json)$/, ''),
       type: 'nuclei',
@@ -228,138 +241,154 @@ export default function POCsPage() {
       tags: [],
       author: '',
       enabled: true,
-    }
+    };
 
     try {
       // 简单解析 YAML（不使用库，手动匹配关键字段）
-      const lines = content.split('\n')
-      
+      const lines = content.split('\n');
+
       for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim()
-        
+        const line = lines[i].trim();
+
         // 解析 id
         if (line.startsWith('id:')) {
-          const id = line.replace('id:', '').trim().replace(/['"]/g, '')
-          result.name = id
+          const id = line.replace('id:', '').trim().replace(/['"]/g, '');
+          result.name = id;
         }
-        
+
         // 解析 name
         if (line.startsWith('name:')) {
-          const name = line.replace('name:', '').trim().replace(/['"]/g, '')
-          if (name) result.name = name
+          const name = line.replace('name:', '').trim().replace(/['"]/g, '');
+          if (name) result.name = name;
         }
-        
+
         // 解析 author
         if (line.startsWith('author:')) {
-          result.author = line.replace('author:', '').trim().replace(/['"]/g, '')
+          result.author = line
+            .replace('author:', '')
+            .trim()
+            .replace(/['"]/g, '');
         }
-        
+
         // 解析 severity
         if (line.startsWith('severity:')) {
-          const severity = line.replace('severity:', '').trim().toLowerCase().replace(/['"]/g, '')
-          if (['critical', 'high', 'medium', 'low', 'info'].includes(severity)) {
-            result.severity = severity
+          const severity = line
+            .replace('severity:', '')
+            .trim()
+            .toLowerCase()
+            .replace(/['"]/g, '');
+          if (
+            ['critical', 'high', 'medium', 'low', 'info'].includes(severity)
+          ) {
+            result.severity = severity;
           }
         }
-        
+
         // 解析 description
         if (line.startsWith('description:')) {
-          let desc = line.replace('description:', '').trim()
+          let desc = line.replace('description:', '').trim();
           // 处理多行描述
           if (desc === '|' || desc === '>') {
-            desc = ''
+            desc = '';
             for (let j = i + 1; j < lines.length; j++) {
-              const nextLine = lines[j]
+              const nextLine = lines[j];
               if (nextLine.match(/^\s{2,}/) || nextLine.trim() === '') {
-                desc += nextLine.trim() + ' '
+                desc += nextLine.trim() + ' ';
               } else {
-                break
+                break;
               }
             }
           }
-          result.description = desc.replace(/['"]/g, '').trim()
+          result.description = desc.replace(/['"]/g, '').trim();
         }
-        
+
         // 解析 tags
         if (line.startsWith('tags:')) {
-          const tagsStr = line.replace('tags:', '').trim().replace(/['"]/g, '')
+          const tagsStr = line.replace('tags:', '').trim().replace(/['"]/g, '');
           if (tagsStr) {
-            result.tags = tagsStr.split(',').map(t => t.trim()).filter(Boolean)
+            result.tags = tagsStr
+              .split(',')
+              .map((t) => t.trim())
+              .filter(Boolean);
           }
         }
-        
+
         // 解析 cve-id
         if (line.includes('cve-id:') || line.includes('cveid:')) {
           // 可能是数组格式
-          const nextLines: string[] = []
+          const nextLines: string[] = [];
           for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
             if (lines[j].trim().startsWith('-')) {
-              nextLines.push(lines[j].trim().replace(/^-\s*/, '').replace(/['"]/g, ''))
+              nextLines.push(
+                lines[j].trim().replace(/^-\s*/, '').replace(/['"]/g, '')
+              );
             } else if (!lines[j].trim().startsWith('#')) {
-              break
+              break;
             }
           }
           if (nextLines.length > 0) {
-            result.cveId = nextLines[0]
+            result.cveId = nextLines[0];
           } else {
-            const cveMatch = line.match(/CVE-\d{4}-\d+/i)
+            const cveMatch = line.match(/CVE-\d{4}-\d+/i);
             if (cveMatch) {
-              result.cveId = cveMatch[0].toUpperCase()
+              result.cveId = cveMatch[0].toUpperCase();
             }
           }
         }
       }
-      
+
       // 如果在 content 中找到 CVE 但没解析到，尝试全文搜索
       if (!result.cveId) {
-        const cveMatch = content.match(/CVE-\d{4}-\d+/i)
+        const cveMatch = content.match(/CVE-\d{4}-\d+/i);
         if (cveMatch) {
-          result.cveId = cveMatch[0].toUpperCase()
+          result.cveId = cveMatch[0].toUpperCase();
         }
       }
     } catch (error) {
-      console.error('Failed to parse YAML:', error)
+      console.error('Failed to parse YAML:', error);
     }
 
-    return result
-  }
+    return result;
+  };
 
-  const handleZipFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const handleZipFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
     if (!file.name.endsWith('.zip')) {
-      toast({ title: '请选择 ZIP 文件', variant: 'destructive' })
-      return
+      toast({ title: '请选择 ZIP 文件', variant: 'destructive' });
+      return;
     }
 
-    setIsImporting(true)
+    setIsImporting(true);
     try {
-      const response = await pocApi.importZip(file)
+      const response = await pocApi.importZip(file);
       // 兼容两种响应格式
-      const result = response.data || response
-      const imported = result.imported ?? 0
-      const failed = result.failed ?? 0
-      const skipped = result.skipped ?? 0
-      
-      toast({ 
+      const result = response.data || response;
+      const imported = result.imported ?? 0;
+      const failed = result.failed ?? 0;
+      const skipped = result.skipped ?? 0;
+
+      toast({
         title: 'ZIP 导入完成',
         description: `成功导入 ${imported} 个POC，失败 ${failed} 个，跳过 ${skipped} 个`,
-      })
+      });
       // 强制刷新列表
-      await queryClient.invalidateQueries({ queryKey: ['pocs'] })
-      refetch()
+      await queryClient.invalidateQueries({ queryKey: ['pocs'] });
+      refetch();
     } catch (error) {
-      toast({ title: '导入失败', variant: 'destructive' })
+      toast({ title: '导入失败', variant: 'destructive' });
     } finally {
-      setIsImporting(false)
-      e.target.value = ''
+      setIsImporting(false);
+      e.target.value = '';
     }
-  }
+  };
 
-  const pocs = data?.data?.list || []
-  const total = data?.data?.total || 0
-  const totalPages = Math.ceil(total / 10)
+  const pocs = data?.data?.list || [];
+  const total = data?.data?.total || 0;
+  const totalPages = Math.ceil(total / 10);
 
   const getSeverityLabel = (severity: string) => {
     const labels: Record<string, string> = {
@@ -368,9 +397,9 @@ export default function POCsPage() {
       medium: '中危',
       low: '低危',
       info: '信息',
-    }
-    return labels[severity] || severity
-  }
+    };
+    return labels[severity] || severity;
+  };
 
   return (
     <div className="space-y-6">
@@ -407,11 +436,21 @@ export default function POCsPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); handleImport(); }}>
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  handleImport();
+                }}
+              >
                 <FileText className="h-4 w-4 mr-2" />
                 导入单个文件 (YAML/JSON)
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); handleZipImport(); }}>
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  handleZipImport();
+                }}
+              >
                 <FileArchive className="h-4 w-4 mr-2" />
                 批量导入 (ZIP包)
               </DropdownMenuItem>
@@ -421,9 +460,9 @@ export default function POCsPage() {
             <Plus className="h-4 w-4 mr-2" />
             新建POC
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleClearAll}
             disabled={clearAllMutation.isPending || total === 0}
             className="text-destructive hover:text-destructive"
@@ -446,8 +485,8 @@ export default function POCsPage() {
           />
         </div>
         {selectedIds.length > 0 && (
-          <Button 
-            variant="destructive" 
+          <Button
+            variant="destructive"
             size="sm"
             onClick={handleBatchDelete}
             disabled={batchDeleteMutation.isPending}
@@ -465,7 +504,9 @@ export default function POCsPage() {
             <TableRow>
               <TableHead className="w-12">
                 <Checkbox
-                  checked={pocs.length > 0 && selectedIds.length === pocs.length}
+                  checked={
+                    pocs.length > 0 && selectedIds.length === pocs.length
+                  }
                   onCheckedChange={handleSelectAll}
                 />
               </TableHead>
@@ -488,7 +529,10 @@ export default function POCsPage() {
               </TableRow>
             ) : pocs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                <TableCell
+                  colSpan={9}
+                  className="text-center py-8 text-muted-foreground"
+                >
                   暂无数据
                 </TableCell>
               </TableRow>
@@ -498,10 +542,14 @@ export default function POCsPage() {
                   <TableCell>
                     <Checkbox
                       checked={selectedIds.includes(poc.id)}
-                      onCheckedChange={(checked) => handleSelectOne(poc.id, !!checked)}
+                      onCheckedChange={(checked) =>
+                        handleSelectOne(poc.id, !!checked)
+                      }
                     />
                   </TableCell>
-                  <TableCell className="font-medium max-w-xs truncate">{poc.name}</TableCell>
+                  <TableCell className="font-medium max-w-xs truncate">
+                    {poc.name}
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline">{poc.type}</Badge>
                   </TableCell>
@@ -514,12 +562,18 @@ export default function POCsPage() {
                   <TableCell>
                     <div className="flex gap-1 flex-wrap max-w-32">
                       {poc.tags?.slice(0, 2).map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
+                        <Badge
+                          key={tag}
+                          variant="secondary"
+                          className="text-xs"
+                        >
                           {tag}
                         </Badge>
                       ))}
                       {poc.tags && poc.tags.length > 2 && (
-                        <Badge variant="secondary" className="text-xs">+{poc.tags.length - 2}</Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          +{poc.tags.length - 2}
+                        </Badge>
                       )}
                     </div>
                   </TableCell>
@@ -645,7 +699,9 @@ export default function POCsPage() {
                 <Label>名称 *</Label>
                 <Input
                   value={newPOC.name}
-                  onChange={(e) => setNewPOC({ ...newPOC, name: e.target.value })}
+                  onChange={(e) =>
+                    setNewPOC({ ...newPOC, name: e.target.value })
+                  }
                   placeholder="POC 名称"
                 />
               </div>
@@ -687,7 +743,9 @@ export default function POCsPage() {
                 <Label>CVE ID</Label>
                 <Input
                   value={newPOC.cveId}
-                  onChange={(e) => setNewPOC({ ...newPOC, cveId: e.target.value })}
+                  onChange={(e) =>
+                    setNewPOC({ ...newPOC, cveId: e.target.value })
+                  }
                   placeholder="CVE-XXXX-XXXX"
                 />
               </div>
@@ -696,7 +754,9 @@ export default function POCsPage() {
               <Label>描述</Label>
               <Input
                 value={newPOC.description}
-                onChange={(e) => setNewPOC({ ...newPOC, description: e.target.value })}
+                onChange={(e) =>
+                  setNewPOC({ ...newPOC, description: e.target.value })
+                }
                 placeholder="POC 描述"
               />
             </div>
@@ -704,7 +764,15 @@ export default function POCsPage() {
               <Label>标签 (逗号分隔)</Label>
               <Input
                 value={newPOC.tags?.join(', ')}
-                onChange={(e) => setNewPOC({ ...newPOC, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })}
+                onChange={(e) =>
+                  setNewPOC({
+                    ...newPOC,
+                    tags: e.target.value
+                      .split(',')
+                      .map((t) => t.trim())
+                      .filter(Boolean),
+                  })
+                }
                 placeholder="web, rce, sql"
               />
             </div>
@@ -712,14 +780,19 @@ export default function POCsPage() {
               <Label>POC 内容 *</Label>
               <Textarea
                 value={newPOC.content}
-                onChange={(e) => setNewPOC({ ...newPOC, content: e.target.value })}
+                onChange={(e) =>
+                  setNewPOC({ ...newPOC, content: e.target.value })
+                }
                 placeholder="POC YAML/JSON 内容"
                 className="font-mono text-sm h-64"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsCreateDialogOpen(false)}
+            >
               取消
             </Button>
             <Button onClick={handleCreate} disabled={createMutation.isPending}>
@@ -729,5 +802,5 @@ export default function POCsPage() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

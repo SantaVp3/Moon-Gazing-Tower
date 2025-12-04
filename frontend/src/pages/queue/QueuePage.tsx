@@ -1,10 +1,16 @@
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { queueApi, QueueTask } from '@/api/queue'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { queueApi, QueueTask } from '@/api/queue';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -12,10 +18,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Progress } from '@/components/ui/progress'
-import { useToast } from '@/components/ui/use-toast'
-import { formatDate } from '@/lib/utils'
+} from '@/components/ui/table';
+import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/components/ui/use-toast';
+import { formatDate } from '@/lib/utils';
 import {
   ListTodo,
   RefreshCw,
@@ -27,29 +33,60 @@ import {
   AlertTriangle,
   Loader2,
   Server,
-} from 'lucide-react'
+} from 'lucide-react';
 
-const statusConfig: Record<string, { label: string; variant: 'default' | 'destructive' | 'outline' | 'secondary'; icon: React.ReactNode }> = {
-  pending: { label: '等待中', variant: 'outline', icon: <Clock className="h-3 w-3" /> },
-  processing: { label: '处理中', variant: 'default', icon: <Loader2 className="h-3 w-3 animate-spin" /> },
-  completed: { label: '已完成', variant: 'secondary', icon: <CheckCircle className="h-3 w-3" /> },
-  failed: { label: '失败', variant: 'destructive', icon: <XCircle className="h-3 w-3" /> },
-  deadletter: { label: '死信', variant: 'destructive', icon: <AlertTriangle className="h-3 w-3" /> },
-}
+const statusConfig: Record<
+  string,
+  {
+    label: string;
+    variant: 'default' | 'destructive' | 'outline' | 'secondary';
+    icon: React.ReactNode;
+  }
+> = {
+  pending: {
+    label: '等待中',
+    variant: 'outline',
+    icon: <Clock className="h-3 w-3" />,
+  },
+  processing: {
+    label: '处理中',
+    variant: 'default',
+    icon: <Loader2 className="h-3 w-3 animate-spin" />,
+  },
+  completed: {
+    label: '已完成',
+    variant: 'secondary',
+    icon: <CheckCircle className="h-3 w-3" />,
+  },
+  failed: {
+    label: '失败',
+    variant: 'destructive',
+    icon: <XCircle className="h-3 w-3" />,
+  },
+  deadletter: {
+    label: '死信',
+    variant: 'destructive',
+    icon: <AlertTriangle className="h-3 w-3" />,
+  },
+};
 
 export default function QueuePage() {
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
-  const [activeTab, setActiveTab] = useState('overview')
-  const [pendingPage, setPendingPage] = useState(1)
-  const [deadletterPage, setDeadletterPage] = useState(1)
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState('overview');
+  const [pendingPage, setPendingPage] = useState(1);
+  const [deadletterPage, setDeadletterPage] = useState(1);
 
   // 获取队列统计
-  const { data: statsData, isLoading: statsLoading, refetch: refetchStats } = useQuery({
+  const {
+    data: statsData,
+    isLoading: statsLoading,
+    refetch: refetchStats,
+  } = useQuery({
     queryKey: ['queue-stats'],
     queryFn: queueApi.getStats,
     refetchInterval: 5000, // 每5秒刷新
-  })
+  });
 
   // 获取处理中任务
   const { data: processingData } = useQuery({
@@ -57,21 +94,23 @@ export default function QueuePage() {
     queryFn: queueApi.getProcessingTasks,
     refetchInterval: 3000,
     enabled: activeTab === 'processing',
-  })
+  });
 
   // 获取待处理任务
   const { data: pendingData, isLoading: pendingLoading } = useQuery({
     queryKey: ['queue-pending', pendingPage],
-    queryFn: () => queueApi.getPendingTasks({ page: pendingPage, pageSize: 10 }),
+    queryFn: () =>
+      queueApi.getPendingTasks({ page: pendingPage, pageSize: 10 }),
     enabled: activeTab === 'pending',
-  })
+  });
 
   // 获取死信队列
   const { data: deadletterData, isLoading: deadletterLoading } = useQuery({
     queryKey: ['queue-deadletter', deadletterPage],
-    queryFn: () => queueApi.getDeadLetterTasks({ page: deadletterPage, pageSize: 10 }),
+    queryFn: () =>
+      queueApi.getDeadLetterTasks({ page: deadletterPage, pageSize: 10 }),
     enabled: activeTab === 'deadletter',
-  })
+  });
 
   // 获取Worker状态
   const { data: workersData } = useQuery({
@@ -79,47 +118,47 @@ export default function QueuePage() {
     queryFn: queueApi.getWorkerStatus,
     refetchInterval: 5000,
     enabled: activeTab === 'workers',
-  })
+  });
 
   // 重试死信任务
   const retryMutation = useMutation({
     mutationFn: queueApi.retryDeadLetterTask,
     onSuccess: () => {
-      toast({ title: '已重新加入队列' })
-      queryClient.invalidateQueries({ queryKey: ['queue-deadletter'] })
-      queryClient.invalidateQueries({ queryKey: ['queue-stats'] })
+      toast({ title: '已重新加入队列' });
+      queryClient.invalidateQueries({ queryKey: ['queue-deadletter'] });
+      queryClient.invalidateQueries({ queryKey: ['queue-stats'] });
     },
-  })
+  });
 
   // 清空死信队列
   const clearDeadletterMutation = useMutation({
     mutationFn: queueApi.clearDeadLetter,
     onSuccess: () => {
-      toast({ title: '已清空死信队列' })
-      queryClient.invalidateQueries({ queryKey: ['queue-deadletter'] })
-      queryClient.invalidateQueries({ queryKey: ['queue-stats'] })
+      toast({ title: '已清空死信队列' });
+      queryClient.invalidateQueries({ queryKey: ['queue-deadletter'] });
+      queryClient.invalidateQueries({ queryKey: ['queue-stats'] });
     },
-  })
+  });
 
   // 取消任务
   const cancelMutation = useMutation({
     mutationFn: queueApi.cancelTask,
     onSuccess: () => {
-      toast({ title: '任务已取消' })
-      queryClient.invalidateQueries({ queryKey: ['queue-pending'] })
-      queryClient.invalidateQueries({ queryKey: ['queue-stats'] })
+      toast({ title: '任务已取消' });
+      queryClient.invalidateQueries({ queryKey: ['queue-pending'] });
+      queryClient.invalidateQueries({ queryKey: ['queue-stats'] });
     },
-  })
+  });
 
-  const stats = statsData?.data
-  const processing = processingData?.data || []
-  const pending = pendingData?.data?.list || []
-  const pendingTotal = pendingData?.data?.total || 0
-  const pendingTotalPages = Math.ceil(pendingTotal / 10)
-  const deadletter = deadletterData?.data?.list || []
-  const deadletterTotal = deadletterData?.data?.total || 0
-  const deadletterTotalPages = Math.ceil(deadletterTotal / 10)
-  const workers = workersData?.data?.workers || []
+  const stats = statsData?.data;
+  const processing = processingData?.data || [];
+  const pending = pendingData?.data?.list || [];
+  const pendingTotal = pendingData?.data?.total || 0;
+  const pendingTotalPages = Math.ceil(pendingTotal / 10);
+  const deadletter = deadletterData?.data?.list || [];
+  const deadletterTotal = deadletterData?.data?.total || 0;
+  const deadletterTotalPages = Math.ceil(deadletterTotal / 10);
+  const workers = workersData?.data?.workers || [];
 
   return (
     <div className="space-y-6">
@@ -218,9 +257,20 @@ export default function QueuePage() {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>平均处理时间</span>
-              <span>{stats?.averageProcessTime ? `${stats.averageProcessTime}ms` : '-'}</span>
+              <span>
+                {stats?.averageProcessTime
+                  ? `${stats.averageProcessTime}ms`
+                  : '-'}
+              </span>
             </div>
-            <Progress value={stats ? (stats.workersActive / Math.max(stats.workersTotal, 1)) * 100 : 0} />
+            <Progress
+              value={
+                stats
+                  ? (stats.workersActive / Math.max(stats.workersTotal, 1)) *
+                    100
+                  : 0
+              }
+            />
           </div>
         </CardContent>
       </Card>
@@ -232,7 +282,10 @@ export default function QueuePage() {
           <TabsTrigger value="processing">
             处理中
             {stats?.processing ? (
-              <Badge variant="default" className="ml-2 h-5 w-5 p-0 justify-center">
+              <Badge
+                variant="default"
+                className="ml-2 h-5 w-5 p-0 justify-center"
+              >
                 {stats.processing}
               </Badge>
             ) : null}
@@ -240,7 +293,10 @@ export default function QueuePage() {
           <TabsTrigger value="pending">
             等待中
             {stats?.pending ? (
-              <Badge variant="outline" className="ml-2 h-5 w-5 p-0 justify-center">
+              <Badge
+                variant="outline"
+                className="ml-2 h-5 w-5 p-0 justify-center"
+              >
                 {stats.pending}
               </Badge>
             ) : null}
@@ -248,7 +304,10 @@ export default function QueuePage() {
           <TabsTrigger value="deadletter">
             死信队列
             {stats?.deadletter ? (
-              <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 justify-center">
+              <Badge
+                variant="destructive"
+                className="ml-2 h-5 w-5 p-0 justify-center"
+              >
                 {stats.deadletter}
               </Badge>
             ) : null}
@@ -267,10 +326,23 @@ export default function QueuePage() {
               <CardContent>
                 <div className="flex items-center gap-4">
                   <div className="flex-1">
-                    <Progress value={100 - (stats?.failed || 0) / Math.max(stats?.totalProcessed || 1, 1) * 100} />
+                    <Progress
+                      value={
+                        100 -
+                        ((stats?.failed || 0) /
+                          Math.max(stats?.totalProcessed || 1, 1)) *
+                          100
+                      }
+                    />
                   </div>
                   <span className="text-2xl font-bold text-green-600">
-                    {Math.round(100 - (stats?.failed || 0) / Math.max(stats?.totalProcessed || 1, 1) * 100)}%
+                    {Math.round(
+                      100 -
+                        ((stats?.failed || 0) /
+                          Math.max(stats?.totalProcessed || 1, 1)) *
+                          100
+                    )}
+                    %
                   </span>
                 </div>
               </CardContent>
@@ -339,7 +411,9 @@ export default function QueuePage() {
               variant="destructive"
               size="sm"
               onClick={() => clearDeadletterMutation.mutate()}
-              disabled={clearDeadletterMutation.isPending || deadletter.length === 0}
+              disabled={
+                clearDeadletterMutation.isPending || deadletter.length === 0
+              }
             >
               <Trash2 className="h-4 w-4 mr-2" />
               清空队列
@@ -388,7 +462,9 @@ export default function QueuePage() {
                       <Server className="h-4 w-4" />
                       {worker.id}
                     </CardTitle>
-                    <Badge variant={worker.status === 'busy' ? 'default' : 'outline'}>
+                    <Badge
+                      variant={worker.status === 'busy' ? 'default' : 'outline'}
+                    >
                       {worker.status === 'busy' ? '忙碌' : '空闲'}
                     </Badge>
                   </div>
@@ -401,7 +477,9 @@ export default function QueuePage() {
                   {worker.currentTask && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">当前任务</span>
-                      <span className="truncate max-w-[150px]">{worker.currentTask}</span>
+                      <span className="truncate max-w-[150px]">
+                        {worker.currentTask}
+                      </span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
@@ -420,7 +498,7 @@ export default function QueuePage() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }
 
 // 任务表格组件
@@ -433,13 +511,13 @@ function TaskTable({
   onCancel,
   onRetry,
 }: {
-  tasks: QueueTask[]
-  loading: boolean
-  emptyText: string
-  showCancel?: boolean
-  showRetry?: boolean
-  onCancel?: (id: string) => void
-  onRetry?: (id: string) => void
+  tasks: QueueTask[];
+  loading: boolean;
+  emptyText: string;
+  showCancel?: boolean;
+  showRetry?: boolean;
+  onCancel?: (id: string) => void;
+  onRetry?: (id: string) => void;
 }) {
   return (
     <div className="border rounded-lg">
@@ -458,7 +536,10 @@ function TaskTable({
         <TableBody>
           {loading ? (
             <TableRow>
-              <TableCell colSpan={showCancel || showRetry ? 7 : 6} className="text-center py-8">
+              <TableCell
+                colSpan={showCancel || showRetry ? 7 : 6}
+                className="text-center py-8"
+              >
                 加载中...
               </TableCell>
             </TableRow>
@@ -473,7 +554,7 @@ function TaskTable({
             </TableRow>
           ) : (
             tasks.map((task) => {
-              const status = statusConfig[task.status] || statusConfig.pending
+              const status = statusConfig[task.status] || statusConfig.pending;
               return (
                 <TableRow key={task.id}>
                   <TableCell className="font-mono text-xs">{task.id}</TableCell>
@@ -481,7 +562,10 @@ function TaskTable({
                     <Badge variant="outline">{task.type}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={status.variant} className="flex items-center gap-1 w-fit">
+                    <Badge
+                      variant={status.variant}
+                      className="flex items-center gap-1 w-fit"
+                    >
                       {status.icon}
                       {status.label}
                     </Badge>
@@ -518,11 +602,11 @@ function TaskTable({
                     </TableCell>
                   )}
                 </TableRow>
-              )
+              );
             })
           )}
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }

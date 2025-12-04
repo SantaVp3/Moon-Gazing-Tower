@@ -29,11 +29,11 @@ type NotifyManager struct {
 	notifiers []Notifier
 	configs   []NotifyConfig
 	mu        sync.RWMutex
-	
+
 	// 通知队列
-	queue      chan *NotifyMessage
-	stopCh     chan struct{}
-	
+	queue  chan *NotifyMessage
+	stopCh chan struct{}
+
 	// 通知历史
 	history    []*NotifyHistory
 	historyMu  sync.RWMutex
@@ -42,12 +42,12 @@ type NotifyManager struct {
 
 // NotifyHistory 通知历史记录
 type NotifyHistory struct {
-	ID        string      `json:"id"`
+	ID        string         `json:"id"`
 	Message   *NotifyMessage `json:"message"`
-	Type      NotifyType  `json:"type"`
-	Status    string      `json:"status"` // success, failed
-	Error     string      `json:"error,omitempty"`
-	Timestamp time.Time   `json:"timestamp"`
+	Type      NotifyType     `json:"type"`
+	Status    string         `json:"status"` // success, failed
+	Error     string         `json:"error,omitempty"`
+	Timestamp time.Time      `json:"timestamp"`
 }
 
 // NewNotifyManager 创建通知管理器
@@ -76,7 +76,7 @@ func (m *NotifyManager) Stop() {
 func (m *NotifyManager) AddConfig(config NotifyConfig) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	// 检查是否已存在
 	for i, c := range m.configs {
 		if c.Name == config.Name && c.Type == config.Type {
@@ -85,7 +85,7 @@ func (m *NotifyManager) AddConfig(config NotifyConfig) {
 			return
 		}
 	}
-	
+
 	m.configs = append(m.configs, config)
 	m.rebuildNotifiers()
 }
@@ -94,7 +94,7 @@ func (m *NotifyManager) AddConfig(config NotifyConfig) {
 func (m *NotifyManager) RemoveConfig(name string, t NotifyType) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	for i, c := range m.configs {
 		if c.Name == name && c.Type == t {
 			m.configs = append(m.configs[:i], m.configs[i+1:]...)
@@ -108,7 +108,7 @@ func (m *NotifyManager) RemoveConfig(name string, t NotifyType) {
 func (m *NotifyManager) GetConfigs() []NotifyConfig {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	configs := make([]NotifyConfig, len(m.configs))
 	copy(configs, m.configs)
 	return configs
@@ -118,7 +118,7 @@ func (m *NotifyManager) GetConfigs() []NotifyConfig {
 func (m *NotifyManager) EnableConfig(name string, t NotifyType, enabled bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	for i, c := range m.configs {
 		if c.Name == name && c.Type == t {
 			m.configs[i].Enabled = enabled
@@ -131,12 +131,12 @@ func (m *NotifyManager) EnableConfig(name string, t NotifyType, enabled bool) {
 // rebuildNotifiers 重建通知器列表
 func (m *NotifyManager) rebuildNotifiers() {
 	m.notifiers = make([]Notifier, 0)
-	
+
 	for _, config := range m.configs {
 		if !config.Enabled {
 			continue
 		}
-		
+
 		notifier := m.createNotifier(config)
 		if notifier != nil {
 			m.notifiers = append(m.notifiers, notifier)
@@ -183,11 +183,11 @@ func (m *NotifyManager) Send(ctx context.Context, msg *NotifyMessage) error {
 	m.mu.RLock()
 	notifiers := m.notifiers
 	m.mu.RUnlock()
-	
+
 	if msg.Timestamp.IsZero() {
 		msg.Timestamp = time.Now()
 	}
-	
+
 	var lastErr error
 	for _, notifier := range notifiers {
 		if err := notifier.Send(ctx, msg); err != nil {
@@ -198,7 +198,7 @@ func (m *NotifyManager) Send(ctx context.Context, msg *NotifyMessage) error {
 			m.addHistory(msg, notifier.Type(), "success", "")
 		}
 	}
-	
+
 	return lastErr
 }
 
@@ -207,7 +207,7 @@ func (m *NotifyManager) SendAsync(msg *NotifyMessage) {
 	if msg.Timestamp.IsZero() {
 		msg.Timestamp = time.Now()
 	}
-	
+
 	select {
 	case m.queue <- msg:
 	default:
@@ -233,7 +233,7 @@ func (m *NotifyManager) processQueue() {
 func (m *NotifyManager) addHistory(msg *NotifyMessage, t NotifyType, status, errMsg string) {
 	m.historyMu.Lock()
 	defer m.historyMu.Unlock()
-	
+
 	history := &NotifyHistory{
 		ID:        generateID(),
 		Message:   msg,
@@ -242,9 +242,9 @@ func (m *NotifyManager) addHistory(msg *NotifyMessage, t NotifyType, status, err
 		Error:     errMsg,
 		Timestamp: time.Now(),
 	}
-	
+
 	m.history = append(m.history, history)
-	
+
 	// 限制历史记录数量
 	if len(m.history) > m.maxHistory {
 		m.history = m.history[len(m.history)-m.maxHistory:]
@@ -255,25 +255,25 @@ func (m *NotifyManager) addHistory(msg *NotifyMessage, t NotifyType, status, err
 func (m *NotifyManager) GetHistory(limit int) []*NotifyHistory {
 	m.historyMu.RLock()
 	defer m.historyMu.RUnlock()
-	
+
 	if limit <= 0 || limit > len(m.history) {
 		limit = len(m.history)
 	}
-	
+
 	// 返回最新的记录
 	start := len(m.history) - limit
 	if start < 0 {
 		start = 0
 	}
-	
+
 	result := make([]*NotifyHistory, limit)
 	copy(result, m.history[start:])
-	
+
 	// 反转顺序，最新的在前
 	for i, j := 0, len(result)-1; i < j; i, j = i+1, j-1 {
 		result[i], result[j] = result[j], result[i]
 	}
-	
+
 	return result
 }
 
@@ -283,7 +283,7 @@ func (m *NotifyManager) TestNotifier(config NotifyConfig) error {
 	if notifier == nil {
 		return nil
 	}
-	
+
 	msg := &NotifyMessage{
 		Level:     NotifyLevelInfo,
 		Title:     "测试通知",
@@ -291,10 +291,10 @@ func (m *NotifyManager) TestNotifier(config NotifyConfig) error {
 		Source:    "system",
 		Timestamp: time.Now(),
 	}
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	
+
 	return notifier.Send(ctx, msg)
 }
 
@@ -307,7 +307,7 @@ func (m *NotifyManager) NotifyVulnerability(vulnName, target, severity, details 
 	case "medium":
 		level = NotifyLevelWarning
 	}
-	
+
 	msg := &NotifyMessage{
 		Level:     level,
 		Title:     "发现漏洞: " + vulnName,
@@ -320,7 +320,7 @@ func (m *NotifyManager) NotifyVulnerability(vulnName, target, severity, details 
 			"severity":  severity,
 		},
 	}
-	
+
 	m.SendAsync(msg)
 }
 
@@ -359,7 +359,7 @@ func (m *NotifyManager) NotifyAssetChange(changeType, assetInfo string) {
 		Source:    "asset_monitor",
 		Timestamp: time.Now(),
 	}
-	
+
 	m.SendAsync(msg)
 }
 

@@ -31,9 +31,9 @@ func (s *StringList) UnmarshalYAML(value *yaml.Node) error {
 
 // FingerprintRule represents a fingerprint rule from veo-style YAML
 type FingerprintRule struct {
-	ID        string     `yaml:"-"`        // Rule ID (from map key)
-	Name      string     `yaml:"-"`        // Rule name (same as ID)
-	DSL       StringList `yaml:"dsl"`      // DSL expressions for matching
+	ID        string     `yaml:"-"`         // Rule ID (from map key)
+	Name      string     `yaml:"-"`         // Rule name (same as ID)
+	DSL       StringList `yaml:"dsl"`       // DSL expressions for matching
 	Condition string     `yaml:"condition"` // "and" or "or", default is "or"
 	Category  string     `yaml:"category"`  // Technology category
 	Tags      string     `yaml:"tags"`      // Comma-separated tags

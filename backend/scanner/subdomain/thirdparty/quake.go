@@ -88,12 +88,12 @@ type QuakeUserInfo struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 	Data    struct {
-		ID       string `json:"id"`
-		Username string `json:"user"`
-		Email    string `json:"email"`
-		Credit   int    `json:"credit"`     // 永久积分
-		MonthCredit int `json:"month_remaining_credit"` // 月度积分
-		Role     struct {
+		ID          string `json:"id"`
+		Username    string `json:"user"`
+		Email       string `json:"email"`
+		Credit      int    `json:"credit"`                 // 永久积分
+		MonthCredit int    `json:"month_remaining_credit"` // 月度积分
+		Role        struct {
 			Fullname string `json:"fullname"`
 		} `json:"role"`
 	} `json:"data"`
@@ -122,12 +122,12 @@ func (c *QuakeClient) Search(ctx context.Context, query string, start, size int)
 	}
 
 	reqBody := map[string]interface{}{
-		"query":      query,
-		"start":      start,
-		"size":       size,
-		"include":    []string{"ip", "port", "hostname", "domain", "transport", "service", "location", "asn", "time", "components"},
-		"latest":     true,
-		"shortcuts":  []string{"610ce2adb1a2e3e1632e67b1"},
+		"query":     query,
+		"start":     start,
+		"size":      size,
+		"include":   []string{"ip", "port", "hostname", "domain", "transport", "service", "location", "asn", "time", "components"},
+		"latest":    true,
+		"shortcuts": []string{"610ce2adb1a2e3e1632e67b1"},
 	}
 
 	jsonBody, _ := json.Marshal(reqBody)

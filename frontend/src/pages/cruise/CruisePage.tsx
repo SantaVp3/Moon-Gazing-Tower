@@ -1,10 +1,10 @@
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { cruiseApi, CruiseTask, CruiseCreateRequest } from '@/api/cruise'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { cruiseApi, CruiseTask, CruiseCreateRequest } from '@/api/cruise';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import {
   Table,
   TableBody,
@@ -12,7 +12,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
+} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -20,18 +20,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/components/ui/use-toast'
-import { formatDate } from '@/lib/utils'
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/components/ui/use-toast';
+import { formatDate } from '@/lib/utils';
 import {
   Plus,
   Search,
@@ -44,8 +44,8 @@ import {
   XCircle,
   Loader2,
   History,
-} from 'lucide-react'
-import CruiseLogsDialog from './CruiseLogsDialog'
+} from 'lucide-react';
+import CruiseLogsDialog from './CruiseLogsDialog';
 
 // 常用的 Cron 表达式预设
 const CRON_PRESETS = [
@@ -59,7 +59,7 @@ const CRON_PRESETS = [
   { label: '每小时', value: '0 * * * *' },
   { label: '每 6 小时', value: '0 */6 * * *' },
   { label: '每 12 小时', value: '0 */12 * * *' },
-]
+];
 
 const TASK_TYPES = [
   { value: 'full', label: '全量扫描' },
@@ -69,23 +69,25 @@ const TASK_TYPES = [
   { value: 'vuln_scan', label: '漏洞扫描' },
   { value: 'dir_scan', label: '目录扫描' },
   { value: 'crawler', label: '爬虫扫描' },
-]
+];
 
 const TARGET_TYPES = [
   { value: 'domain', label: '域名' },
   { value: 'ip', label: 'IP地址' },
   { value: 'url', label: 'URL' },
   { value: 'cidr', label: 'CIDR网段' },
-]
+];
 
 export default function CruisePage() {
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
-  const [search, setSearch] = useState('')
-  const [page, setPage] = useState(1)
-  const [createDialogOpen, setCreateDialogOpen] = useState(false)
-  const [editingCruise, setEditingCruise] = useState<CruiseTask | null>(null)
-  const [logsDialogCruise, setLogsDialogCruise] = useState<CruiseTask | null>(null)
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editingCruise, setEditingCruise] = useState<CruiseTask | null>(null);
+  const [logsDialogCruise, setLogsDialogCruise] = useState<CruiseTask | null>(
+    null
+  );
 
   // 表单状态
   const [formData, setFormData] = useState<Partial<CruiseCreateRequest>>({
@@ -98,85 +100,98 @@ export default function CruisePage() {
     config: {},
     notify_on_complete: false,
     notify_on_vuln: true,
-  })
-  const [targetsText, setTargetsText] = useState('')
+  });
+  const [targetsText, setTargetsText] = useState('');
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['cruises', page, search],
     queryFn: () => cruiseApi.getCruises({ page, pageSize: 10, search }),
     refetchInterval: 10000,
-  })
+  });
 
   const { data: stats } = useQuery({
     queryKey: ['cruiseStats'],
     queryFn: () => cruiseApi.getCruiseStats(),
     refetchInterval: 10000,
-  })
+  });
 
   const createMutation = useMutation({
     mutationFn: cruiseApi.createCruise,
     onSuccess: () => {
-      toast({ title: '创建成功', description: '巡航任务已创建' })
-      queryClient.invalidateQueries({ queryKey: ['cruises'] })
-      queryClient.invalidateQueries({ queryKey: ['cruiseStats'] })
-      closeDialog()
+      toast({ title: '创建成功', description: '巡航任务已创建' });
+      queryClient.invalidateQueries({ queryKey: ['cruises'] });
+      queryClient.invalidateQueries({ queryKey: ['cruiseStats'] });
+      closeDialog();
     },
     onError: (error: Error) => {
-      toast({ title: '创建失败', description: error.message, variant: 'destructive' })
+      toast({
+        title: '创建失败',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
-  })
+  });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CruiseCreateRequest> }) =>
-      cruiseApi.updateCruise(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Partial<CruiseCreateRequest>;
+    }) => cruiseApi.updateCruise(id, data),
     onSuccess: () => {
-      toast({ title: '更新成功' })
-      queryClient.invalidateQueries({ queryKey: ['cruises'] })
-      closeDialog()
+      toast({ title: '更新成功' });
+      queryClient.invalidateQueries({ queryKey: ['cruises'] });
+      closeDialog();
     },
     onError: (error: Error) => {
-      toast({ title: '更新失败', description: error.message, variant: 'destructive' })
+      toast({
+        title: '更新失败',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
-  })
+  });
 
   const deleteMutation = useMutation({
     mutationFn: cruiseApi.deleteCruise,
     onSuccess: () => {
-      toast({ title: '删除成功' })
-      queryClient.invalidateQueries({ queryKey: ['cruises'] })
-      queryClient.invalidateQueries({ queryKey: ['cruiseStats'] })
+      toast({ title: '删除成功' });
+      queryClient.invalidateQueries({ queryKey: ['cruises'] });
+      queryClient.invalidateQueries({ queryKey: ['cruiseStats'] });
     },
-  })
+  });
 
   const enableMutation = useMutation({
     mutationFn: cruiseApi.enableCruise,
     onSuccess: () => {
-      toast({ title: '已启用' })
-      queryClient.invalidateQueries({ queryKey: ['cruises'] })
-      queryClient.invalidateQueries({ queryKey: ['cruiseStats'] })
+      toast({ title: '已启用' });
+      queryClient.invalidateQueries({ queryKey: ['cruises'] });
+      queryClient.invalidateQueries({ queryKey: ['cruiseStats'] });
     },
-  })
+  });
 
   const disableMutation = useMutation({
     mutationFn: cruiseApi.disableCruise,
     onSuccess: () => {
-      toast({ title: '已禁用' })
-      queryClient.invalidateQueries({ queryKey: ['cruises'] })
-      queryClient.invalidateQueries({ queryKey: ['cruiseStats'] })
+      toast({ title: '已禁用' });
+      queryClient.invalidateQueries({ queryKey: ['cruises'] });
+      queryClient.invalidateQueries({ queryKey: ['cruiseStats'] });
     },
-  })
+  });
 
   const runMutation = useMutation({
     mutationFn: cruiseApi.runCruise,
     onSuccess: () => {
-      toast({ title: '已触发执行' })
-      queryClient.invalidateQueries({ queryKey: ['cruises'] })
+      toast({ title: '已触发执行' });
+      queryClient.invalidateQueries({ queryKey: ['cruises'] });
     },
-  })
+  });
 
   const closeDialog = () => {
-    setCreateDialogOpen(false)
-    setEditingCruise(null)
+    setCreateDialogOpen(false);
+    setEditingCruise(null);
     setFormData({
       name: '',
       description: '',
@@ -187,12 +202,12 @@ export default function CruisePage() {
       config: {},
       notify_on_complete: false,
       notify_on_vuln: true,
-    })
-    setTargetsText('')
-  }
+    });
+    setTargetsText('');
+  };
 
   const openEditDialog = (cruise: CruiseTask) => {
-    setEditingCruise(cruise)
+    setEditingCruise(cruise);
     setFormData({
       name: cruise.name,
       description: cruise.description,
@@ -203,75 +218,75 @@ export default function CruisePage() {
       config: cruise.config,
       notify_on_complete: cruise.notify_on_complete,
       notify_on_vuln: cruise.notify_on_vuln,
-    })
-    setTargetsText(cruise.targets.join('\n'))
-    setCreateDialogOpen(true)
-  }
+    });
+    setTargetsText(cruise.targets.join('\n'));
+    setCreateDialogOpen(true);
+  };
 
   const handleSubmit = () => {
     const targets = targetsText
       .split('\n')
       .map((t) => t.trim())
-      .filter((t) => t)
+      .filter((t) => t);
 
     if (!formData.name) {
-      toast({ title: '请输入名称', variant: 'destructive' })
-      return
+      toast({ title: '请输入名称', variant: 'destructive' });
+      return;
     }
     if (!formData.cron_expr) {
-      toast({ title: '请设置执行周期', variant: 'destructive' })
-      return
+      toast({ title: '请设置执行周期', variant: 'destructive' });
+      return;
     }
     if (targets.length === 0) {
-      toast({ title: '请输入扫描目标', variant: 'destructive' })
-      return
+      toast({ title: '请输入扫描目标', variant: 'destructive' });
+      return;
     }
 
     const submitData = {
       ...formData,
       targets,
-    } as CruiseCreateRequest
+    } as CruiseCreateRequest;
 
     if (editingCruise) {
-      updateMutation.mutate({ id: editingCruise.id, data: submitData })
+      updateMutation.mutate({ id: editingCruise.id, data: submitData });
     } else {
-      createMutation.mutate(submitData)
+      createMutation.mutate(submitData);
     }
-  }
+  };
 
   const handleToggle = (cruise: CruiseTask) => {
     if (cruise.status === 'enabled' || cruise.status === 'running') {
-      disableMutation.mutate(cruise.id)
+      disableMutation.mutate(cruise.id);
     } else {
-      enableMutation.mutate(cruise.id)
+      enableMutation.mutate(cruise.id);
     }
-  }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'enabled':
-        return <Badge className="bg-green-500">已启用</Badge>
+        return <Badge className="bg-green-500">已启用</Badge>;
       case 'disabled':
-        return <Badge variant="secondary">已禁用</Badge>
+        return <Badge variant="secondary">已禁用</Badge>;
       case 'running':
-        return <Badge className="bg-blue-500">执行中</Badge>
+        return <Badge className="bg-blue-500">执行中</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>
+        return <Badge variant="outline">{status}</Badge>;
     }
-  }
+  };
 
   const getLastStatusIcon = (status?: string) => {
     switch (status) {
       case 'success':
-        return <CheckCircle className="h-4 w-4 text-green-500" />
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'failed':
-        return <XCircle className="h-4 w-4 text-red-500" />
+        return <XCircle className="h-4 w-4 text-red-500" />;
       case 'running':
-        return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+        return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
       default:
-        return <Clock className="h-4 w-4 text-gray-400" />
+        return <Clock className="h-4 w-4 text-gray-400" />;
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -282,15 +297,21 @@ export default function CruisePage() {
           <div className="text-sm text-muted-foreground">总任务数</div>
         </div>
         <div className="rounded-lg border bg-card p-4">
-          <div className="text-2xl font-bold text-green-500">{stats?.enabled || 0}</div>
+          <div className="text-2xl font-bold text-green-500">
+            {stats?.enabled || 0}
+          </div>
           <div className="text-sm text-muted-foreground">已启用</div>
         </div>
         <div className="rounded-lg border bg-card p-4">
-          <div className="text-2xl font-bold text-gray-500">{stats?.disabled || 0}</div>
+          <div className="text-2xl font-bold text-gray-500">
+            {stats?.disabled || 0}
+          </div>
           <div className="text-sm text-muted-foreground">已禁用</div>
         </div>
         <div className="rounded-lg border bg-card p-4">
-          <div className="text-2xl font-bold text-blue-500">{stats?.running || 0}</div>
+          <div className="text-2xl font-bold text-blue-500">
+            {stats?.running || 0}
+          </div>
           <div className="text-sm text-muted-foreground">执行中</div>
         </div>
       </div>
@@ -346,7 +367,10 @@ export default function CruisePage() {
               </TableRow>
             ) : data?.items?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                <TableCell
+                  colSpan={10}
+                  className="text-center py-8 text-muted-foreground"
+                >
                   暂无巡航任务
                 </TableCell>
               </TableRow>
@@ -371,14 +395,16 @@ export default function CruisePage() {
                   </TableCell>
                   <TableCell>{cruise.targets?.length || 0}</TableCell>
                   <TableCell>
-                    {TASK_TYPES.find((t) => t.value === cruise.task_type)?.label ||
-                      cruise.task_type}
+                    {TASK_TYPES.find((t) => t.value === cruise.task_type)
+                      ?.label || cruise.task_type}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-1">
                       {getLastStatusIcon(cruise.last_status)}
                       <span className="text-sm">
-                        {cruise.last_run_at ? formatDate(cruise.last_run_at) : '-'}
+                        {cruise.last_run_at
+                          ? formatDate(cruise.last_run_at)
+                          : '-'}
                       </span>
                     </div>
                   </TableCell>
@@ -387,7 +413,9 @@ export default function CruisePage() {
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      <span className="text-green-600">{cruise.success_count}</span>
+                      <span className="text-green-600">
+                        {cruise.success_count}
+                      </span>
                       {' / '}
                       <span className="text-red-600">{cruise.fail_count}</span>
                       {' / '}
@@ -396,7 +424,10 @@ export default function CruisePage() {
                   </TableCell>
                   <TableCell>
                     <Switch
-                      checked={cruise.status === 'enabled' || cruise.status === 'running'}
+                      checked={
+                        cruise.status === 'enabled' ||
+                        cruise.status === 'running'
+                      }
                       onCheckedChange={() => handleToggle(cruise)}
                       disabled={cruise.status === 'running'}
                     />
@@ -474,10 +505,15 @@ export default function CruisePage() {
       )}
 
       {/* 创建/编辑对话框 */}
-      <Dialog open={createDialogOpen} onOpenChange={(open) => !open && closeDialog()}>
+      <Dialog
+        open={createDialogOpen}
+        onOpenChange={(open) => !open && closeDialog()}
+      >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingCruise ? '编辑巡航任务' : '新建巡航任务'}</DialogTitle>
+            <DialogTitle>
+              {editingCruise ? '编辑巡航任务' : '新建巡航任务'}
+            </DialogTitle>
             <DialogDescription>
               配置定时自动扫描任务，系统将按照设定的周期自动执行扫描
             </DialogDescription>
@@ -490,14 +526,18 @@ export default function CruisePage() {
                 <Input
                   placeholder="例如：每日资产巡航"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <Label>任务类型</Label>
                 <Select
                   value={formData.task_type}
-                  onValueChange={(value) => setFormData({ ...formData, task_type: value })}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, task_type: value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="选择任务类型" />
@@ -518,7 +558,9 @@ export default function CruisePage() {
               <Input
                 placeholder="任务描述（可选）"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
               />
             </div>
 
@@ -527,7 +569,9 @@ export default function CruisePage() {
                 <Label>执行周期 *</Label>
                 <Select
                   value={formData.cron_expr}
-                  onValueChange={(value) => setFormData({ ...formData, cron_expr: value })}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, cron_expr: value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="选择执行周期" />
@@ -541,14 +585,19 @@ export default function CruisePage() {
                   </SelectContent>
                 </Select>
                 <div className="text-xs text-muted-foreground">
-                  当前: <code className="bg-muted px-1 rounded">{formData.cron_expr}</code>
+                  当前:{' '}
+                  <code className="bg-muted px-1 rounded">
+                    {formData.cron_expr}
+                  </code>
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>目标类型</Label>
                 <Select
                   value={formData.target_type}
-                  onValueChange={(value) => setFormData({ ...formData, target_type: value })}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, target_type: value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="选择目标类型" />
@@ -573,7 +622,8 @@ export default function CruisePage() {
                 onChange={(e) => setTargetsText(e.target.value)}
               />
               <div className="text-xs text-muted-foreground">
-                已输入 {targetsText.split('\n').filter((t) => t.trim()).length} 个目标
+                已输入 {targetsText.split('\n').filter((t) => t.trim()).length}{' '}
+                个目标
               </div>
             </div>
 
@@ -632,5 +682,5 @@ export default function CruisePage() {
         />
       )}
     </div>
-  )
+  );
 }

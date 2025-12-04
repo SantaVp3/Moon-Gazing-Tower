@@ -28,11 +28,11 @@ type CDNResult struct {
 
 // CDNDetector handles CDN detection
 type CDNDetector struct {
-	Timeout     time.Duration
-	HTTPClient  *http.Client
-	CNAMEMap    map[string]string // CNAME pattern -> CDN name
-	HeaderMap   map[string]string // Header name -> CDN name
-	IPRanges    map[string][]*net.IPNet
+	Timeout    time.Duration
+	HTTPClient *http.Client
+	CNAMEMap   map[string]string // CNAME pattern -> CDN name
+	HeaderMap  map[string]string // Header name -> CDN name
+	IPRanges   map[string][]*net.IPNet
 }
 
 // NewCDNDetector creates a new CDN detector
@@ -83,7 +83,7 @@ func loadHeaderMapFromConfig() map[string]string {
 func loadIPRangesFromConfig() map[string][]*net.IPNet {
 	ranges := make(map[string][]*net.IPNet)
 	cdnConfig := config.GetCDNConfig()
-	
+
 	if cdnConfig != nil && len(cdnConfig.IPRanges) > 0 {
 		for provider, cidrs := range cdnConfig.IPRanges {
 			for _, cidr := range cidrs {
@@ -97,7 +97,7 @@ func loadIPRangesFromConfig() map[string][]*net.IPNet {
 			return ranges
 		}
 	}
-	
+
 	// Fallback to minimal Cloudflare ranges
 	defaultRanges := []string{"104.16.0.0/13", "104.24.0.0/14"}
 	for _, cidr := range defaultRanges {
@@ -257,7 +257,7 @@ func (d *CDNDetector) checkHeaders(ctx context.Context, domain string) ([]string
 		for header, cdn := range d.HeaderMap {
 			parts := strings.SplitN(header, ":", 2)
 			headerName := parts[0]
-			
+
 			value := resp.Header.Get(headerName)
 			if value != "" {
 				if len(parts) == 2 {
@@ -282,11 +282,11 @@ func (d *CDNDetector) checkHeaders(ctx context.Context, domain string) ([]string
 		if server != "" {
 			lowerServer := strings.ToLower(server)
 			for keyword, cdn := range map[string]string{
-				"cloudflare": "Cloudflare",
+				"cloudflare":  "Cloudflare",
 				"akamaighost": "Akamai",
-				"yunjiasu": "百度云加速",
-				"upyun": "又拍云CDN",
-				"tengine": "阿里云CDN",
+				"yunjiasu":    "百度云加速",
+				"upyun":       "又拍云CDN",
+				"tengine":     "阿里云CDN",
 			} {
 				if strings.Contains(lowerServer, keyword) {
 					cdnName = cdn
@@ -359,24 +359,24 @@ func classifyCDNType(provider string) string {
 		"阿里云", "腾讯云", "华为云", "百度云", "京东云", "UCloud", "七牛云", "又拍云", "金山云",
 		"AWS", "Azure", "Google Cloud",
 	}
-	
+
 	for _, cloud := range cloudCDNs {
 		if strings.Contains(provider, cloud) {
 			return "cloud"
 		}
 	}
-	
+
 	commercialCDNs := []string{
 		"Cloudflare", "Akamai", "Fastly", "网宿", "蓝汛", "帝联",
 		"Imperva", "Sucuri", "StackPath", "Edgecast",
 	}
-	
+
 	for _, commercial := range commercialCDNs {
 		if strings.Contains(provider, commercial) {
 			return "commercial"
 		}
 	}
-	
+
 	return "unknown"
 }
 
@@ -459,7 +459,7 @@ func (d *CDNDetector) BatchDetectCDN(ctx context.Context, domains []string, conc
 			defer func() { <-semaphore }()
 
 			result := d.DetectCDN(ctx, dom)
-			
+
 			// Try to find real IP if CDN detected
 			if result.IsCDN {
 				result.RealIPs = d.TryFindRealIP(ctx, dom)
@@ -531,16 +531,16 @@ type ASNInfo struct {
 
 // Common CDN ASNs (simplified)
 var CDNASNs = map[string]ASNInfo{
-	"AS13335": {ASN: "AS13335", Provider: "Cloudflare", Description: "Cloudflare, Inc."},
-	"AS16509": {ASN: "AS16509", Provider: "Amazon", Description: "Amazon.com, Inc. (AWS)"},
-	"AS14618": {ASN: "AS14618", Provider: "Amazon", Description: "Amazon.com, Inc. (AWS)"},
-	"AS20940": {ASN: "AS20940", Provider: "Akamai", Description: "Akamai International B.V."},
-	"AS16625": {ASN: "AS16625", Provider: "Akamai", Description: "Akamai Technologies, Inc."},
-	"AS54113": {ASN: "AS54113", Provider: "Fastly", Description: "Fastly, Inc."},
-	"AS8075":  {ASN: "AS8075", Provider: "Microsoft", Description: "Microsoft Corporation (Azure)"},
-	"AS15169": {ASN: "AS15169", Provider: "Google", Description: "Google LLC"},
-	"AS37963": {ASN: "AS37963", Provider: "Alibaba", Description: "Alibaba (China) Technology Co., Ltd."},
-	"AS45102": {ASN: "AS45102", Provider: "Alibaba", Description: "Alibaba (US) Technology Co., Ltd."},
+	"AS13335":  {ASN: "AS13335", Provider: "Cloudflare", Description: "Cloudflare, Inc."},
+	"AS16509":  {ASN: "AS16509", Provider: "Amazon", Description: "Amazon.com, Inc. (AWS)"},
+	"AS14618":  {ASN: "AS14618", Provider: "Amazon", Description: "Amazon.com, Inc. (AWS)"},
+	"AS20940":  {ASN: "AS20940", Provider: "Akamai", Description: "Akamai International B.V."},
+	"AS16625":  {ASN: "AS16625", Provider: "Akamai", Description: "Akamai Technologies, Inc."},
+	"AS54113":  {ASN: "AS54113", Provider: "Fastly", Description: "Fastly, Inc."},
+	"AS8075":   {ASN: "AS8075", Provider: "Microsoft", Description: "Microsoft Corporation (Azure)"},
+	"AS15169":  {ASN: "AS15169", Provider: "Google", Description: "Google LLC"},
+	"AS37963":  {ASN: "AS37963", Provider: "Alibaba", Description: "Alibaba (China) Technology Co., Ltd."},
+	"AS45102":  {ASN: "AS45102", Provider: "Alibaba", Description: "Alibaba (US) Technology Co., Ltd."},
 	"AS132203": {ASN: "AS132203", Provider: "Tencent", Description: "Tencent Building, Kejizhongyi Avenue"},
 }
 
