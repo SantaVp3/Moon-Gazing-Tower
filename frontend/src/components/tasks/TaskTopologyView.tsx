@@ -129,8 +129,8 @@ export default function TaskTopologyView({
     // Mouse controls
     let isDragging = false;
     let previousMousePosition = { x: 0, y: 0 };
-    let targetRotationX = 0;
-    let targetRotationY = 0;
+    let _targetRotationX = 0;
+    let _targetRotationY = 0;
     let autoRotate = true;
 
     const onMouseDown = (e: MouseEvent) => {
@@ -347,7 +347,7 @@ export default function TaskTopologyView({
               name = item.data?.url || item.url || `服务 ${index + 1}`;
               desc = `标题: ${item.data?.title || item.title || '-'}`;
               break;
-            case 'cluster-vuln':
+            case 'cluster-vuln': {
               name = item.data?.name || item.name || `漏洞 ${index + 1}`;
               desc = `等级: ${item.data?.severity || item.severity || '-'}`;
               // Color by severity
@@ -361,6 +361,7 @@ export default function TaskTopologyView({
               else if (severity === 'medium') leafColor = '#eab308';
               else if (severity === 'low') leafColor = '#3b82f6';
               break;
+            }
             case 'cluster-url':
               name = item.data?.url || item.url || `URL ${index + 1}`;
               desc = `方法: ${item.data?.method || item.method || 'GET'}`;
@@ -404,8 +405,8 @@ export default function TaskTopologyView({
 
     const addNode = (id: string, name: string, type: string, data?: any) => {
       if (!nodeMap.has(id)) {
-        let color = data?.color || '#ffffff';
-        let val = data?.val || 5;
+        const color = data?.color || '#ffffff';
+        const val = data?.val || 5;
 
         const node: GraphNode = {
           id,

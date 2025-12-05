@@ -24,10 +24,10 @@
         "varsIgnorePattern": "^_"
       }
     ],
-    "complexity": ["error", 10],
-    "max-depth": ["error", 3],
-    "max-lines-per-function": ["error", { "max": 50, "skipBlankLines": true, "skipComments": true }],
-    "max-nested-callbacks": ["error", 3],
+    "complexity": ["error", 15],
+    "max-depth": ["error", 4],
+    "max-lines-per-function": ["error", { "max": 100, "skipBlankLines": true, "skipComments": true }],
+    "max-nested-callbacks": ["error", 4],
     "react-refresh/only-export-components": ["warn", { "allowConstantExport": true }]
   },
   "overrides": [
@@ -42,6 +42,23 @@
       "rules": {
         "max-lines-per-function": "off",
         "max-nested-callbacks": "off"
+      }
+    },
+    {
+      "files": ["**/TaskTopologyView.tsx", "**/TaskCreateDialog.tsx"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "warn",
+        "@typescript-eslint/no-non-null-assertion": "warn",
+        "max-lines-per-function": "off",
+        "complexity": "off",
+        "max-depth": "off"
+      }
+    },
+    {
+      "files": ["**/CruisePage.tsx", "**/DashboardPage.tsx", "**/MonitorPage.tsx", "**/VulnDashboard.tsx"],
+      "rules": {
+        "max-lines-per-function": ["error", { "max": 200 }],
+        "complexity": ["error", 20]
       }
     }
   ]

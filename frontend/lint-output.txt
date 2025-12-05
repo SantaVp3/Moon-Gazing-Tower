@@ -1,0 +1,161 @@
+
+> moon-gazing-tower-frontend@1.0.0 lint
+> eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0
+
+
+F:\Moon-Gazing-Tower\frontend\src\api\results.ts
+  164:1  error  Function 'transformDataFields' has a complexity of 35. Maximum allowed is 15  complexity
+
+F:\Moon-Gazing-Tower\frontend\src\api\vulnerabilities.ts
+  230:18  error  Async method 'getStatistics' has a complexity of 18. Maximum allowed is 15  complexity
+
+F:\Moon-Gazing-Tower\frontend\src\components\dashboard\RealTimeMonitor.tsx
+  36:16  error  Function 'RealTimeMonitor' has too many lines (165). Maximum allowed is 100  max-lines-per-function
+  36:16  error  Function 'RealTimeMonitor' has a complexity of 17. Maximum allowed is 15     complexity
+
+F:\Moon-Gazing-Tower\frontend\src\components\tasks\TaskTopologyView.tsx
+   16:9   warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   37:16  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   38:11  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   39:14  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   40:11  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   41:10  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   42:20  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  132:9   error    '_targetRotationX' is never reassigned. Use 'const' instead                                                                                                                                                                                                              prefer-const
+  133:9   error    '_targetRotationY' is never reassigned. Use 'const' instead                                                                                                                                                                                                              prefer-const
+  241:22  warning  The ref value 'containerRef.current' will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by React, copy 'containerRef.current' to a variable inside the effect, and use that variable in the cleanup function  react-hooks/exhaustive-deps
+  251:21  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  331:30  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  406:69  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  425:14  warning  Forbidden non-null assertion                                                                                                                                                                                                                                             @typescript-eslint/no-non-null-assertion
+  428:29  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+
+F:\Moon-Gazing-Tower\frontend\src\components\ui\badge.tsx
+  41:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+F:\Moon-Gazing-Tower\frontend\src\components\ui\button.tsx
+  56:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+F:\Moon-Gazing-Tower\frontend\src\components\ui\pagination-with-input.tsx
+  21:8  error  Function 'PaginationWithInput' has too many lines (115). Maximum allowed is 100  max-lines-per-function
+
+F:\Moon-Gazing-Tower\frontend\src\components\vulnerabilities\VulnDashboard.tsx
+  29:16  error  Function 'VulnDashboard' has too many lines (331). Maximum allowed is 200  max-lines-per-function
+
+F:\Moon-Gazing-Tower\frontend\src\hooks\useWebSocket.ts
+    6:18  error  Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+   18:8   error  Function 'useWebSocket' has too many lines (109). Maximum allowed is 100  max-lines-per-function
+  120:45  error  Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+
+F:\Moon-Gazing-Tower\frontend\src\pages\cruise\CruiseLogsDialog.tsx
+  36:16  error  Function 'CruiseLogsDialog' has too many lines (172). Maximum allowed is 100  max-lines-per-function
+
+F:\Moon-Gazing-Tower\frontend\src\pages\cruise\CruisePage.tsx
+  81:16  error  Function 'CruisePage' has too many lines (606). Maximum allowed is 200  max-lines-per-function
+
+F:\Moon-Gazing-Tower\frontend\src\pages\dashboard\DashboardPage.tsx
+  40:16  error  Function 'DashboardPage' has too many lines (306). Maximum allowed is 200  max-lines-per-function
+
+F:\Moon-Gazing-Tower\frontend\src\pages\monitor\MonitorPage.tsx
+  95:16  error  Function 'MonitorPage' has too many lines (546). Maximum allowed is 200  max-lines-per-function
+
+F:\Moon-Gazing-Tower\frontend\src\pages\nodes\NodesPage.tsx
+  10:16  error  Function 'NodesPage' has too many lines (175). Maximum allowed is 100  max-lines-per-function
+
+F:\Moon-Gazing-Tower\frontend\src\pages\notify\NotifyPage.tsx
+  70:16  error  Function 'NotifyPage' has too many lines (378). Maximum allowed is 100  max-lines-per-function
+
+F:\Moon-Gazing-Tower\frontend\src\pages\plugins\PluginsPage.tsx
+  43:16  error  Function 'PluginsPage' has too many lines (313). Maximum allowed is 100  max-lines-per-function
+
+F:\Moon-Gazing-Tower\frontend\src\pages\pocs\POCsPage.tsx
+   53:16  error  Function 'POCsPage' has too many lines (697). Maximum allowed is 100  max-lines-per-function
+   53:16  error  Function 'POCsPage' has a complexity of 17. Maximum allowed is 15     complexity
+  230:31  error  Arrow function has too many lines (101). Maximum allowed is 100       max-lines-per-function
+  230:31  error  Arrow function has a complexity of 26. Maximum allowed is 15          complexity
+  293:13  error  Blocks are nested too deeply (5). Maximum allowed is 4                max-depth
+  295:15  error  Blocks are nested too deeply (6). Maximum allowed is 4                max-depth
+  321:13  error  Blocks are nested too deeply (5). Maximum allowed is 4                max-depth
+
+F:\Moon-Gazing-Tower\frontend\src\pages\queue\QueuePage.tsx
+   73:16  error  Function 'QueuePage' has too many lines (404). Maximum allowed is 100  max-lines-per-function
+   73:16  error  Function 'QueuePage' has a complexity of 33. Maximum allowed is 15     complexity
+  505:1   error  Function 'TaskTable' has too many lines (108). Maximum allowed is 100  max-lines-per-function
+
+F:\Moon-Gazing-Tower\frontend\src\pages\settings\SettingsPage.tsx
+  32:16  error  Function 'SettingsPage' has too many lines (465). Maximum allowed is 100  max-lines-per-function
+  32:16  error  Function 'SettingsPage' has a complexity of 17. Maximum allowed is 15     complexity
+
+F:\Moon-Gazing-Tower\frontend\src\pages\takeover\TakeoverPage.tsx
+  44:16  error  Function 'TakeoverPage' has too many lines (357). Maximum allowed is 100  max-lines-per-function
+
+F:\Moon-Gazing-Tower\frontend\src\pages\tasks\TaskCreatePage.tsx
+  68:16  error  Function 'TaskCreatePage' has too many lines (508). Maximum allowed is 100  max-lines-per-function
+
+F:\Moon-Gazing-Tower\frontend\src\pages\tasks\TaskDetailPage.tsx
+    84:16  error  Function 'TaskDetailPage' has too many lines (1439). Maximum allowed is 100  max-lines-per-function
+    84:16  error  Function 'TaskDetailPage' has a complexity of 27. Maximum allowed is 15      complexity
+   102:36  error  Forbidden non-null assertion                                                 @typescript-eslint/no-non-null-assertion
+   113:45  error  Forbidden non-null assertion                                                 @typescript-eslint/no-non-null-assertion
+   142:32  error  Forbidden non-null assertion                                                 @typescript-eslint/no-non-null-assertion
+   154:41  error  Forbidden non-null assertion                                                 @typescript-eslint/no-non-null-assertion
+   163:41  error  Forbidden non-null assertion                                                 @typescript-eslint/no-non-null-assertion
+   172:42  error  Forbidden non-null assertion                                                 @typescript-eslint/no-non-null-assertion
+   181:42  error  Forbidden non-null assertion                                                 @typescript-eslint/no-non-null-assertion
+   190:41  error  Forbidden non-null assertion                                                 @typescript-eslint/no-non-null-assertion
+   199:62  error  Forbidden non-null assertion                                                 @typescript-eslint/no-non-null-assertion
+   208:42  error  Forbidden non-null assertion                                                 @typescript-eslint/no-non-null-assertion
+   300:50  error  Forbidden non-null assertion                                                 @typescript-eslint/no-non-null-assertion
+   353:32  error  Arrow function has too many lines (107). Maximum allowed is 100              max-lines-per-function
+   641:32  error  Arrow function has too many lines (107). Maximum allowed is 100              max-lines-per-function
+   826:30  error  Arrow function has too many lines (121). Maximum allowed is 100              max-lines-per-function
+  1575:37  error  Forbidden non-null assertion                                                 @typescript-eslint/no-non-null-assertion
+
+F:\Moon-Gazing-Tower\frontend\src\pages\tasks\TasksPage.tsx
+  39:16  error  Function 'TasksPage' has too many lines (263). Maximum allowed is 100  max-lines-per-function
+
+F:\Moon-Gazing-Tower\frontend\src\pages\topology\TopologyPage.tsx
+   19:9   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   36:16  error    Function 'TopologyPage' has too many lines (753). Maximum allowed is 100                                                                                                                                                                                                 max-lines-per-function
+   36:16  error    Function 'TopologyPage' has a complexity of 18. Maximum allowed is 15                                                                                                                                                                                                    complexity
+   45:30  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   64:13  error    Arrow function has too many lines (175). Maximum allowed is 100                                                                                                                                                                                                          max-lines-per-function
+  290:57  warning  The ref value 'containerRef.current' will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by React, copy 'containerRef.current' to a variable inside the effect, and use that variable in the cleanup function  react-hooks/exhaustive-deps
+  297:6   warning  React Hook useEffect has missing dependencies: 'handleNodeClick' and 'selectedNode'. Either include them or remove the dependency array                                                                                                                                  react-hooks/exhaustive-deps
+  300:13  error    Arrow function has too many lines (331). Maximum allowed is 100                                                                                                                                                                                                          max-lines-per-function
+  313:21  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  385:39  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  401:31  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  431:69  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  474:14  error    Forbidden non-null assertion                                                                                                                                                                                                                                             @typescript-eslint/no-non-null-assertion
+  477:29  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  658:19  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  881:29  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  887:35  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  893:29  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  899:35  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  905:29  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  911:35  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+
+F:\Moon-Gazing-Tower\frontend\src\pages\users\UsersPage.tsx
+  36:16  error  Function 'UsersPage' has too many lines (356). Maximum allowed is 100  max-lines-per-function
+
+F:\Moon-Gazing-Tower\frontend\src\pages\vulnerabilities\VulnerabilitiesPage.tsx
+   47:16  error  Function 'VulnerabilitiesPage' has too many lines (324). Maximum allowed is 100  max-lines-per-function
+  148:27  error  Arrow function has too many lines (194). Maximum allowed is 100                  max-lines-per-function
+
+F:\Moon-Gazing-Tower\frontend\src\pages\vulnerabilities\VulnerabilityDetailPage.tsx
+  10:16  error  Function 'VulnerabilityDetailPage' has too many lines (196). Maximum allowed is 100  max-lines-per-function
+  15:45  error  Forbidden non-null assertion                                                         @typescript-eslint/no-non-null-assertion
+
+F:\Moon-Gazing-Tower\frontend\vite.config.ts
+  0:0  error  Parsing error: ESLint was configured to run on `<tsconfigRootDir>/vite.config.ts` using `parserOptions.project`: <tsconfigRootDir>/tsconfig.json
+However, that TSConfig does not include this file. Either:
+- Change ESLint's list of included files to not include this file
+- Change that TSConfig to include this file
+- Create a new TSConfig that includes this file and include it in your parserOptions.project
+See the typescript-eslint docs for more info: https://typescript-eslint.io/linting/troubleshooting#i-get-errors-telling-me-eslint-was-configured-to-run--however-that-tsconfig-does-not--none-of-those-tsconfigs-include-this-file
+
+✖ 92 problems (75 errors, 17 warnings)
+  2 errors and 0 warnings potentially fixable with the `--fix` option.
+
