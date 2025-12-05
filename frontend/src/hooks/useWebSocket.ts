@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 export interface WebSocketMessage {
   type: string;
   timestamp: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface UseWebSocketOptions {
@@ -117,7 +117,7 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
     }
   }, []);
 
-  const sendMessage = useCallback((message: any) => {
+  const sendMessage = useCallback((message: Record<string, unknown>) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message));
     } else {
