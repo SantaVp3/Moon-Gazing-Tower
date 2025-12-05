@@ -428,8 +428,14 @@ export default function TopologyPage() {
     const links: GraphLink[] = [];
     const nodeMap = new Map<string, GraphNode>();
 
-    const addNode = (id: string, name: string, type: string, data?: any) => {
-      if (!nodeMap.has(id)) {
+    const addNode = (
+      id: string,
+      name: string,
+      type: string,
+      data?: any
+    ): GraphNode => {
+      let node = nodeMap.get(id);
+      if (!node) {
         // Use data provided color/val or defaults
         let color = data?.color || '#ffffff';
         let val = data?.val || 5;
@@ -457,7 +463,7 @@ export default function TopologyPage() {
           }
         }
 
-        const node: GraphNode = {
+        node = {
           id,
           name,
           type,
@@ -471,7 +477,7 @@ export default function TopologyPage() {
         nodes.push(node);
         nodeMap.set(id, node);
       }
-      return nodeMap.get(id)!;
+      return node;
     };
 
     dataList.forEach((item: any) => {
