@@ -70,6 +70,102 @@ const statusConfig: Record<
   },
 };
 
+// 统计卡片配置
+const STAT_CARDS = [
+  {
+    key: 'pending',
+    label: '等待中',
+    icon: Clock,
+    color: 'blue',
+  },
+  {
+    key: 'processing',
+    label: '处理中',
+    icon: Loader2,
+    color: 'green',
+  },
+  {
+    key: 'completed',
+    label: '已完成',
+    icon: CheckCircle,
+    color: 'gray',
+  },
+  {
+    key: 'failed',
+    label: '失败',
+    icon: XCircle,
+    color: 'red',
+  },
+  {
+    key: 'deadletter',
+    label: '死信',
+    icon: AlertTriangle,
+    color: 'orange',
+  },
+] as const;
+
+// 计算健康度百分比
+const calculateHealthPercentage = (
+  failed: number,
+  totalProcessed: number
+): number => {
+  const denominator = Math.max(totalProcessed, 1);
+  return Math.round(100 - (failed / denominator) * 100);
+};
+
+// 分页控件组件
+const PaginationControls = ({
+  currentPage,
+  totalPages,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) => {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="flex justify-center gap-2 mt-4">
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={currentPage === 1}
+        onClick={() => onPageChange(currentPage - 1)}
+      >
+        上一页
+      </Button>
+      <span className="py-2 px-4 text-sm">
+        {currentPage} / {totalPages}
+      </span>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={currentPage === totalPages}
+        onClick={() => onPageChange(currentPage + 1)}
+      >
+        下一页
+      </Button>
+    </div>
+  );
+};
+
+// Tab标签徽章组件
+const TabBadge = ({
+  count,
+  variant = 'default',
+}: {
+  count?: number;
+  variant?: 'default' | 'outline' | 'destructive';
+}) => {
+  if (!count) return null;
+  return (
+    <Badge variant={variant} className="ml-2 h-5 w-5 p-0 justify-center">
+      {count}
+    </Badge>
+  );
+};
+
 export default function QueuePage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -160,6 +256,12 @@ export default function QueuePage() {
   const deadletterTotalPages = Math.ceil(deadletterTotal / 10);
   const workers = workersData?.data?.workers || [];
 
+  // 计算Worker活跃度百分比
+  const workerActivePercentage =
+    stats && stats.workersTotal > 0
+      ? (stats.workersActive / stats.workersTotal) * 100
+      : 0;
+
   return (
     <div className="space-y-6">
       {/* 页面头部 */}
@@ -176,71 +278,25 @@ export default function QueuePage() {
 
       {/* 统计卡片 */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Clock className="h-4 w-4 text-blue-500" />
-              等待中
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {statsLoading ? '-' : stats?.pending || 0}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Loader2 className="h-4 w-4 text-green-500" />
-              处理中
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {statsLoading ? '-' : stats?.processing || 0}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-gray-500" />
-              已完成
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {statsLoading ? '-' : stats?.completed || 0}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <XCircle className="h-4 w-4 text-red-500" />
-              失败
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {statsLoading ? '-' : stats?.failed || 0}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-orange-500" />
-              死信
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              {statsLoading ? '-' : stats?.deadletter || 0}
-            </div>
-          </CardContent>
-        </Card>
+        {STAT_CARDS.map(({ key, label, icon: Icon, color }) => (
+          <Card key={key}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Icon className={`h-4 w-4 text-${color}-500`} />
+                {label}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div
+                className={`text-2xl font-bold ${
+                  color !== 'gray' ? `text-${color}-600` : ''
+                }`}
+              >
+                {statsLoading ? '-' : (stats?.[key] ?? 0)}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Worker 状态 */}
@@ -258,19 +314,10 @@ export default function QueuePage() {
             <div className="flex justify-between text-sm">
               <span>平均处理时间</span>
               <span>
-                {stats?.averageProcessTime
-                  ? `${stats.averageProcessTime}ms`
-                  : '-'}
+                {stats?.averageProcessTime ? `${stats.averageProcessTime}ms` : '-'}
               </span>
             </div>
-            <Progress
-              value={
-                stats
-                  ? (stats.workersActive / Math.max(stats.workersTotal, 1)) *
-                    100
-                  : 0
-              }
-            />
+            <Progress value={workerActivePercentage} />
           </div>
         </CardContent>
       </Card>
@@ -281,36 +328,15 @@ export default function QueuePage() {
           <TabsTrigger value="overview">概览</TabsTrigger>
           <TabsTrigger value="processing">
             处理中
-            {stats?.processing ? (
-              <Badge
-                variant="default"
-                className="ml-2 h-5 w-5 p-0 justify-center"
-              >
-                {stats.processing}
-              </Badge>
-            ) : null}
+            <TabBadge count={stats?.processing} variant="default" />
           </TabsTrigger>
           <TabsTrigger value="pending">
             等待中
-            {stats?.pending ? (
-              <Badge
-                variant="outline"
-                className="ml-2 h-5 w-5 p-0 justify-center"
-              >
-                {stats.pending}
-              </Badge>
-            ) : null}
+            <TabBadge count={stats?.pending} variant="outline" />
           </TabsTrigger>
           <TabsTrigger value="deadletter">
             死信队列
-            {stats?.deadletter ? (
-              <Badge
-                variant="destructive"
-                className="ml-2 h-5 w-5 p-0 justify-center"
-              >
-                {stats.deadletter}
-              </Badge>
-            ) : null}
+            <TabBadge count={stats?.deadletter} variant="destructive" />
           </TabsTrigger>
           <TabsTrigger value="workers">Workers</TabsTrigger>
         </TabsList>
@@ -327,20 +353,16 @@ export default function QueuePage() {
                 <div className="flex items-center gap-4">
                   <div className="flex-1">
                     <Progress
-                      value={
-                        100 -
-                        ((stats?.failed || 0) /
-                          Math.max(stats?.totalProcessed || 1, 1)) *
-                          100
-                      }
+                      value={calculateHealthPercentage(
+                        stats?.failed || 0,
+                        stats?.totalProcessed || 0
+                      )}
                     />
                   </div>
                   <span className="text-2xl font-bold text-green-600">
-                    {Math.round(
-                      100 -
-                        ((stats?.failed || 0) /
-                          Math.max(stats?.totalProcessed || 1, 1)) *
-                          100
+                    {calculateHealthPercentage(
+                      stats?.failed || 0,
+                      stats?.totalProcessed || 0
                     )}
                     %
                   </span>
@@ -379,29 +401,11 @@ export default function QueuePage() {
             showCancel
             onCancel={(id) => cancelMutation.mutate(id)}
           />
-          {pendingTotalPages > 1 && (
-            <div className="flex justify-center gap-2 mt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={pendingPage === 1}
-                onClick={() => setPendingPage(pendingPage - 1)}
-              >
-                上一页
-              </Button>
-              <span className="py-2 px-4 text-sm">
-                {pendingPage} / {pendingTotalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={pendingPage === pendingTotalPages}
-                onClick={() => setPendingPage(pendingPage + 1)}
-              >
-                下一页
-              </Button>
-            </div>
-          )}
+          <PaginationControls
+            currentPage={pendingPage}
+            totalPages={pendingTotalPages}
+            onPageChange={setPendingPage}
+          />
         </TabsContent>
 
         {/* 死信队列 */}
@@ -426,29 +430,11 @@ export default function QueuePage() {
             showRetry
             onRetry={(id) => retryMutation.mutate(id)}
           />
-          {deadletterTotalPages > 1 && (
-            <div className="flex justify-center gap-2 mt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={deadletterPage === 1}
-                onClick={() => setDeadletterPage(deadletterPage - 1)}
-              >
-                上一页
-              </Button>
-              <span className="py-2 px-4 text-sm">
-                {deadletterPage} / {deadletterTotalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={deadletterPage === deadletterTotalPages}
-                onClick={() => setDeadletterPage(deadletterPage + 1)}
-              >
-                下一页
-              </Button>
-            </div>
-          )}
+          <PaginationControls
+            currentPage={deadletterPage}
+            totalPages={deadletterTotalPages}
+            onPageChange={setDeadletterPage}
+          />
         </TabsContent>
 
         {/* Workers */}
