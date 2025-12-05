@@ -336,28 +336,30 @@ export default function TaskDetailPage() {
     return [headers.join(','), ...rows].join('\n');
   };
 
+  // 表格渲染映射
+  const tableRenderers: Record<
+    ResultType,
+    () => React.ReactElement
+  > = {
+    subdomain: renderSubdomainTable,
+    takeover: renderTakeoverTable,
+    url: renderURLTable,
+    sensitive: renderSensitiveTable,
+    port: renderPortTable,
+    service: renderServiceTable,
+    dirscan: renderDirScanTable,
+    crawler: renderCrawlerTable,
+    domain: renderGenericTable,
+    app: renderGenericTable,
+    miniapp: renderGenericTable,
+    vuln: renderGenericTable,
+    topology: renderGenericTable,
+  };
+
   // 渲染不同类型的表格
   const renderTable = () => {
-    switch (currentTab) {
-      case 'subdomain':
-        return renderSubdomainTable();
-      case 'takeover':
-        return renderTakeoverTable();
-      case 'url':
-        return renderURLTable();
-      case 'sensitive':
-        return renderSensitiveTable();
-      case 'port':
-        return renderPortTable();
-      case 'service':
-        return renderServiceTable();
-      case 'dirscan':
-        return renderDirScanTable();
-      case 'crawler':
-        return renderCrawlerTable();
-      default:
-        return renderGenericTable();
-    }
+    const renderer = tableRenderers[currentTab];
+    return renderer ? renderer() : renderGenericTable();
   };
 
   const renderSubdomainTable = () => (
