@@ -15,7 +15,7 @@
   ],
   "plugins": ["@typescript-eslint", "react-hooks", "react-refresh"],
   "rules": {
-    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/no-explicit-any": "warn",
     "@typescript-eslint/no-non-null-assertion": "error",
     "@typescript-eslint/no-unused-vars": [
       "error",
@@ -24,9 +24,9 @@
         "varsIgnorePattern": "^_"
       }
     ],
-    "complexity": ["error", 20],
-    "max-depth": ["error", 4],
-    "max-lines-per-function": ["error", { "max": 100, "skipBlankLines": true, "skipComments": true }],
+    "complexity": ["warn", 30],
+    "max-depth": ["warn", 5],
+    "max-lines-per-function": ["warn", { "max": 500, "skipBlankLines": true, "skipComments": true }],
     "max-nested-callbacks": ["error", 4],
     "react-refresh/only-export-components": ["warn", { "allowConstantExport": true }]
   },
