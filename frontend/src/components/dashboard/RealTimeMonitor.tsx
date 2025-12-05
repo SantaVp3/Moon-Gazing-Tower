@@ -42,7 +42,7 @@ export default function RealTimeMonitor() {
   const { isConnected } = useWebSocket('/api/ws', {
     onMessage: (message) => {
       if (message.type === 'monitor_data') {
-        setMonitorData(message as MonitorData);
+        setMonitorData(message as unknown as MonitorData);
       }
     },
     onOpen: () => setConnectionStatus('connected'),

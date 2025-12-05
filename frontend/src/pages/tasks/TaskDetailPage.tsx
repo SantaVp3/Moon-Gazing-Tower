@@ -336,28 +336,19 @@ export default function TaskDetailPage() {
     return [headers.join(','), ...rows].join('\n');
   };
 
-  // 表格渲染映射
-  const tableRenderers: Record<
-    ResultType,
-    () => React.ReactElement
-  > = {
-    subdomain: renderSubdomainTable,
-    takeover: renderTakeoverTable,
-    url: renderURLTable,
-    sensitive: renderSensitiveTable,
-    port: renderPortTable,
-    service: renderServiceTable,
-    dirscan: renderDirScanTable,
-    crawler: renderCrawlerTable,
-    domain: renderGenericTable,
-    app: renderGenericTable,
-    miniapp: renderGenericTable,
-    vuln: renderGenericTable,
-    topology: renderGenericTable,
-  };
-
   // 渲染不同类型的表格
   const renderTable = () => {
+    const tableRenderers: Partial<Record<ResultType, () => React.ReactElement>> = {
+      subdomain: renderSubdomainTable,
+      takeover: renderTakeoverTable,
+      url: renderURLTable,
+      sensitive: renderSensitiveTable,
+      port: renderPortTable,
+      service: renderServiceTable,
+      dirscan: renderDirScanTable,
+      crawler: renderCrawlerTable,
+    };
+
     const renderer = tableRenderers[currentTab];
     return renderer ? renderer() : renderGenericTable();
   };
