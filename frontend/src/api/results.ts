@@ -197,11 +197,36 @@ function transformDataFields(
     'pattern',
     'matches',
     'banner',
+    'fingerprint',
+    'technologies',
+    'cdn',
+    'vulnerable',
+    'length',
+    'size',
+    'status',
   ];
 
-  for (const field of directFields) {
+  // snake_case 到 camelCase 的映射表
+  const snakeToCamelMap: Record<string, string> = {
+    icp_type: 'icpType',
+    status_code: 'statusCode',
+    http_status: 'statusCode',
+    content_type: 'contentType',
+    web_server: 'webServer',
+    cdn_provider: 'cdnProvider',
+    cdn_name: 'cdnName',
+    is_alive: 'isAlive',
+    is_backup: 'isBackup',
+    is_config: 'isConfig',
+    is_api: 'isApi',
+  };
+
+  // 批量处理直接映射和snake_case转换
+  const allFields = [...directFields, ...Object.keys(snakeToCamelMap)];
+  for (const field of allFields) {
     if (data[field] !== undefined) {
-      result[field] = data[field];
+      const targetField = snakeToCamelMap[field] || field;
+      result[targetField] = data[field];
     }
   }
 
@@ -218,7 +243,6 @@ function transformDataFields(
     result.subdomain = data.subdomain;
     result.fullDomain = data.subdomain;
   } else if (data.domain !== undefined && data.domain !== '') {
-    // domain 字段作为子域名（兼容旧数据）
     result.subdomain = data.domain;
     result.fullDomain = data.domain;
   }
@@ -232,38 +256,13 @@ function transformDataFields(
     result.ips = data.ips;
   }
 
-  // snake_case 到 camelCase 的映射
-  if (data.icp_type !== undefined) result.icpType = data.icp_type;
-  if (data.status_code !== undefined) result.statusCode = data.status_code;
-  if (data.http_status !== undefined) result.statusCode = data.http_status;
-  if (data.content_type !== undefined) result.contentType = data.content_type;
-  if (data.web_server !== undefined) result.webServer = data.web_server;
-  if (data.cdn_provider !== undefined) result.cdnProvider = data.cdn_provider;
-  if (data.cdn_name !== undefined) result.cdnName = data.cdn_name;
-  if (data.is_alive !== undefined) result.isAlive = data.is_alive;
-  if (data.is_backup !== undefined) result.isBackup = data.is_backup;
-  if (data.is_config !== undefined) result.isConfig = data.is_config;
-  if (data.is_api !== undefined) result.isApi = data.is_api;
-
-  // 数组字段
-  if (data.fingerprint !== undefined) result.fingerprint = data.fingerprint;
-  if (data.technologies !== undefined) result.technologies = data.technologies;
-
-  // 布尔字段
-  if (data.cdn !== undefined) result.cdn = data.cdn;
+  // alive 特殊处理
   if (data.alive !== undefined) {
     result.alive = data.alive;
-    // 如果 alive 但没有状态码，显示为存活
     if (data.alive && !result.statusCode) {
       result.statusCode = data.http_status || 0;
     }
   }
-  if (data.vulnerable !== undefined) result.vulnerable = data.vulnerable;
-
-  // 数字字段
-  if (data.length !== undefined) result.length = data.length;
-  if (data.size !== undefined) result.size = data.size;
-  if (data.status !== undefined) result.status = data.status;
 
   return result;
 }
