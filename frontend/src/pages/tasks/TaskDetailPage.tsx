@@ -96,11 +96,14 @@ export default function TaskDetailPage() {
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
+  // Ensure id exists, otherwise provide empty string
+  const taskId = id || '';
+
   // 所有 hooks 必须在条件返回之前调用
   const { data, isLoading } = useQuery({
-    queryKey: ['task', id],
-    queryFn: () => taskApi.getTask(id!),
-    enabled: !!id,
+    queryKey: ['task', taskId],
+    queryFn: () => taskApi.getTask(taskId),
+    enabled: !!taskId,
     refetchInterval: (query) => {
       const task = query.state.data?.data;
       return task?.status === 'running' ? 3000 : false;
@@ -109,9 +112,9 @@ export default function TaskDetailPage() {
 
   // 获取结果统计
   const { data: statsData } = useQuery({
-    queryKey: ['task-results-stats', id],
-    queryFn: () => resultApi.getResultStats(id!),
-    enabled: !!id,
+    queryKey: ['task-results-stats', taskId],
+    queryFn: () => resultApi.getResultStats(taskId),
+    enabled: !!taskId,
   });
 
   // 自动选择第一个有数据的 Tab
@@ -137,75 +140,82 @@ export default function TaskDetailPage() {
   const statusCodeNum =
     statusCodeFilter !== 'all' ? parseInt(statusCodeFilter) : undefined;
   const { data: resultsData, isLoading: resultsLoading } = useQuery({
-    queryKey: ['task-results', id, currentTab, page, search, statusCodeFilter],
+    queryKey: [
+      'task-results',
+      taskId,
+      currentTab,
+      page,
+      search,
+      statusCodeFilter,
+    ],
     queryFn: () =>
-      resultApi.getTaskResults(id!, {
+      resultApi.getTaskResults(taskId, {
         type: currentTab,
         page,
         pageSize,
         search,
         statusCode: currentTab === 'dirscan' ? statusCodeNum : undefined,
       }),
-    enabled: !!id && !!activeTab,
+    enabled: !!taskId && !!activeTab,
   });
 
   // 任务操作 mutations
   const startMutation = useMutation({
-    mutationFn: () => taskApi.startTask(id!),
+    mutationFn: () => taskApi.startTask(taskId),
     onSuccess: () => {
       toast({ title: '任务已开始' });
-      queryClient.invalidateQueries({ queryKey: ['task', id] });
+      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
     },
     onError: () => toast({ title: '操作失败', variant: 'destructive' }),
   });
 
   const pauseMutation = useMutation({
-    mutationFn: () => taskApi.pauseTask(id!),
+    mutationFn: () => taskApi.pauseTask(taskId),
     onSuccess: () => {
       toast({ title: '任务已暂停' });
-      queryClient.invalidateQueries({ queryKey: ['task', id] });
+      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
     },
     onError: () => toast({ title: '操作失败', variant: 'destructive' }),
   });
 
   const resumeMutation = useMutation({
-    mutationFn: () => taskApi.resumeTask(id!),
+    mutationFn: () => taskApi.resumeTask(taskId),
     onSuccess: () => {
       toast({ title: '任务已恢复' });
-      queryClient.invalidateQueries({ queryKey: ['task', id] });
+      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
     },
     onError: () => toast({ title: '操作失败', variant: 'destructive' }),
   });
 
   const cancelMutation = useMutation({
-    mutationFn: () => taskApi.cancelTask(id!),
+    mutationFn: () => taskApi.cancelTask(taskId),
     onSuccess: () => {
       toast({ title: '任务已停止' });
-      queryClient.invalidateQueries({ queryKey: ['task', id] });
+      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
     },
     onError: () => toast({ title: '操作失败', variant: 'destructive' }),
   });
 
   const retryMutation = useMutation({
-    mutationFn: () => taskApi.retryTask(id!),
+    mutationFn: () => taskApi.retryTask(taskId),
     onSuccess: () => {
       toast({ title: '任务已重新启动' });
-      queryClient.invalidateQueries({ queryKey: ['task', id] });
+      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
     },
     onError: () => toast({ title: '操作失败', variant: 'destructive' }),
   });
 
   const rescanMutation = useMutation({
-    mutationFn: (fromScratch: boolean) => taskApi.rescanTask(id!, fromScratch),
+    mutationFn: (fromScratch: boolean) => taskApi.rescanTask(taskId, fromScratch),
     onSuccess: (_, fromScratch) => {
       toast({ title: fromScratch ? '任务已从头开始扫描' : '任务已继续扫描' });
-      queryClient.invalidateQueries({ queryKey: ['task', id] });
+      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
     },
     onError: () => toast({ title: '操作失败', variant: 'destructive' }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: () => taskApi.deleteTask(id!),
+    mutationFn: () => taskApi.deleteTask(taskId),
     onSuccess: () => {
       toast({ title: '任务已删除' });
       navigate('/tasks');
@@ -297,7 +307,7 @@ export default function TaskDetailPage() {
 
   const handleExport = async () => {
     try {
-      const data = await resultApi.exportResults(id!, currentTab);
+      const data = await resultApi.exportResults(taskId, currentTab);
       // 转换为CSV并下载
       const results = Array.isArray(data)
         ? data
@@ -1572,7 +1582,7 @@ export default function TaskDetailPage() {
       {/* Table Content or Topology View */}
       <div className="flex-1 overflow-auto">
         {currentTab === 'topology' ? (
-          <TaskTopologyView taskId={id!} taskName={task?.name || ''} />
+          <TaskTopologyView taskId={taskId} taskName={task?.name || ''} />
         ) : (
           renderTable()
         )}

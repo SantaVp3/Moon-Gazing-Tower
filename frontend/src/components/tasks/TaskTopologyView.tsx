@@ -128,31 +128,17 @@ export default function TaskTopologyView({
 
     // Mouse controls
     let isDragging = false;
-    let previousMousePosition = { x: 0, y: 0 };
-    let targetRotationX = 0;
-    let targetRotationY = 0;
     let autoRotate = true;
 
-    const onMouseDown = (e: MouseEvent) => {
+    const onMouseDown = () => {
       isDragging = true;
       autoRotate = false;
-      previousMousePosition = { x: e.clientX, y: e.clientY };
     };
 
     const onMouseMove = (e: MouseEvent) => {
       const rect = renderer.domElement.getBoundingClientRect();
       mouseRef.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       mouseRef.current.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-      if (isDragging) {
-        const deltaMove = {
-          x: e.clientX - previousMousePosition.x,
-          y: e.clientY - previousMousePosition.y,
-        };
-        targetRotationY += deltaMove.x * 0.005;
-        targetRotationX += deltaMove.y * 0.005;
-        previousMousePosition = { x: e.clientX, y: e.clientY };
-      }
     };
 
     const onMouseUp = () => {
@@ -403,12 +389,18 @@ export default function TaskTopologyView({
     const links: GraphLink[] = [];
     const nodeMap = new Map<string, GraphNode>();
 
-    const addNode = (id: string, name: string, type: string, data?: any) => {
-      if (!nodeMap.has(id)) {
+    const addNode = (
+      id: string,
+      name: string,
+      type: string,
+      data?: any
+    ): GraphNode => {
+      let node = nodeMap.get(id);
+      if (!node) {
         const color = data?.color || '#ffffff';
         const val = data?.val || 5;
 
-        const node: GraphNode = {
+        node = {
           id,
           name,
           type,
@@ -422,7 +414,7 @@ export default function TaskTopologyView({
         nodes.push(node);
         nodeMap.set(id, node);
       }
-      return nodeMap.get(id)!;
+      return node;
     };
 
     dataList.forEach((item: any) => {
