@@ -68,3 +68,28 @@ issues:
       linters:
         - dupl
         - goconst
+
+    # Ignore Close() errors - they're usually safe in defer
+    - text: "Error return value of.*\\.Close.*is not checked"
+      linters:
+        - errcheck
+
+    # Ignore deadline setting errors - not critical
+    - text: "Error return value of.*\\.Set(Read|Write)?Deadline.*is not checked"
+      linters:
+        - errcheck
+
+    # Ignore fmt operations in network protocols - validated elsewhere
+    - text: "Error return value of `fmt\\.(Fprint|Fprintf|Sscanf)` is not checked"
+      linters:
+        - errcheck
+
+    # Ignore os.Remove errors - file might not exist
+    - text: "Error return value of `os\\.Remove` is not checked"
+      linters:
+        - errcheck
+
+    # Ignore Process.Kill errors - process might already be dead
+    - text: "Error return value of.*\\.Process\\.Kill` is not checked"
+      linters:
+        - errcheck

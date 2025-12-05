@@ -229,7 +229,7 @@ func (h *TaskHandler) RescanTask(c *gin.Context) {
 	var req struct {
 		FromScratch bool `json:"from_scratch"`
 	}
-	c.ShouldBindJSON(&req)
+	_ = c.ShouldBindJSON(&req)
 
 	if err := h.taskService.RescanTask(taskID, req.FromScratch); err != nil {
 		utils.Error(c, utils.ErrCodeInternalError, err.Error())

@@ -360,8 +360,11 @@ func (m *APIManager) SearchByIP(ctx context.Context, ip string, sources []string
 	return allAssets
 }
 
-// SearchByCert 根据证书关键字搜索
-func (m *APIManager) SearchByCert(ctx context.Context, keyword string, sources []string, maxResults int) []UnifiedAsset {
+// searchFunc defines a function type for different search operations
+type searchFunc func(source string) []UnifiedAsset
+
+// parallelSearch executes search operations concurrently across multiple sources
+func (m *APIManager) parallelSearch(sources []string, maxResults int, searchFn searchFunc) []UnifiedAsset {
 	if len(sources) == 0 {
 		sources = m.GetConfiguredSources()
 	}
@@ -378,35 +381,10 @@ func (m *APIManager) SearchByCert(ctx context.Context, keyword string, sources [
 		wg.Add(1)
 		go func(src string) {
 			defer wg.Done()
-
-			var assets []UnifiedAsset
-
-			switch src {
-			case "fofa":
-				if m.Fofa != nil && m.Fofa.IsConfigured() {
-					fofaAssets, err := m.Fofa.SearchCert(ctx, keyword, maxResults)
-					if err == nil {
-						for _, a := range fofaAssets {
-							assets = append(assets, m.convertFofaAsset(a))
-						}
-					}
-				}
-
-			case "quake":
-				if m.Quake != nil && m.Quake.IsConfigured() {
-					quakeAssets, err := m.Quake.SearchByCert(ctx, keyword, maxResults)
-					if err == nil {
-						for _, a := range quakeAssets {
-							assets = append(assets, m.convertQuakeAsset(a))
-						}
-					}
-				}
-			}
-
+			assets := searchFn(src)
 			mu.Lock()
 			allAssets = append(allAssets, assets...)
 			mu.Unlock()
-
 		}(source)
 	}
 
@@ -414,58 +392,56 @@ func (m *APIManager) SearchByCert(ctx context.Context, keyword string, sources [
 	return allAssets
 }
 
-// SearchByIconHash 根据图标哈希搜索
-func (m *APIManager) SearchByIconHash(ctx context.Context, hash string, sources []string, maxResults int) []UnifiedAsset {
-	if len(sources) == 0 {
-		sources = m.GetConfiguredSources()
-	}
-
-	if maxResults <= 0 {
-		maxResults = 100
-	}
-
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	var allAssets []UnifiedAsset
-
-	for _, source := range sources {
-		wg.Add(1)
-		go func(src string) {
-			defer wg.Done()
-
-			var assets []UnifiedAsset
-
-			switch src {
-			case "fofa":
-				if m.Fofa != nil && m.Fofa.IsConfigured() {
-					fofaAssets, err := m.Fofa.SearchByIconHash(ctx, hash, maxResults)
-					if err == nil {
-						for _, a := range fofaAssets {
-							assets = append(assets, m.convertFofaAsset(a))
-						}
-					}
-				}
-
-			case "quake":
-				if m.Quake != nil && m.Quake.IsConfigured() {
-					quakeAssets, err := m.Quake.SearchByFaviconHash(ctx, hash, maxResults)
-					if err == nil {
-						for _, a := range quakeAssets {
-							assets = append(assets, m.convertQuakeAsset(a))
-						}
+// SearchByCert 根据证书关键字搜索
+func (m *APIManager) SearchByCert(ctx context.Context, keyword string, sources []string, maxResults int) []UnifiedAsset {
+	return m.parallelSearch(sources, maxResults, func(src string) []UnifiedAsset {
+		var assets []UnifiedAsset
+		switch src {
+		case "fofa":
+			if m.Fofa != nil && m.Fofa.IsConfigured() {
+				if fofaAssets, err := m.Fofa.SearchCert(ctx, keyword, maxResults); err == nil {
+					for _, a := range fofaAssets {
+						assets = append(assets, m.convertFofaAsset(a))
 					}
 				}
 			}
+		case "quake":
+			if m.Quake != nil && m.Quake.IsConfigured() {
+				if quakeAssets, err := m.Quake.SearchByCert(ctx, keyword, maxResults); err == nil {
+					for _, a := range quakeAssets {
+						assets = append(assets, m.convertQuakeAsset(a))
+					}
+				}
+			}
+		}
+		return assets
+	})
+}
 
-			mu.Lock()
-			allAssets = append(allAssets, assets...)
-			mu.Unlock()
-
-		}(source)
-	}
-
-	wg.Wait()
-	return allAssets
+// SearchByIconHash 根据图标哈希搜索
+func (m *APIManager) SearchByIconHash(ctx context.Context, hash string, sources []string, maxResults int) []UnifiedAsset {
+	return m.parallelSearch(sources, maxResults, func(src string) []UnifiedAsset {
+		var assets []UnifiedAsset
+		switch src {
+		case "fofa":
+			if m.Fofa != nil && m.Fofa.IsConfigured() {
+				if fofaAssets, err := m.Fofa.SearchByIconHash(ctx, hash, maxResults); err == nil {
+					for _, a := range fofaAssets {
+						assets = append(assets, m.convertFofaAsset(a))
+					}
+				}
+			}
+		case "quake":
+			if m.Quake != nil && m.Quake.IsConfigured() {
+				if quakeAssets, err := m.Quake.SearchByFaviconHash(ctx, hash, maxResults); err == nil {
+					for _, a := range quakeAssets {
+						assets = append(assets, m.convertQuakeAsset(a))
+					}
+				}
+			}
+		}
+		return assets
+	})
 }
 
 // convertFofaAsset 转换 Fofa 资产为统一格式

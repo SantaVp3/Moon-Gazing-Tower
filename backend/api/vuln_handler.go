@@ -175,7 +175,7 @@ func (h *VulnHandler) MarkVulnAsFixed(c *gin.Context) {
 	var req struct {
 		FixedBy string `json:"fixed_by"`
 	}
-	c.ShouldBindJSON(&req)
+	_ = c.ShouldBindJSON(&req)
 
 	if req.FixedBy == "" && username != nil {
 		req.FixedBy = username.(string)

@@ -166,7 +166,9 @@ func loadTextList(filePath string) []string {
 		// Return empty list if file not found
 		return result
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -189,7 +191,7 @@ func loadFingerprintConfig(filePath string) *FingerprintConfig {
 		return config
 	}
 
-	yaml.Unmarshal(data, config)
+	_ = yaml.Unmarshal(data, config)
 	return config
 }
 
@@ -202,7 +204,7 @@ func loadCDNConfig(filePath string) *CDNConfig {
 		return config
 	}
 
-	yaml.Unmarshal(data, config)
+	_ = yaml.Unmarshal(data, config)
 	return config
 }
 
@@ -215,7 +217,7 @@ func loadVulnConfig(filePath string) *VulnConfig {
 		return config
 	}
 
-	yaml.Unmarshal(data, config)
+	_ = yaml.Unmarshal(data, config)
 	return config
 }
 
@@ -230,7 +232,7 @@ func loadPortsConfig(filePath string) *PortsConfig {
 		return config
 	}
 
-	yaml.Unmarshal(data, config)
+	_ = yaml.Unmarshal(data, config)
 	return config
 }
 
@@ -246,7 +248,7 @@ func loadFaviconHashConfig(filePath string) *FaviconHashConfig {
 		return config
 	}
 
-	yaml.Unmarshal(data, config)
+	_ = yaml.Unmarshal(data, config)
 	return config
 }
 

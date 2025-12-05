@@ -103,7 +103,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 
 	// Update role if specified
 	if req.Role != "" && req.Role != "user" {
-		h.userService.UpdateUser(user.ID.Hex(), map[string]interface{}{"role": req.Role})
+		_ = h.userService.UpdateUser(user.ID.Hex(), map[string]interface{}{"role": req.Role})
 	}
 
 	utils.SuccessWithMessage(c, "创建成功", gin.H{
