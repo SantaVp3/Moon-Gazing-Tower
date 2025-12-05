@@ -227,10 +227,7 @@ export default function POCsPage() {
   };
 
   // 提取多行描述的辅助函数
-  const parseMultilineYaml = (
-    lines: string[],
-    startIndex: number
-  ): string => {
+  const parseMultilineYaml = (lines: string[], startIndex: number): string => {
     let result = '';
     for (let j = startIndex + 1; j < lines.length; j++) {
       const nextLine = lines[j];
@@ -246,7 +243,11 @@ export default function POCsPage() {
   // 提取CVE-ID数组的辅助函数
   const parseCveIdArray = (lines: string[], startIndex: number): string[] => {
     const result: string[] = [];
-    for (let j = startIndex + 1; j < Math.min(startIndex + 5, lines.length); j++) {
+    for (
+      let j = startIndex + 1;
+      j < Math.min(startIndex + 5, lines.length);
+      j++
+    ) {
       const line = lines[j].trim();
       if (line.startsWith('-')) {
         result.push(line.replace(/^-\s*/, '').replace(/['"]/g, ''));

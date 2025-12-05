@@ -314,7 +314,9 @@ export default function QueuePage() {
             <div className="flex justify-between text-sm">
               <span>平均处理时间</span>
               <span>
-                {stats?.averageProcessTime ? `${stats.averageProcessTime}ms` : '-'}
+                {stats?.averageProcessTime
+                  ? `${stats.averageProcessTime}ms`
+                  : '-'}
               </span>
             </div>
             <Progress value={workerActivePercentage} />

@@ -206,7 +206,8 @@ export default function TaskDetailPage() {
   });
 
   const rescanMutation = useMutation({
-    mutationFn: (fromScratch: boolean) => taskApi.rescanTask(taskId, fromScratch),
+    mutationFn: (fromScratch: boolean) =>
+      taskApi.rescanTask(taskId, fromScratch),
     onSuccess: (_, fromScratch) => {
       toast({ title: fromScratch ? '任务已从头开始扫描' : '任务已继续扫描' });
       queryClient.invalidateQueries({ queryKey: ['task', taskId] });
@@ -338,7 +339,9 @@ export default function TaskDetailPage() {
 
   // 渲染不同类型的表格
   const renderTable = () => {
-    const tableRenderers: Partial<Record<ResultType, () => React.ReactElement>> = {
+    const tableRenderers: Partial<
+      Record<ResultType, () => React.ReactElement>
+    > = {
       subdomain: renderSubdomainTable,
       takeover: renderTakeoverTable,
       url: renderURLTable,
