@@ -226,6 +226,37 @@ export default function POCsPage() {
     e.target.value = '';
   };
 
+  // 提取多行描述的辅助函数
+  const parseMultilineYaml = (
+    lines: string[],
+    startIndex: number
+  ): string => {
+    let result = '';
+    for (let j = startIndex + 1; j < lines.length; j++) {
+      const nextLine = lines[j];
+      if (nextLine.match(/^\s{2,}/) || nextLine.trim() === '') {
+        result += nextLine.trim() + ' ';
+      } else {
+        break;
+      }
+    }
+    return result;
+  };
+
+  // 提取CVE-ID数组的辅助函数
+  const parseCveIdArray = (lines: string[], startIndex: number): string[] => {
+    const result: string[] = [];
+    for (let j = startIndex + 1; j < Math.min(startIndex + 5, lines.length); j++) {
+      const line = lines[j].trim();
+      if (line.startsWith('-')) {
+        result.push(line.replace(/^-\s*/, '').replace(/['"]/g, ''));
+      } else if (!line.startsWith('#')) {
+        break;
+      }
+    }
+    return result;
+  };
+
   // 解析 Nuclei 模板 YAML
   const parseNucleiTemplate = (
     content: string,
@@ -289,15 +320,7 @@ export default function POCsPage() {
           let desc = line.replace('description:', '').trim();
           // 处理多行描述
           if (desc === '|' || desc === '>') {
-            desc = '';
-            for (let j = i + 1; j < lines.length; j++) {
-              const nextLine = lines[j];
-              if (nextLine.match(/^\s{2,}/) || nextLine.trim() === '') {
-                desc += nextLine.trim() + ' ';
-              } else {
-                break;
-              }
-            }
+            desc = parseMultilineYaml(lines, i);
           }
           result.description = desc.replace(/['"]/g, '').trim();
         }
@@ -316,18 +339,9 @@ export default function POCsPage() {
         // 解析 cve-id
         if (line.includes('cve-id:') || line.includes('cveid:')) {
           // 可能是数组格式
-          const nextLines: string[] = [];
-          for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
-            if (lines[j].trim().startsWith('-')) {
-              nextLines.push(
-                lines[j].trim().replace(/^-\s*/, '').replace(/['"]/g, '')
-              );
-            } else if (!lines[j].trim().startsWith('#')) {
-              break;
-            }
-          }
-          if (nextLines.length > 0) {
-            result.cveId = nextLines[0];
+          const cveArray = parseCveIdArray(lines, i);
+          if (cveArray.length > 0) {
+            result.cveId = cveArray[0];
           } else {
             const cveMatch = line.match(/CVE-\d{4}-\d+/i);
             if (cveMatch) {
