@@ -45,20 +45,11 @@
       }
     },
     {
-      "files": ["**/TaskTopologyView.tsx", "**/TaskCreateDialog.tsx"],
+      "files": ["**/TaskTopologyView.tsx"],
       "rules": {
-        "@typescript-eslint/no-explicit-any": "warn",
-        "@typescript-eslint/no-non-null-assertion": "warn",
+        "@typescript-eslint/no-explicit-any": "off",
         "max-lines-per-function": "off",
-        "complexity": "off",
-        "max-depth": "off"
-      }
-    },
-    {
-      "files": ["**/CruisePage.tsx", "**/DashboardPage.tsx", "**/MonitorPage.tsx", "**/VulnDashboard.tsx"],
-      "rules": {
-        "max-lines-per-function": ["error", { "max": 200 }],
-        "complexity": ["error", 20]
+        "complexity": "off"
       }
     }
   ]

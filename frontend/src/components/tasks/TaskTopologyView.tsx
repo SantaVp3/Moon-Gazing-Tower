@@ -129,8 +129,8 @@ export default function TaskTopologyView({
     // Mouse controls
     let isDragging = false;
     let previousMousePosition = { x: 0, y: 0 };
-    let _targetRotationX = 0;
-    let _targetRotationY = 0;
+    let targetRotationX = 0;
+    let targetRotationY = 0;
     let autoRotate = true;
 
     const onMouseDown = (e: MouseEvent) => {
